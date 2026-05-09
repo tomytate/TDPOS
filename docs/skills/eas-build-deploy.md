@@ -17,7 +17,7 @@ Agents will generate `expo build:android` or `expo build:ios` — these are the 
 ```json
 {
   "cli": {
-    "version": ">= 16.19.0",
+    "version": ">= 18.11.0",
     "appVersionSource": "remote"
   },
   "build": {
@@ -120,7 +120,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       {
         android: {
           minSdkVersion: 24,
-          compileSdkVersion: 35,
+          compileSdkVersion: 36,
           targetSdkVersion: 35,
         },
         ios: {
@@ -178,7 +178,7 @@ eas update --branch production --message "fix: receipt alignment"
 - [ ] Google Developer account ($25 one-time)
 - [ ] App manually uploaded once (first time only)
 - [ ] `google-service-account.json` for automated submission
-- [ ] Target SDK 35 (Android 15 requirement)
+- [ ] Target SDK 35 (Android 15 requirement); compile SDK 36 for current AndroidX AAR metadata
 - [ ] Bluetooth permissions with `maxSdkVersion` handling
 
 ## ❌ DO NOT USE
@@ -203,7 +203,7 @@ eas submit --profile production --platform all
 
 ## Sources
 
-- CLI: `eas-cli` (run via `bunx eas-cli`); CLI minimum pinned in `eas.json` (`"version": ">= 16.19.0"`)
+- CLI: `eas-cli` (run via `bunx eas-cli`); CLI minimum pinned in `eas.json` (`"version": ">= 18.11.0"`)
 - Official docs: <https://docs.expo.dev/eas/>
 - EAS Build: <https://docs.expo.dev/build/introduction/>
 - EAS Submit: <https://docs.expo.dev/submit/introduction/>
@@ -212,4 +212,4 @@ eas submit --profile production --platform all
 - Apple App Store Privacy Manifests (2025+): <https://developer.apple.com/documentation/bundleresources/privacy_manifest_files>
 - Google Play target SDK requirement (2025): <https://developer.android.com/google/play/requirements/target-sdk>
 - Implementation: `eas.json`, `apps/mobile/app.config.ts`
-- Last verified: 2026-05-09
+- Last verified: 2026-05-10
