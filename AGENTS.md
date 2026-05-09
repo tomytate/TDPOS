@@ -30,7 +30,7 @@ TD POS is the operating system for Philippine business — a mobile-first, offli
 
 - Next.js 16.2.4 (App Router, `proxy.ts` replaces `middleware.ts`)
 - TailwindCSS 4.2.4 + shadcn/ui
-- Recharts 3.8.1, @react-pdf/renderer (latest), papaparse 5.5.3, date-fns 4.1.0
+- Recharts 3.8.1, @react-pdf/renderer 4.5.1, papaparse 5.5.3, date-fns 4.1.0
 - @supabase/ssr 0.10.2 (`getClaims()` not `getSession()`)
 - lucide-react 1.14.0, react-hook-form 7.75.0
 
@@ -115,7 +115,7 @@ The canonical deprecations table lives in [`docs/skills/deprecations.md`](docs/s
 | "Provisional receipts"                         | "Official Receipts"                 |
 | "Sales Invoice format ready for accreditation" | "Sales Invoice" (without qualifier) |
 
-## Skills Reference (20 procedural docs in `docs/skills/`)
+## Skills Reference (21 procedural docs in `docs/skills/`)
 
 ### Domain Skills
 
@@ -135,6 +135,7 @@ The canonical deprecations table lives in [`docs/skills/deprecations.md`](docs/s
 - `supabase-auth-phone-otp.md` — phone OTP flow, MMKV storage, PH phone validation
 - `thermal-printer-integration.md` — REAL package name, Fabric status, ESC/POS
 - `nextjs-16-proxy-pattern.md` — proxy.ts replaces middleware.ts, getClaims
+- `react-pdf-renderer.md` — server-side PDF reports and BIR-ready exports
 - `react-native-paper-theming.md` — MD3 color tokens, typography variants
 - `tanstack-query-offline.md` — React Query v5 offline patterns, v3→v5 migration
 
@@ -170,7 +171,7 @@ TDPOS/
 ├── packages/eslint-config/
 ├── supabase/             # PG17 migrations, Edge Functions, seed
 ├── docs/                 # Spec, architecture, schema reference
-│   └── skills/           # 20 procedural skill docs (shared by ALL agents)
+│   └── skills/           # 21 procedural skill docs (shared by ALL agents)
 └── UI/                   # Suki POS design canvas (reference only)
 ```
 

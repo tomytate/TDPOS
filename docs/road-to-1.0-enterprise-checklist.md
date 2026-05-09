@@ -1838,7 +1838,7 @@ Acceptance:
 - [x] Top-sellers breakdown. `getTopProductsBreakdown(forDate, limit=10)` joins `sale_items` → `products(name, unit_label)` and uses `sales!inner ( created_at )` to RLS-cascade the day filter through the parent sale. Surfaces top 10 products by gross with `pieces_sold` formatted as the product's `unit_label` (sachet, stick, bottle, etc.). Owner sees the day's revenue drivers at a glance.
 - [x] CSV export of sales — RFC 4180 line-item CSV with BIR-ready columns. Route Handler at `GET /api/exports/sales?from=YYYY-MM-DD&to=YYYY-MM-DD` (defense-in-depth `getCurrentClaims()` check, 400/401/503 error envelope, `text/csv` with `Content-Disposition: attachment`). Pure builder at `apps/web/src/lib/csv/build-sales-csv.ts` quotes per RFC 4180 and emits `\r\n` line endings. Defaults to today's local date when params omitted; rejects inverted ranges with 400.
 - [x] Dashboard download button calls the export via plain `<a download>` so it works without JavaScript.
-- [ ] PDF export using `@react-pdf/renderer` with the BIR-ready receipt format applied.
+- [x] PDF export using `@react-pdf/renderer` with the BIR-ready receipt format applied. Route Handler: `GET /api/exports/sales/pdf?from=YYYY-MM-DD&to=YYYY-MM-DD`, Node runtime, defense-in-depth `getCurrentClaims()` check, RLS-scoped `getSalesForExport()`, `renderToBuffer`, `application/pdf`, `Cache-Control: private, no-store`.
 - [x] Audit log view (read-only, filtered by tenant). Server Component at `/audit`, query at `apps/web/src/lib/queries/audit-log.ts`. Surfaces field _names_ of changed columns only (`beforeKeys`, `afterKeys` derived from `Object.keys`); never values — preserves the ADR-014 privacy posture. RLS scopes per-tenant; the `prevent_audit_mutation` trigger from the initial migration enforces immutability at the database, so the page is read-only by construction.
 - [ ] Stock Accuracy Score view (system vs last cycle count).
 - [/] Sync health view. Server Component at `/sync`, query at `apps/web/src/lib/queries/sync-health.ts`. Reads `applied_operations` (RLS-scoped) and surfaces: completed (24h), in_progress (any age), stuck (`status='in_progress' AND applied_at < now()-60s`), failed (24h), last `applied_at`, and last 10 failure rows with their `reason` label only. Single `Promise.all` of six tenant-scoped queries. Tone-coded banner: green/healthy, amber/review, red/action-needed. Per-device queue depth still pending — needs an agent-pings table or a derived view; tracked separately under P11.5.9 Support Diagnostics.
@@ -1846,7 +1846,7 @@ Acceptance:
 Acceptance:
 
 - [/] Owner can produce a 30-day sales CSV today (typecheck + lint green; end-to-end pending real Supabase project).
-- [ ] Owner can produce a 30-day sales PDF.
+- [/] Owner can produce a 30-day sales PDF. Code path exists and shares the CSV query; end-to-end export remains pending real Supabase staging data.
 - [ ] BIR-ready export passes a manual RDO acceptance dry run.
 
 ### W0.8 Management
@@ -1886,7 +1886,7 @@ Acceptance:
 - W0.2 Styling — ✅ done.
 - W0.3 Auth Shell — ✅ done.
 - W0.5 Read-Only Dashboard — ✅ done; date-range support added in W0.7.
-- W0.7 Reporting & Exports — ✅ daily report (incl. hourly histogram), CSV export, audit log, sync health. Open: PDF export, weekly/monthly, per-cashier/per-branch breakdowns, Stock Accuracy Score (needs cycle-count schema).
+- W0.7 Reporting & Exports — ✅ daily report (incl. hourly histogram), CSV/PDF export, audit log, sync health. Open: weekly/monthly aggregates and Stock Accuracy Score (needs cycle-count schema).
 - W0.8 Management — deliberately deferred until staging Supabase exists; design pattern established.
 - W0.9 Web Production Candidate — gated on hosted deploy + pilot user.
 

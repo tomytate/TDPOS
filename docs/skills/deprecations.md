@@ -30,7 +30,7 @@ When adding or changing an entry here:
 | `turbo.json` `pipeline` key                | `tasks` key                                                   | Turborepo 2.x deprecated `pipeline`. |
 | `turbo.build/schema.json` URL              | `turborepo.dev/schema.json`                                   | Domain migrated. |
 | recharts v2 (CategoricalChartState)        | recharts v3 (3.8+, hooks API)                                 | Web dashboard uses v3. |
-| react-pdf v4                               | `@react-pdf/renderer` (generate) or react-pdf v10 (view)      | v4 is unmaintained. |
+| `react-pdf` viewer package for generation  | `@react-pdf/renderer` 4.x for generation or `react-pdf` v10 for viewing | Generation and viewing use different packages. |
 | lucide-react v0.460                        | lucide-react v1.14+                                           | Brand icons removed; v1 is ESM-only. |
 | `expo build:ios/android`                   | EAS Build (`eas build --profile production`)                  | Classic build was removed in 2023. |
 | `SQLite.openDatabase()`                    | `SQLiteProvider` + `useSQLiteContext` (expo-sqlite async API) | Legacy synchronous API moved to `expo-sqlite/legacy`. |

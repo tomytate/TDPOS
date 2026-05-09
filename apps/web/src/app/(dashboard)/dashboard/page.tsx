@@ -117,6 +117,7 @@ export default async function DashboardHome({
   const dateLabel = formatLocalDateLong(forDate)
   const dateIso = isoDate(forDate)
   const exportHref = `/api/exports/sales?from=${dateIso}&to=${dateIso}`
+  const exportPdfHref = `/api/exports/sales/pdf?from=${dateIso}&to=${dateIso}`
 
   const [salesSummary, lowStock, recentSales, perBranch, perCashier, topProducts] =
     await Promise.all([
@@ -163,6 +164,14 @@ export default async function DashboardHome({
           >
             <span aria-hidden>↓</span>
             Export CSV
+          </a>
+          <a
+            href={exportPdfHref}
+            download
+            className="inline-flex items-center gap-2 rounded-lg border border-amber-500 bg-white px-3 py-1.5 text-[13px] font-semibold text-amber-700 shadow-sm transition-colors hover:bg-amber-50"
+          >
+            <span aria-hidden>↓</span>
+            Export PDF
           </a>
         </form>
       </header>
