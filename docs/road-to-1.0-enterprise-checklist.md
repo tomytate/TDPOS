@@ -466,7 +466,7 @@ Run this review once any paid service is enabled.
 - [ ] EAS CLI is not installed; `bunx eas-cli` is the documented entry.
 - [x] `docs/spec-v5.md` exists as the project spec meta-index.
 - [/] Supabase Edge Function folders exist. `apply-inventory-delta` and `create-sale` are implemented; `eod-report` is still planned.
-- [/] Tier A vertical: sale → checkout → receipt now writes a real `db.withTransactionAsync` transaction with sync-queue rows. Inventory and reports tabs are still placeholders. Scanner is still intentionally disabled.
+- [/] Tier A vertical: sale → checkout → receipt now writes a real `db.withTransactionAsync` transaction with sync-queue rows. Inventory and reports tabs now render local SQLite data; scanner is still intentionally disabled.
 - [/] Sync processor exists with foreground AppState trigger, background-task registration, auth guard, shared executor, and a local sync-health query. Real Supabase staging verification is still pending.
 - [ ] No printer integration exists.
 - [x] `createClientOperationId()` helper exists (`@tdpos/shared`) and is used by checkout.
@@ -1108,41 +1108,41 @@ Acceptance:
 
 ### P5.5 Inventory Screen
 
-- [ ] Route `apps/mobile/app/(app)/(tabs)/inventory.tsx`.
-- [ ] KPI header: stock value, low items, out of stock.
-- [ ] Category/filter chips.
-- [ ] Product list from SQLite.
-- [ ] Stock display via `divmod`.
-- [ ] Low stock badge.
+- [x] Route `apps/mobile/app/(app)/(tabs)/inventory.tsx`.
+- [x] KPI header: stock value, low items, out of stock.
+- [x] Category/filter chips.
+- [x] Product list from SQLite.
+- [x] Stock display via `divmod`.
+- [x] Low stock badge.
 - [ ] Low stock row background.
 - [ ] Spark bar decorative chart.
 - [ ] Restock button placeholder.
 - [ ] Skeleton list.
-- [ ] Accessibility label for low badge.
+- [x] Accessibility label for low badge.
 
 Acceptance:
 
-- [ ] Inventory never displays fractional stock.
-- [ ] Low stock rules use `reorder_point_pieces`.
+- [x] Inventory never displays fractional stock.
+- [x] Low stock rules use `reorder_point_pieces`.
 
 ### P5.6 End-of-Day Screen
 
-- [ ] Route `apps/mobile/app/(app)/(tabs)/reports.tsx`.
-- [ ] Create `useDailySales(dateStr)`.
-- [ ] Query `sales.total_amount`, not nonexistent `total`.
-- [ ] Use SQLite `created_at` as unix seconds, not milliseconds.
-- [ ] Aggregate hourly sales.
-- [ ] Aggregate payment mix.
-- [ ] Include sale count.
-- [ ] Include item count from `sale_items`.
-- [ ] Render gross sales.
+- [x] Route `apps/mobile/app/(app)/(tabs)/reports.tsx`.
+- [x] Create `useDailySales(dateStr)`.
+- [x] Query `sales.total_amount`, not nonexistent `total`.
+- [x] Use SQLite `created_at` as unix seconds, not milliseconds.
+- [x] Aggregate hourly sales.
+- [x] Aggregate payment mix.
+- [x] Include sale count.
+- [x] Include item count from `sale_items`.
+- [x] Render gross sales.
 - [ ] Render hourly SVG chart.
-- [ ] Render payment mix bar.
-- [ ] Include Utang in mix only if module enabled or if data exists and user has permission.
+- [x] Render payment mix bar.
+- [~] Include Utang in mix only if module enabled or if data exists and user has permission. (Current report includes existing Utang rows; permission polish remains with modules.)
 
 Acceptance:
 
-- [ ] EOD works offline from local sales data.
+- [x] EOD works offline from local sales data.
 
 ### P5.7 Scanner Modal
 
@@ -1998,7 +1998,7 @@ Updated 2026-05-09 after background sync wiring, manager diagnostics/support bun
 - [/] 2. Install Bun + Supabase CLI directly. Document the toolchain in `docs/development-setup.md`.
 - [ ] 3. Stand up a hosted Supabase Free project for staging. Apply the initial schema, immutability triggers, and `create_sale_atomic` migration. Configure publishable + secret keys in `eas.json` per profile.
 - [ ] 4. Add Postgres §14 tests for delta concurrency, remote negative-stock review, `create_sale_atomic` replay, and TOCTOU behavior.
-- [ ] 5. Finish Tier A cashier polish: Inventory and Reports tabs (`P5.5`, `P5.6`) using the existing `useProducts()` and `useDailySales()` hooks.
+- [/] 5. Finish Tier A cashier polish: Inventory and Reports tabs (`P5.5`, `P5.6`) using the existing `useProducts()` and `useDailySales()` hooks.
 - [ ] 6. Land P7.1 phone OTP flow on `app/(auth)/sign-in.tsx` + `app/(auth)/verify-otp.tsx` and keep the demo shortcut behind `__DEV__`.
 - [ ] 7. Build `apps/web` Next.js 16 foundation (Phase W0.1): `proxy.ts`, `getClaims()`, App Router skeleton, `@supabase/ssr` wired to the same staging project.
 - [ ] 8. EAS dev build (iOS simulator + Android internal) and run the offline-sale gate test (P4.6) on a real device. Tag `v0.4` once the airplane-mode round-trip is recorded in the Evidence Log.
@@ -2052,7 +2052,7 @@ Use this section as releases progress.
 - [x] Commit: first foundation snapshot created under Git on `main`.
 - [x] Commands run: `npx bun@1.3.13 run check:foundation`, `node --check`, `npx esbuild` parse checks, `node scripts/check-local-sqlite-schema.mjs`, RLS SQL scan.
 - [ ] Device/simulator: not run on physical device yet — runtime acceptance criteria for P1.4/P1.5 still open.
-- [x] Notes: Mobile foundation scaffolded and the full foundation gate passes locally through `npx bun@1.3.13`. All providers, stores, services, theme, i18n, feature hooks, and route shells exist. Tier A screens are placeholders only — checkout transaction, sync engine, and printer integration have not started.
+- [x] Notes: Mobile foundation scaffolded and the full foundation gate passes locally through `npx bun@1.3.13`. All providers, stores, services, theme, i18n, feature hooks, and route shells exist. Sale, checkout, receipt, inventory, and reports now render real local SQLite-backed flows; scanner, printer integration, real OTP, and device acceptance remain pending.
 
 ### v0.4 Evidence
 
