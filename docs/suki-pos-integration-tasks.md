@@ -5,7 +5,7 @@
 
 > [!CAUTION]
 > **Fact-Check Errata (v2.0):** Three critical corrections from v1.0:
-> 1. **`@shopify/flash-list` is v2.3.1** — `estimatedItemSize` is **DEPRECATED and removed**. v2 uses synchronous layout from New Architecture. Remove ALL size estimation props.
+> 1. **`@shopify/flash-list` is v2.0.2 for Expo SDK 55 compatibility** — `estimatedItemSize` is **DEPRECATED and removed** in v2. Remove ALL size estimation props.
 > 2. **`moti/skeleton` has Reanimated v4 compatibility issues** — community reports instability. Replaced with custom `Animated.View` + opacity pulse (zero-dep, Reanimated 4 native).
 > 3. **`expo-image` placeholder** uses object syntax: `placeholder={{ blurhash: '...' }}`, NOT `placeholder={blurhash}`.
 
@@ -39,7 +39,7 @@
 - **Assign:** X · **Validate:** C · **Deps:** none
 - [ ] Run: `npx expo install expo-image expo-haptics expo-audio expo-camera expo-linear-gradient react-native-svg @shopify/flash-list`
 - [ ] ⚠️ Do NOT install `moti` — Reanimated v4 compatibility issues confirmed. Use custom skeleton instead.
-- [ ] Verify `@shopify/flash-list` resolves to **v2.3.1+** (v2 requires New Architecture — SDK 55 ✅)
+- [ ] Verify `@shopify/flash-list` resolves to **v2.0.2** through `expo install --check` (v2 requires New Architecture — SDK 55 ✅)
 - [ ] Verify all resolve to SDK 55 compatible versions
 - [ ] Run `bun run typecheck` — no new errors
 - [ ] VALIDATED by C
@@ -533,11 +533,11 @@ graph TD
 
 ---
 
-## Verified Package Versions (Fact-Checked May 8, 2026)
+## Verified Package Versions (Fact-Checked May 9, 2026)
 
 | Package | Verified Version | Notes |
 |---|---|---|
-| `@shopify/flash-list` | **2.3.1** | v2 = New Arch only, no `estimatedItemSize` |
+| `@shopify/flash-list` | **2.0.2** | Expo SDK 55-compatible v2; no `estimatedItemSize` |
 | `expo-image` | **55.x** (SDK-matched) | `placeholder={{ blurhash }}` object syntax |
 | `expo-haptics` | **55.x** | `impactAsync`, `notificationAsync`, `selectionAsync` |
 | `expo-audio` | **55.x** | Replaces `expo-av`. `useAudioPlayer` + `seekTo(0)` |

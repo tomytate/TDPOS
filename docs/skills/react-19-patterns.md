@@ -286,7 +286,7 @@ return <Text>Sale</Text>
 
 ## Sources
 
-- Packages: `react@19.2.0`, `react-dom@19.2.0`, `react-native@0.83.2` (verified against `apps/mobile/package.json`)
+- Packages: mobile `react@19.2.0`, mobile `react-native@0.83.6`, web `react@19.2.6`, web `react-dom@19.2.6` (verified against `apps/mobile/package.json` and `apps/web/package.json`)
 - React 19 release: <https://react.dev/blog/2025/10/01/react-19-2>
 - Hooks reference: <https://react.dev/reference/react/hooks>
 - Rules of Hooks lint reference: <https://react.dev/reference/eslint-plugin-react-hooks/lints/rules-of-hooks>

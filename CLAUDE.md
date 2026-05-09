@@ -91,21 +91,21 @@ bun run typecheck && bun run lint && bun run test
 
 ## Tech Stack Quick Reference (Verified May 9, 2026)
 
-| Layer          | Package                                  | Version |
-| -------------- | ---------------------------------------- | ------- |
-| Framework      | expo                                     | 55.0.20 |
-| Router         | expo-router                              | 55.x    |
-| Local DB       | expo-sqlite                              | 55.x    |
-| State (client) | zustand                                  | 5.0.13  |
-| State (server) | @tanstack/react-query                    | 5.100.9 |
-| Backend        | @supabase/supabase-js                    | 2.105.3 |
-| UI             | react-native-paper                       | 5.15.1  |
-| Storage        | react-native-mmkv                        | 4.3.1   |
-| Printer        | @haroldtran/react-native-thermal-printer | 1.2.0   |
-| Validation     | zod                                      | 4.4.3   |
-| Language       | typescript                               | 6.0.3   |
-| Node runtime   | node                                     | 24 LTS  |
-| Web framework  | next                                     | 16.2.6  |
-| CSS            | tailwindcss                              | 4.2.4   |
-| SSR auth       | @supabase/ssr                            | 0.10.2  |
-| Monorepo       | turbo                                    | 2.9.9   |
+| Layer          | Package                                  | Version       |
+| -------------- | ---------------------------------------- | ------------- |
+| Framework      | expo                                     | 55.0.23       |
+| Router         | expo-router                              | 55.x          |
+| Local DB       | expo-sqlite                              | 55.x          |
+| State (client) | zustand                                  | 5.0.13        |
+| State (server) | @tanstack/react-query                    | 5.100.9       |
+| Backend        | @supabase/supabase-js                    | 2.105.3       |
+| UI             | react-native-paper                       | 5.15.2        |
+| Storage        | react-native-mmkv                        | 4.3.1         |
+| Printer        | @haroldtran/react-native-thermal-printer | 1.2.0         |
+| Validation     | zod                                      | 4.4.3         |
+| Language       | typescript                               | 6.0.3 / 5.9.3 |
+| Node runtime   | node                                     | 24 LTS        |
+| Web framework  | next                                     | 16.2.6        |
+| CSS            | tailwindcss                              | 4.2.4         |
+| SSR auth       | @supabase/ssr                            | 0.10.2        |
+| Monorepo       | turbo                                    | 2.9.12        |

@@ -392,8 +392,8 @@ Run this review once any paid service is enabled.
 - [x] Root monorepo scaffold exists.
 - [x] Root `package.json` has Turborepo scripts (`dev`, `build`, `lint`, `typecheck`, `test`, `format`, `db:*`, `mobile:*`, `check:foundation`).
 - [x] `turbo.json` uses `tasks`, not deprecated `pipeline`. Schema URL is `https://turborepo.dev/schema.json`.
-- [x] TypeScript base config exists (`tsconfig.base.json`, `target: es2025`, `strict`, `noUncheckedIndexedAccess`).
-- [x] ESLint 9 flat config exists (`eslint.config.mjs` with TS-ESLint, react-hooks, prettier).
+- [x] TypeScript base config exists (`packages/typescript-config/base.json`, `target: esnext`, `strict`, `noUncheckedIndexedAccess`).
+- [x] ESLint 10 flat config exists (`eslint.config.mjs` with TS-ESLint, react-hooks, prettier).
 - [x] Prettier config exists (`.prettierrc`, `.prettierignore`).
 - [x] `.gitignore` covers node_modules, build outputs, native folders, env files, OS files.
 - [x] `.nvmrc` and `.node-version` pin current LTS Node 24.
@@ -552,7 +552,7 @@ Purpose: the app boots, has providers, can open SQLite, and can render a placeho
       `dev`, `start`, `ios`, `android`, `web`, `lint`, `typecheck`, `test`, `clean`.
 - [x] Add Expo SDK 55 dependency.
 - [x] Add Expo Router 55 dependency.
-- [x] Add React 19.2 and React Native 0.83.2.
+- [x] Add React 19.2 and React Native 0.83.6.
 - [x] Add `expo-sqlite`.
 - [x] Add `expo-background-task`.
 - [x] Add `expo-task-manager`.
@@ -1778,7 +1778,7 @@ Purpose: the web dashboard is no longer a post-1.0 expansion. It is co-equal wit
 
 ### W0.1 Web Foundation
 
-- [x] Replace the placeholder `apps/web/package.json` with a real Next.js 16 dependency list (`next@16.2.6`, `react@19.2.0`, `@supabase/ssr@^0.10.2`, workspace deps `@tdpos/db` + `@tdpos/shared`).
+- [x] Replace the placeholder `apps/web/package.json` with a real Next.js 16 dependency list (`next@16.2.6`, `react@19.2.6`, `@supabase/ssr@^0.10.2`, workspace deps `@tdpos/db` + `@tdpos/shared`).
 - [x] App Router only — no Pages Router. (`apps/web/src/app/*`.)
 - [x] `proxy.ts` with named export `proxy()`. (`apps/web/proxy.ts`.) NEVER `middleware.ts`.
 - [x] `@supabase/ssr` 0.10.x with `getClaims()` only. (`src/lib/supabase/{proxy,server,client}.ts`.) NEVER `getSession()`.
@@ -2072,7 +2072,9 @@ Use this section as releases progress.
 - [x] Gate: `npx bun@1.3.13 run check:foundation` passes end-to-end after the README skill-doc count drift was corrected.
 - [x] Test count: 43 passing tests total — 13 shared + 30 mobile.
 - [x] Latest-doc spot check: Expo SDK 55 BackgroundTask, Clipboard, and SQLite docs; TanStack Query v5 migration docs; Supabase `@supabase/server` public beta announcement.
-- [x] Dependency posture: current mobile package versions stay aligned with the verified stack — Expo SDK 55, React 19.2, React Native 0.83.2, React Query 5.100.x, React Native Paper 5.15.x, and `expo-clipboard` SDK 55.
+- [x] Dependency posture: current mobile package versions stay aligned with the verified stack — Expo SDK 55, React 19.2, React Native 0.83.6, React Query 5.100.x, React Native Paper 5.15.x, and `expo-clipboard` SDK 55.
+- [x] Package refresh: root tooling is on ESLint 10.3.0, `@eslint/js` 10.0.1, Turbo 2.9.12; web React is on 19.2.6; mobile native packages were reconciled with `expo install --fix`; the shared TypeScript target is `esnext` so Expo's SDK-compatible TypeScript 5.9.3 and root/web/shared TypeScript 6.0.3 both pass.
+- [x] Intentional holds after `bun outdated --recursive`: mobile React/native packages remain on Expo SDK 55-compatible versions even when npm has newer releases; web `@types/node` remains on latest Node 24 typings instead of Node 25 typings because the repo runtime is Node 24 LTS.
 - [!] Residual blockers: no hosted Supabase project, no EAS dev build/device run, and no Postgres container tests yet. EAS project linking is complete, but native build evidence is still pending.
 
 ### v0.2 Evidence

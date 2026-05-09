@@ -23,7 +23,7 @@ Build: EAS Build for iOS + Android. Deploy: EAS Submit to App Store + Google Pla
 
 ## Style Guide
 
-- TypeScript 6 strict mode (default)
+- TypeScript strict mode
 - Single quotes, no semicolons, 2-space indent
 - Functional patterns, no classes for state
 - Zod 4: `error:` param (not `message:`)
@@ -38,7 +38,7 @@ bun install                    # Install deps
 bun run dev                    # Start all (turbo)
 bun run dev:mobile             # Expo only
 bun run dev:web                # Next.js only
-bun run lint                   # ESLint 9
+bun run lint                   # ESLint 10
 bun run typecheck              # TS strict
 bun run test                   # All tests
 eas build --profile development --platform all  # Dev builds
@@ -56,7 +56,7 @@ Always:
 - Use `@supabase/server` `withSupabase()` in Edge Functions, never manual JWT or `_shared/supabase.ts` boilerplate.
 - Run `bun run check:foundation` before committing.
 
-## Skills Reference (20 docs in `docs/skills/`, DocGate-3 enforced)
+## Skills Reference (21 docs in `docs/skills/`, DocGate-3 enforced)
 
 Domain: `inventory-tingi-model`, `sync-engine`, `receipt-numbering`, `bir-compliance`, `supabase-rls`
 API/Framework: `react-19-patterns`, `expo-router-patterns`, `expo-sqlite-patterns`, `expo-clipboard`, `zustand-mmkv-stores`, `supabase-auth-phone-otp`, `thermal-printer-integration`, `nextjs-16-proxy-pattern`, `react-native-paper-theming`, `tanstack-query-offline`

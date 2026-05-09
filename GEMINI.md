@@ -23,7 +23,7 @@ Full spec: `docs/spec-v5.md`
 
 ## Coding Standards
 
-- TypeScript 6 strict mode (now default in TS 6)
+- TypeScript strict mode
 - Single quotes, no semicolons, 2-space indent
 - Functional patterns, no classes
 - Zod 4: use `error:` param, never `message:`
@@ -45,7 +45,7 @@ bun install          # Install all
 bun run dev          # Dev all (turbo)
 bun run dev:mobile   # Expo only
 bun run dev:web      # Next.js only
-bun run lint         # ESLint 9
+bun run lint         # ESLint 10
 bun run typecheck    # TS strict
 bun run test         # All tests
 eas build --profile development --platform all   # Dev builds
@@ -53,7 +53,7 @@ eas build --profile production --platform all    # Store builds
 eas submit --profile production --platform all   # Submit
 ```
 
-## Skills Reference (20 docs in `docs/skills/`, DocGate-3 enforced)
+## Skills Reference (21 docs in `docs/skills/`, DocGate-3 enforced)
 
 Domain: `inventory-tingi-model`, `sync-engine`, `receipt-numbering`, `bir-compliance`, `supabase-rls`
 API/Framework: `react-19-patterns`, `expo-router-patterns`, `expo-sqlite-patterns`, `expo-clipboard`, `zustand-mmkv-stores`, `supabase-auth-phone-otp`, `thermal-printer-integration`, `nextjs-16-proxy-pattern`, `react-native-paper-theming`, `tanstack-query-offline`

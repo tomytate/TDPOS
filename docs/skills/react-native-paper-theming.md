@@ -141,7 +141,7 @@ theme.fonts.bodyMedium
 
 ## Sources
 
-- Package: `react-native-paper@^5.15.1` (verified against `apps/mobile/package.json`)
+- Package: `react-native-paper@^5.15.1` (installed patch: `5.15.2`, verified against `apps/mobile/package.json`)
 - Official docs: <https://callstack.github.io/react-native-paper/>
 - MD3 theme reference: <https://callstack.github.io/react-native-paper/docs/guides/theming>
 - Material Design 3 spec: <https://m3.material.io/styles/color/system/overview>

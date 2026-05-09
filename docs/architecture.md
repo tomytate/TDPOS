@@ -6,7 +6,7 @@
 
 **Why:**
 - Shared types, validators, and constants across platforms via `packages/shared`
-- Consistent tooling (ESLint 9, Prettier, TypeScript 6) across all workspaces
+- Consistent tooling (ESLint 10, Prettier, strict TypeScript) across all workspaces
 - Bun provides fastest dependency installation and native TypeScript support
 - Turborepo `tasks` (not deprecated `pipeline`) for build orchestration and caching
 

@@ -19,20 +19,20 @@ The full release pact and the Definition of Enterprise-Grade live in [docs/road-
 
 | Layer              | Technology                                                                    | Version |
 | ------------------ | ----------------------------------------------------------------------------- | ------- |
-| **Mobile**         | Expo SDK 55 (React Native 0.83.2, React 19.2)                                 | SDK 55  |
+| **Mobile**         | Expo SDK 55 (React Native 0.83.6, React 19.2)                                 | SDK 55  |
 | **Web Dashboard**  | Next.js 16 (App Router, `proxy.ts`)                                           | 16.2.6  |
 | **Backend**        | Supabase (PostgreSQL 17, Auth, Realtime, Edge Functions)                      | PG 17   |
 | **Database**       | PostgreSQL 17 — `gen_random_uuid()` built-in, `JSON_TABLE`, `MERGE RETURNING` | 17      |
 | **State (client)** | Zustand 5 + MMKV (synchronous, no hydration flash)                            | 5.0.13  |
 | **State (server)** | TanStack React Query v5 (offline-first)                                       | 5.100.9 |
-| **UI**             | React Native Paper v5 (Material Design 3)                                     | 5.15.1  |
+| **UI**             | React Native Paper v5 (Material Design 3)                                     | 5.15.2  |
 | **Validation**     | Zod 4 (`z.uuid()`, `z.int()`, `z.e164()` top-level)                           | 4.4.3   |
 | **Auth**           | Supabase Phone OTP + MMKV storage                                             | —       |
 | **Edge Functions** | @supabase/server (`withSupabase` — auto JWT, context, CORS)                   | beta    |
 | **Printer**        | @haroldtran/react-native-thermal-printer (BLE/USB/LAN)                        | 1.2.0   |
 | **Build & Deploy** | EAS Build + EAS Submit (App Store + Google Play)                              | —       |
-| **Monorepo**       | Turborepo 2.9 + Bun                                                           | 2.9.9   |
-| **Language**       | TypeScript 6 (strict mode default)                                            | 6.0.3   |
+| **Monorepo**       | Turborepo 2.9 + Bun                                                           | 2.9.12  |
+| **Language**       | TypeScript strict (root/web/shared TS 6; mobile Expo-compatible TS 5.9)       | mixed   |
 
 ## Quick Start
 
@@ -139,8 +139,8 @@ This project includes comprehensive anti-hallucination documentation for AI codi
 
 ```bash
 bun run check:foundation # Full foundation gate
-bun run lint        # ESLint 9 (flat config)
-bun run typecheck   # TypeScript 6 strict
+bun run lint        # ESLint 10 (flat config)
+bun run typecheck   # TypeScript strict
 bun run test        # All tests
 ```
 

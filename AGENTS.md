@@ -15,16 +15,16 @@ TD POS is the operating system for Philippine business — a mobile-first, offli
 
 ### Mobile (apps/mobile)
 
-- Expo SDK 55 (RN 0.83.2, React 19.2) — released Feb 25, 2026
+- Expo SDK 55 (RN 0.83.6, React 19.2) — released Feb 25, 2026
 - expo-router 55.x (file-based routing, Stack.Protected, native tabs)
 - expo-sqlite 55.x (async API: SQLiteProvider, useSQLiteContext — NOT legacy openDatabase)
 - expo-background-task 55.x (background sync — NOT expo-background-fetch which is REMOVED)
 - Zustand 5.0.13 (client state, persist with MMKV) + TanStack React Query 5.100.9 (server state)
-- React Native Paper 5.15.1 (Material Design 3, NOT MD2)
+- React Native Paper 5.15.2 (Material Design 3, NOT MD2)
 - react-native-mmkv 4.3.1 (fast synchronous storage — NOT AsyncStorage)
 - @haroldtran/react-native-thermal-printer 1.2.0 (BLE/USB/LAN — the ONLY verified printer package)
 - Zod 4.4.3 (validation, shorthand string or `error:` param — NOT `message:`)
-- TypeScript 6.0.3 (strict mode is now default)
+- TypeScript strict mode (root/web/shared: 6.0.3; mobile: Expo SDK 55-compatible 5.9.3)
 
 ### Web Dashboard (apps/web)
 
@@ -45,10 +45,10 @@ TD POS is the operating system for Philippine business — a mobile-first, offli
 
 ### Shared
 
-- Turborepo 2.9.9 (`tasks` key in turbo.json, NOT `pipeline` which is deprecated)
+- Turborepo 2.9.12 (`tasks` key in turbo.json, NOT `pipeline` which is deprecated)
 - Bun (package manager + runtime, lockfile: `bun.lock` text format, NOT `bun.lockb`)
 - Node 24 LTS for local tooling (Expo SDK 55 minimum: Node 20.19.x; Node 20 is EOL)
-- ESLint 9 (flat config: eslint.config.mjs)
+- ESLint 10 (flat config: eslint.config.mjs)
 - Prettier 3
 
 ### Build & Deploy
@@ -66,7 +66,7 @@ bun run dev                    # Start all apps in parallel (via turbo)
 bun run dev:mobile             # Expo dev server only
 bun run dev:web                # Next.js dev server only
 bun run build                  # Build all
-bun run lint                   # ESLint 9 across workspace
+bun run lint                   # ESLint 10 across workspace
 bun run typecheck              # TypeScript strict check
 bun run test                   # Run all tests
 bun run test:mobile            # Mobile tests only
@@ -91,7 +91,7 @@ eas submit --profile production --platform all # Submit to stores
 
 ## Coding Conventions
 
-- TypeScript 6 strict mode (default in TS 6 — do NOT set `strict: false`)
+- TypeScript strict mode — do NOT set `strict: false`
 - Single quotes, no semicolons, 2-space indent
 - Functional patterns, no classes for state
 - Zod 4: use `error:` param, not `message:` (deprecated in Zod 4)

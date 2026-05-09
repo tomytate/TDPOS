@@ -36,7 +36,7 @@ function parseDateParam(value: string | null, fallback: Date): Date | null {
 
 export async function GET(request: NextRequest) {
   // Defense-in-depth claim check.
-  let claims = null
+  let claims: Awaited<ReturnType<typeof getCurrentClaims>>
   try {
     claims = await getCurrentClaims()
   } catch {

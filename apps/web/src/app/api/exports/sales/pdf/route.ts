@@ -35,7 +35,7 @@ function parseDateParam(value: string | null, fallback: Date): Date | null {
 }
 
 export async function GET(request: NextRequest) {
-  let claims = null
+  let claims: Awaited<ReturnType<typeof getCurrentClaims>>
   try {
     claims = await getCurrentClaims()
   } catch {
