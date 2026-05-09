@@ -55,10 +55,10 @@ eas build --profile production --platform all    # Store builds
 eas submit --profile production --platform all   # Submit
 ```
 
-## Skills Reference (21 docs in `docs/skills/`, DocGate-3 enforced)
+## Skills Reference (22 docs in `docs/skills/`, DocGate-3 enforced)
 
 Domain: `inventory-tingi-model`, `sync-engine`, `receipt-numbering`, `bir-compliance`, `supabase-rls`
-API/Framework: `react-19-patterns`, `expo-router-patterns`, `expo-sqlite-patterns`, `expo-clipboard`, `zustand-mmkv-stores`, `supabase-auth-phone-otp`, `thermal-printer-integration`, `nextjs-16-proxy-pattern`, `react-native-paper-theming`, `tanstack-query-offline`
+API/Framework: `react-19-patterns`, `expo-router-patterns`, `expo-sqlite-patterns`, `expo-file-system`, `expo-clipboard`, `zustand-mmkv-stores`, `supabase-auth-phone-otp`, `thermal-printer-integration`, `nextjs-16-proxy-pattern`, `react-native-paper-theming`, `tanstack-query-offline`
 Platform: `postgresql-17-patterns`, `eas-build-deploy`, `background-sync-task`, `supabase-server-edge-functions`
 
 ## Commit Format

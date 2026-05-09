@@ -71,10 +71,36 @@ describe('getDiagnosticsMetadata', () => {
       branchName: 'Demo branch',
       cashierCode: 'C01',
       mmkvKeyCount: 2,
+      availableDiskBytes: null,
+      totalDiskBytes: null,
     })
     expect(metadata.installId).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
     )
     expect(metadata.mmkvSizeBytes).toBeGreaterThan(0)
+  })
+
+  test('includes optional device storage totals when provided by the native layer', async () => {
+    const sqlite = new Database(':memory:')
+    sqlite.exec(LOCAL_SCHEMA_SQL)
+    const storage = memoryStorage()
+
+    const metadata = await getDiagnosticsMetadata(
+      makeAdapter(sqlite),
+      {
+        role: 'manager',
+        branchCode: 'QC01',
+        branchName: 'Demo branch',
+        cashierCode: 'M01',
+      },
+      storage,
+      {
+        availableDiskBytes: 2_048,
+        totalDiskBytes: 4_096,
+      },
+    )
+
+    expect(metadata.availableDiskBytes).toBe(2_048)
+    expect(metadata.totalDiskBytes).toBe(4_096)
   })
 })

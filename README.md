@@ -114,11 +114,11 @@ This project includes comprehensive anti-hallucination documentation for AI codi
 | `CODEX.md`  | OpenAI Codex  | Architecture notes, 17 critical rules, style guide              |
 | `GEMINI.md` | Google Gemini | Key decisions, deprecation-source pointer, coding standards     |
 
-### Skills (21 procedural docs in `docs/skills/`, DocGate-3 enforced)
+### Skills (22 procedural docs in `docs/skills/`, DocGate-3 enforced)
 
 **Domain (5):** `inventory-tingi-model`, `sync-engine`, `receipt-numbering`, `bir-compliance`, `supabase-rls`
 
-**Mobile framework (8):** `react-19-patterns`, `expo-router-patterns`, `expo-sqlite-patterns`, `zustand-mmkv-stores`, `supabase-auth-phone-otp`, `thermal-printer-integration`, `react-native-paper-theming`, `tanstack-query-offline`
+**Mobile framework (9):** `react-19-patterns`, `expo-router-patterns`, `expo-sqlite-patterns`, `expo-file-system`, `zustand-mmkv-stores`, `supabase-auth-phone-otp`, `thermal-printer-integration`, `react-native-paper-theming`, `tanstack-query-offline`
 
 **Web framework (2):** `nextjs-16-proxy-pattern`, `react-pdf-renderer`
 

@@ -112,7 +112,7 @@ A surface (mobile, web, backend) meets the bar when **every** row below is `[x]`
 
 ### EG-7 Operations
 
-- [/] Diagnostics screen in the mobile app (manager+ only): sync queue health, app version, schema version, device identity, MMKV size, and support bundle copy exist; free disk and public runbook still pending.
+- [/] Diagnostics screen in the mobile app (manager+ only): sync queue health, app version, schema version, device identity, free disk, MMKV size, and support bundle copy exist; public runbook still pending.
 - [x] "Bundle support package" action copies diagnostics + recent sync errors for support email.
 - [ ] Public runbook covers: sync stuck, printer offline, lost device, change branch/cashier code, restore on new phone.
 - [ ] Web dashboard has a sync health view (per-device queue depth, last seen).
@@ -439,7 +439,7 @@ Run this review once any paid service is enabled.
 
 #### Reference
 
-- [x] `docs/skills/` contains the 19 procedural docs (domain, framework, infra).
+- [x] `docs/skills/` contains the 22 procedural docs (domain, framework, infra, cross-cutting).
 - [x] Suki POS UI reference exists under `UI/` (CSS-only — used as design source, not migrated to RN code).
 
 ### Resolved And Remaining Gaps
@@ -1753,7 +1753,7 @@ Purpose: every row in this phase blocks v1.0. Per the Release Pact, "enterprise-
 
 ### P11.5.9 Support Diagnostics And Runbook
 
-- [/] In-app diagnostics screen (manager+ only) showing: app version, schema version, last successful sync, unsynced queue count, failed sync count, device id, free disk, MMKV size. Screen, sync-health metrics, app version, schema version, install ID, branch/cashier identity, MMKV size, and support bundle copy exist; free disk still pending.
+- [/] In-app diagnostics screen (manager+ only) showing: app version, schema version, last successful sync, unsynced queue count, failed sync count, device id, free disk, MMKV size. Screen, sync-health metrics, app version, schema version, install ID, branch/cashier identity, free/total disk via `expo-file-system` `Paths`, MMKV size, and support bundle copy exist; public runbook still pending.
 - [x] One-tap "Bundle support package" action that copies the diagnostics text and the most recent N sync errors to clipboard for support email.
 - [ ] Public runbook covering: sync stuck, receipt printer not connecting, lost device, change branch/cashier code, restore data on new phone.
 - [ ] Support contact path documented (email + response SLA appropriate for the tier).
@@ -2039,7 +2039,7 @@ Updated 2026-05-09 after background sync wiring, manager diagnostics/support bun
 - [ ] 7. Build `apps/web` Next.js 16 foundation (Phase W0.1): `proxy.ts`, `getClaims()`, App Router skeleton, `@supabase/ssr` wired to the same staging project.
 - [ ] 8. EAS dev build (iOS simulator + Android internal) and run the offline-sale gate test (P4.6) on a real device. Tag `v0.4` once the airplane-mode round-trip is recorded in the Evidence Log.
 - [ ] 9. In the dev build, verify `triggerBackgroundSyncForTesting()` and an OS-scheduled background task against the staging Supabase project.
-- [ ] 10. Add free-disk/storage metadata to diagnostics when the package choice is verified.
+- [x] 10. Add free-disk/storage metadata to diagnostics when the package choice is verified. Implemented with the Expo SDK 55 `expo-file-system` `Paths.availableDiskSpace` / `Paths.totalDiskSpace` API, not the deprecated legacy async methods.
 
 Original "First 10" (kept for history) — every item except 2 and the device runs is `[x]`.
 
@@ -2077,7 +2077,7 @@ Use this section as releases progress.
 
 - [x] Date: 2026-05-09.
 - [x] Gate: `npx bun@1.3.13 run check:foundation` passes end-to-end after the README skill-doc count drift was corrected.
-- [x] Test count: 43 passing tests total — 13 shared + 30 mobile.
+- [x] Test count: 51 passing tests total — 13 shared + 38 mobile.
 - [x] Latest-doc spot check: Expo SDK 55 BackgroundTask, Clipboard, and SQLite docs; TanStack Query v5 migration docs; Supabase `@supabase/server` public beta announcement.
 - [x] Dependency posture: current mobile package versions stay aligned with the verified stack — Expo SDK 55, React 19.2, React Native 0.83.6, React Query 5.100.x, React Native Paper 5.15.x, and `expo-clipboard` SDK 55.
 - [x] Package refresh: root tooling is on ESLint 10.3.0, `@eslint/js` 10.0.1, Turbo 2.9.12; web React is on 19.2.6; mobile native packages were reconciled with `expo install --fix`; the shared TypeScript target is `esnext` so Expo's SDK-compatible TypeScript 5.9.3 and root/web/shared TypeScript 6.0.3 both pass.

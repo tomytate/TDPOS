@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { Paths } from 'expo-file-system'
 import { useSQLiteContext } from 'expo-sqlite'
 
 import { useAuthStore } from '@/stores/auth-store'
@@ -29,8 +30,20 @@ export function useDiagnosticsMetadata(options: UseDiagnosticsMetadataOptions = 
           cashierCode,
         },
         storage,
+        getDeviceStorageSnapshot(),
       ),
     enabled: options.enabled ?? true,
     staleTime: 60 * 1000,
   })
+}
+
+function getDeviceStorageSnapshot() {
+  return {
+    availableDiskBytes: normalizeDiskBytes(Paths.availableDiskSpace),
+    totalDiskBytes: normalizeDiskBytes(Paths.totalDiskSpace),
+  }
+}
+
+function normalizeDiskBytes(value: number): number | null {
+  return Number.isFinite(value) && value >= 0 ? value : null
 }

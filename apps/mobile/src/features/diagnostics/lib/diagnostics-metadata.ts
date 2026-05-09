@@ -19,6 +19,11 @@ export interface DiagnosticsStorage extends InstallIdStorage {
   getAllKeys(): string[]
 }
 
+export interface DiagnosticsDeviceStorageSnapshot {
+  availableDiskBytes: number | null
+  totalDiskBytes: number | null
+}
+
 export interface DiagnosticsMetadata {
   appVersion: string
   schemaVersion: number | null
@@ -29,12 +34,18 @@ export interface DiagnosticsMetadata {
   cashierCode: string | null
   mmkvSizeBytes: number
   mmkvKeyCount: number
+  availableDiskBytes: number | null
+  totalDiskBytes: number | null
 }
 
 export async function getDiagnosticsMetadata(
   db: AsyncSqliteLike,
   identity: DiagnosticsIdentitySnapshot,
   metadataStorage: DiagnosticsStorage,
+  deviceStorage: DiagnosticsDeviceStorageSnapshot = {
+    availableDiskBytes: null,
+    totalDiskBytes: null,
+  },
 ): Promise<DiagnosticsMetadata> {
   const row = await db.getFirstAsync<SchemaVersionRow>(
     `SELECT MAX(version) AS version FROM schema_version`,
@@ -51,5 +62,7 @@ export async function getDiagnosticsMetadata(
     cashierCode: identity.cashierCode,
     mmkvSizeBytes: metadataStorage.size,
     mmkvKeyCount: metadataStorage.getAllKeys().length,
+    availableDiskBytes: deviceStorage.availableDiskBytes,
+    totalDiskBytes: deviceStorage.totalDiskBytes,
   }
 }

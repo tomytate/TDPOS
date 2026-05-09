@@ -29,6 +29,7 @@ Do NOT load these until the task requires them:
 - `docs/skills/react-19-patterns.md` — React 19.2 components, hooks, effects, memoization, React Native/web boundaries
 - `docs/skills/expo-router-patterns.md` — file-based routing, Stack.Protected, tabs
 - `docs/skills/expo-sqlite-patterns.md` — SQLiteProvider, useSQLiteContext, async API
+- `docs/skills/expo-file-system.md` — SDK 55 `Paths` API for disk metadata and local file operations
 - `docs/skills/expo-clipboard.md` — manager-triggered clipboard support bundles, sanitized diagnostics
 - `docs/skills/zustand-mmkv-stores.md` — Zustand 5 persist + MMKV adapter
 - `docs/skills/supabase-auth-phone-otp.md` — phone OTP flow with MMKV storage

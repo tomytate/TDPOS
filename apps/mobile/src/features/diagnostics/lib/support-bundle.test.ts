@@ -100,6 +100,8 @@ describe('support bundle diagnostics', () => {
         cashierCode: 'C01',
         mmkvSizeBytes: 128,
         mmkvKeyCount: 2,
+        availableDiskBytes: 2_048,
+        totalDiskBytes: 4_096,
       },
       health: {
         totalRows: 3,
@@ -129,6 +131,7 @@ describe('support bundle diagnostics', () => {
 
     expect(bundle).toContain('TD POS Support Bundle')
     expect(bundle).toContain('Install ID: install-1')
+    expect(bundle).toContain('Disk: 2048 bytes available / 4096 bytes total')
     expect(bundle).toContain('Latest error: [email] failed')
     expect(bundle).toContain('#7 | ...00abc123 | sales | INSERT')
     expect(bundle).not.toContain('payload')

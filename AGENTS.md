@@ -117,7 +117,7 @@ The canonical deprecations table lives in [`docs/skills/deprecations.md`](docs/s
 | "Provisional receipts"                         | "Official Receipts"                 |
 | "Sales Invoice format ready for accreditation" | "Sales Invoice" (without qualifier) |
 
-## Skills Reference (21 procedural docs in `docs/skills/`)
+## Skills Reference (22 procedural docs in `docs/skills/`)
 
 ### Domain Skills
 
@@ -132,6 +132,7 @@ The canonical deprecations table lives in [`docs/skills/deprecations.md`](docs/s
 - `react-19-patterns.md` — React 19.2 component, hooks, effects, memoization, React Native/web boundaries
 - `expo-router-patterns.md` — file-based routing, Stack.Protected, tabs
 - `expo-sqlite-patterns.md` — SQLiteProvider, useSQLiteContext, async API
+- `expo-file-system.md` — SDK 55 `Paths` API for disk metadata and local file operations
 - `expo-clipboard.md` — manager-triggered clipboard support bundles, sanitized diagnostics
 - `zustand-mmkv-stores.md` — Zustand 5 persist + MMKV adapter
 - `supabase-auth-phone-otp.md` — phone OTP flow, MMKV storage, PH phone validation
@@ -173,7 +174,7 @@ TDPOS/
 ├── packages/eslint-config/
 ├── supabase/             # PG17 migrations, Edge Functions, seed
 ├── docs/                 # Spec, architecture, schema reference
-│   └── skills/           # 21 procedural skill docs (shared by ALL agents)
+│   └── skills/           # 22 procedural skill docs (shared by ALL agents)
 └── UI/                   # Suki POS design canvas (reference only)
 ```
 

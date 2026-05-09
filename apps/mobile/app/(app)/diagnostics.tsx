@@ -104,6 +104,14 @@ export default function DiagnosticsScreen() {
                   label={t('diagnostics.mmkvKeys')}
                   value={metadata.mmkvKeyCount.toString()}
                 />
+                <InfoRow
+                  label={t('diagnostics.diskAvailable')}
+                  value={formatOptionalBytes(metadata.availableDiskBytes, t('diagnostics.never'))}
+                />
+                <InfoRow
+                  label={t('diagnostics.diskTotal')}
+                  value={formatOptionalBytes(metadata.totalDiskBytes, t('diagnostics.never'))}
+                />
                 <Button
                   mode="contained-tonal"
                   icon="content-copy"
@@ -244,4 +252,8 @@ function formatBytes(value: number): string {
   const kib = value / 1024
   if (kib < 1024) return `${kib.toFixed(1)} KiB`
   return `${(kib / 1024).toFixed(1)} MiB`
+}
+
+function formatOptionalBytes(value: number | null, fallback: string): string {
+  return value === null ? fallback : formatBytes(value)
 }

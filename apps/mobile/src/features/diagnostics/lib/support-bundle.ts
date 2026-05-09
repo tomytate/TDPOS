@@ -79,6 +79,7 @@ export function buildSupportBundle(input: SupportBundleInput): string {
     `Branch: ${metadata.branchCode ?? 'unknown'}`,
     `Cashier: ${metadata.cashierCode ?? 'unknown'}`,
     `MMKV: ${metadata.mmkvSizeBytes} bytes / ${metadata.mmkvKeyCount} keys`,
+    `Disk: ${formatBytes(metadata.availableDiskBytes)} available / ${formatBytes(metadata.totalDiskBytes)} total`,
     '',
     '[Sync]',
     `Total rows: ${health.totalRows}`,
@@ -126,6 +127,10 @@ export function sanitizeDiagnosticText(value: string): string {
 function formatEpochSeconds(value: number | null): string {
   if (!value) return 'never'
   return new Date(value * 1000).toISOString()
+}
+
+function formatBytes(value: number | null): string {
+  return value === null ? 'unknown' : `${value} bytes`
 }
 
 function tailRef(value: string): string {
