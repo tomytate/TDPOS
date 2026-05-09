@@ -477,7 +477,7 @@ Run this review once any paid service is enabled.
 - [/] `app/(auth)/sign-in.tsx` still ships a demo-mode shortcut. Production builds now hide the button and a `DEMO MODE` banner is shown in dev. Real OTP flow lands under P7.1.
 - [x] Git repo initialized; first commit `f4bb457` on `main` with full v0.1 foundation. Pushed to `github.com/tomytate/TDPOS`. Subsequent commits land PDF export, reporting ranges, EAS link, and dep refresh (4 commits ahead of origin at audit time).
 - [x] Hosted Supabase project provisioned at `ukrftgwpaidsusxqrlnc.supabase.co`. Three migrations applied (initial schema + immutability triggers + `create_sale_atomic`). Phone-auth provider enabled with at least one test OTP for development.
-- [x] EAS project linked (`a9cf7f75-…` hardcoded in `apps/mobile/app.config.ts` with `EAS_PROJECT_ID` env override). EAS Build runs still gated on real device/credentials.
+- [x] EAS project linked (`a9cf7f75-…` hardcoded in `apps/mobile/app.config.ts` with `EAS_PROJECT_ID` env override). Android development build now passes locally and in EAS cloud from commit `fcb333e`.
 - [!] **Security note — publishable-key exposure 2026-05-10.** The original publishable key was pasted in chat by the owner and is treated as compromised. Rotation pending; tracked at the top of P0.1. RLS protects data so blast radius is limited, but the project should not run with a known-leaked key beyond the immediate rotation window.
 
 ### v0.1 Exit Criteria
@@ -1475,14 +1475,14 @@ Acceptance:
 - [x] Add production profile.
 - [x] Configure iOS simulator dev build.
 - [x] Link mobile app to an EAS project. `npx eas-cli@latest init --id a9cf7f75-51ec-45f1-82c3-a73a1db75483` now exits successfully from `apps/mobile`.
-- [ ] Configure Android internal build.
+- [x] Configure Android internal build.
 - [x] Configure production app bundle.
 - [ ] Separate local/staging/prod env vars.
 - [ ] Document credential setup.
 
 Acceptance:
 
-- [ ] Team can produce a reproducible dev build.
+- [x] Team can produce a reproducible dev build.
 - [ ] Team can produce a preview build for pilot users.
 
 ### P10.3 Observability
@@ -2083,7 +2083,7 @@ Use this section as releases progress.
 - [x] Package refresh: root tooling is on ESLint 10.3.0, `@eslint/js` 10.0.1, Turbo 2.9.12; web React is on 19.2.6; mobile native packages were reconciled with `expo install --fix`; the shared TypeScript target is `esnext` so Expo's SDK-compatible TypeScript 5.9.3 and root/web/shared TypeScript 6.0.3 both pass.
 - [x] Intentional holds after `bun outdated --recursive`: mobile React/native packages remain on Expo SDK 55-compatible versions even when npm has newer releases; web `@types/node` remains on latest Node 24 typings instead of Node 25 typings because the repo runtime is Node 24 LTS.
 - [x] Follow-up native guards: `babel-preset-expo@55.0.21` is explicit in the mobile workspace; Expo native peers (`expo-font`, `expo-asset`, `expo-constants`, `expo-linking`, `react-native-worklets`, `expo-system-ui`) are direct dependencies; Bun is pinned to hoisted linking for Expo/EAS native-module dedupe; `check:foundation` now includes `check:expo-doctor` and `check:mobile-bundle` (`bunx expo export --platform android`) so Doctor and Metro bundle failures are caught before EAS.
-- [!] Residual blockers: no hosted Supabase project, no EAS dev build/device run, and no Postgres container tests yet. EAS project linking is complete, but native build evidence is still pending.
+- [!] Residual blockers: no physical device run, no airplane-mode acceptance pass, and no Postgres container tests yet. EAS project linking and Android dev-build evidence are complete.
 
 ### v0.2 Evidence
 
@@ -2096,12 +2096,13 @@ Use this section as releases progress.
 
 ### v0.4 Evidence
 
-- [/] Date: 2026-05-09 (offline checkout vertical wired in code; airplane-mode device test still pending).
-- [x] Commit: first foundation snapshot created under Git on `main`.
+- [/] Date: 2026-05-09 (offline checkout vertical wired in code) → 2026-05-10 (Android development build passes; airplane-mode device test still pending).
+- [x] Commit: first foundation snapshot created under Git on `main`; EAS unblock commit `fcb333e` (`fix(mobile): compile android against sdk 36`) pushed to `origin/main`.
+- [x] Android dev build: local EAS post-build produced `/artifacts/build-1778363013792.apk` (243 MB) after `compileSdkVersion` moved to 36; EAS cloud build `47fe39b5-e0d2-4211-8d80-bebbeadec48d` finished successfully on commit `fcb333e`.
 - [ ] Airplane mode sale completed: pending physical device run.
 - [ ] Receipt number: pending physical device run.
 - [ ] Sync queue row id: pending physical device run.
-- [x] Notes: `executeCheckout` writes sales + sale_items + product stock decrement + inventory_logs + sync_queue + receipt_sequence in one `withTransactionAsync` block. §14 #1 (tingi math), #5 (receipt collision), local idempotency replay, insufficient-stock rollback, and empty-cart/short-tender guards all pass under `bun:sqlite` integration tests. Demo-mode shortcut still in place — real OTP flow blocks the v0.4 tag.
+- [x] Notes: `executeCheckout` writes sales + sale_items + product stock decrement + inventory_logs + sync_queue + receipt_sequence in one `withTransactionAsync` block. §14 #1 (tingi math), #5 (receipt collision), local idempotency replay, insufficient-stock rollback, and empty-cart/short-tender guards all pass under `bun:sqlite` integration tests. Demo-mode shortcut remains dev-only; real OTP is wired. v0.4 tag still waits on the physical-device airplane-mode gate.
 
 ### v0.6 Evidence
 
