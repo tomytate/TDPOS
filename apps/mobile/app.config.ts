@@ -46,6 +46,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     'expo-router',
     'expo-sqlite',
     'expo-background-task',
+    'expo-font',
+    'expo-asset',
     [
       'expo-build-properties',
       {

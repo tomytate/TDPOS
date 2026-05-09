@@ -139,6 +139,7 @@ This project includes comprehensive anti-hallucination documentation for AI codi
 
 ```bash
 bun run check:foundation # Full foundation gate
+bun run check:expo-doctor # Expo native dependency health check
 bun run check:mobile-bundle # Android Metro bundle/export check
 bun run lint        # ESLint 10 (flat config)
 bun run typecheck   # TypeScript strict

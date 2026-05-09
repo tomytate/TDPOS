@@ -52,6 +52,9 @@ jobs:
       - name: Check skill-doc gate (DocGate-3)
         run: bun run check:skill-docs
 
+      - name: Check Expo doctor
+        run: bun run check:expo-doctor
+
       - name: Check mobile Android bundle
         run: bun run check:mobile-bundle
 

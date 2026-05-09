@@ -390,7 +390,7 @@ Run this review once any paid service is enabled.
 #### Root + tooling
 
 - [x] Root monorepo scaffold exists.
-- [x] Root `package.json` has Turborepo scripts (`dev`, `build`, `lint`, `typecheck`, `test`, `format`, `db:*`, `mobile:*`, `check:mobile-bundle`, `check:foundation`).
+- [x] Root `package.json` has Turborepo scripts (`dev`, `build`, `lint`, `typecheck`, `test`, `format`, `db:*`, `mobile:*`, `check:expo-doctor`, `check:mobile-bundle`, `check:foundation`).
 - [x] `turbo.json` uses `tasks`, not deprecated `pipeline`. Schema URL is `https://turborepo.dev/schema.json`.
 - [x] TypeScript base config exists (`packages/typescript-config/base.json`, `target: esnext`, `strict`, `noUncheckedIndexedAccess`).
 - [x] ESLint 10 flat config exists (`eslint.config.mjs` with TS-ESLint, react-hooks, prettier).
@@ -2082,15 +2082,15 @@ Use this section as releases progress.
 - [x] Dependency posture: current mobile package versions stay aligned with the verified stack — Expo SDK 55, React 19.2, React Native 0.83.6, React Query 5.100.x, React Native Paper 5.15.x, and `expo-clipboard` SDK 55.
 - [x] Package refresh: root tooling is on ESLint 10.3.0, `@eslint/js` 10.0.1, Turbo 2.9.12; web React is on 19.2.6; mobile native packages were reconciled with `expo install --fix`; the shared TypeScript target is `esnext` so Expo's SDK-compatible TypeScript 5.9.3 and root/web/shared TypeScript 6.0.3 both pass.
 - [x] Intentional holds after `bun outdated --recursive`: mobile React/native packages remain on Expo SDK 55-compatible versions even when npm has newer releases; web `@types/node` remains on latest Node 24 typings instead of Node 25 typings because the repo runtime is Node 24 LTS.
-- [x] Follow-up bundle guard: `babel-preset-expo@55.0.21` is explicit in the mobile workspace and `check:foundation` now includes `check:mobile-bundle` (`bunx expo export --platform android`) so Metro bundle failures are caught before EAS.
+- [x] Follow-up native guards: `babel-preset-expo@55.0.21` is explicit in the mobile workspace; Expo native peers (`expo-font`, `expo-asset`, `expo-constants`, `expo-linking`, `react-native-worklets`, `expo-system-ui`) are direct dependencies; Bun is pinned to hoisted linking for Expo/EAS native-module dedupe; `check:foundation` now includes `check:expo-doctor` and `check:mobile-bundle` (`bunx expo export --platform android`) so Doctor and Metro bundle failures are caught before EAS.
 - [!] Residual blockers: no hosted Supabase project, no EAS dev build/device run, and no Postgres container tests yet. EAS project linking is complete, but native build evidence is still pending.
 
 ### v0.2 Evidence
 
 - [x] Date: 2026-05-09 (foundation snapshot) → 2026-05-10 (git push to GitHub).
 - [x] Initial commit: `f4bb457` _"v0.1 foundation preview: mobile + web tracks, 15 ADRs, 20 skill docs, 8-stage foundation gate"_ on `main`. Subsequent commits on the same branch: `0e8917b feat(web): add sales PDF export`, `a623541 feat(web): add reporting ranges`, `c70a100 chore(mobile): link eas project`, `5e25fcc chore(deps): refresh package versions`.
-- [x] Remote: `https://github.com/tomytate/TDPOS.git` (private). CI workflow `.github/workflows/foundation.yml` runs the same 9-stage gate on every PR.
-- [x] Commands run: `bun run check:foundation` (now 9 stages green: format → SQLite drift → forbidden patterns → doc-link integrity → skill-doc gate → Android bundle export → typecheck across 6 workspaces → lint across 6 workspaces → tests).
+- [x] Remote: `https://github.com/tomytate/TDPOS.git` (private). CI workflow `.github/workflows/foundation.yml` runs the same 10-stage gate on every PR.
+- [x] Commands run: `bun run check:foundation` (now 10 stages green: format → SQLite drift → forbidden patterns → doc-link integrity → skill-doc gate → Expo Doctor → Android bundle export → typecheck across 6 workspaces → lint across 6 workspaces → tests).
 - [ ] Device/simulator: not run on physical device yet — runtime acceptance criteria for P1.4/P1.5 still open.
 - [x] Notes: Mobile foundation + web foundation both real. Sale → checkout → receipt → sync_queue write proven by `bun:sqlite` integration tests. Web dashboard renders 9 RLS-scoped Server Component queries (Overview, audit, sync health) plus CSV + PDF exports. Hosted Supabase project provisioned and three migrations applied; live signup-and-render smoke test still owed once the leaked publishable key is rotated. Scanner, printer integration, real OTP on mobile, and device acceptance remain pending.
 

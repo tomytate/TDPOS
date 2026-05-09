@@ -45,6 +45,7 @@ bun install          # Install all
 bun run dev          # Dev all (turbo)
 bun run dev:mobile   # Expo only
 bun run dev:web      # Next.js only
+bun run check:expo-doctor # Expo native dependency health check
 bun run check:mobile-bundle # Android Metro bundle/export check
 bun run lint         # ESLint 10
 bun run typecheck    # TS strict

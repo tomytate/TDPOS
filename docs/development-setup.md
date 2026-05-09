@@ -101,6 +101,7 @@ This runs:
 - forbidden/deprecated pattern scan
 - markdown link integrity check
 - skill-doc source metadata check
+- Expo Doctor native dependency check
 - Android Metro bundle/export check
 - TypeScript
 - ESLint
