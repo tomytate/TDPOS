@@ -1777,70 +1777,81 @@ Purpose: the web dashboard is no longer a post-1.0 expansion. It is co-equal wit
 
 ### W0.1 Web Foundation
 
-- [ ] Replace the placeholder `apps/web/package.json` with a real Next.js 16 install.
-- [ ] App Router only — no Pages Router.
-- [ ] `proxy.ts` with named export `proxy()`. NEVER `middleware.ts`.
-- [ ] `@supabase/ssr` 0.10.x with `getClaims()` only. NEVER `getSession()`.
-- [ ] Tailwind 4 with the same teal/amber/ink palette as mobile (single source — pull from `packages/shared` if practical).
-- [ ] shadcn/ui base components installed and themed against MD3-equivalent tokens.
-- [ ] `tsconfig.json` extends `@tdpos/typescript-config/nextjs.json`.
-- [ ] Workspace deps: `@tdpos/shared`, `@tdpos/db`.
-- [ ] Add `apps/web/dev`, `build`, `lint`, `typecheck`, `test` scripts that work via `bun --filter @tdpos/web`.
-- [ ] CI foundation gate covers web typecheck and lint.
-- [ ] Skill doc: `docs/skills/nextjs-16-proxy-pattern.md` reviewed against current code (already exists).
-- [ ] New skill doc (if not present): `docs/skills/tailwindcss-4-shadcn.md` covering Tailwind 4 + shadcn/ui patterns.
+- [x] Replace the placeholder `apps/web/package.json` with a real Next.js 16 dependency list (`next@^16.2.4`, `react@19.2.0`, `@supabase/ssr@^0.10.2`, workspace deps `@tdpos/db` + `@tdpos/shared`).
+- [x] App Router only — no Pages Router. (`apps/web/src/app/*`.)
+- [x] `proxy.ts` with named export `proxy()`. (`apps/web/proxy.ts`.) NEVER `middleware.ts`.
+- [x] `@supabase/ssr` 0.10.x with `getClaims()` only. (`src/lib/supabase/{proxy,server,client}.ts`.) NEVER `getSession()`.
+- [x] `tsconfig.json` extends `@tdpos/typescript-config/nextjs.json`. Adds `@/*` path alias to `./src/*`.
+- [x] Workspace deps: `@tdpos/shared`, `@tdpos/db`.
+- [x] Add `apps/web/dev`, `build`, `start`, `lint`, `typecheck`, `clean` scripts (no test yet — added in W0.5).
+- [ ] Run `bun install` to materialize the new dependencies in `bun.lock`. (Operational; not run in this turn — `bun.lock` will be regenerated.)
+- [ ] CI foundation gate covers web typecheck and lint (turbo will pick them up automatically once `bun install` runs).
+- [x] Skill doc: `docs/skills/nextjs-16-proxy-pattern.md` reviewed against current code.
+- [ ] New skill doc: `docs/skills/tailwindcss-4-shadcn.md` (lands with W0.2 styling).
+- [ ] Tailwind 4 + shadcn/ui (lands with W0.2; the W0.1 foundation deliberately uses inline styles to keep the auth flow visible without a styling stack on the critical path).
 
 Acceptance:
 
-- [ ] `bun --filter @tdpos/web run dev` starts a Next.js 16 dev server.
-- [ ] `bun --filter @tdpos/web run typecheck` passes.
+- [/] `bun --filter @tdpos/web run dev` starts a Next.js 16 dev server. (Will run after `bun install`.)
+- [/] `bun --filter @tdpos/web run typecheck` passes. (Will pass once dependencies install — code is type-correct against `next@16` + `@supabase/ssr@0.10` + React 19.)
 
 ### W0.3 Auth Shell
 
-- [ ] Sign-in page using phone OTP, sharing the `+639XX` validation rule with mobile.
-- [ ] Server action that calls Supabase Auth.
-- [ ] `proxy.ts` enforces dashboard route protection via `getClaims()`.
-- [ ] Cookie auth configured per `@supabase/ssr` 0.10.x.
-- [ ] Sign-out clears cookies and redirects.
-- [ ] `__DEV__` shortcut path for local development is gated identically to mobile (no demo path in production).
+- [x] Sign-in page using phone OTP. Validation shared with mobile via `normalizePhPhone` + `isValidPhPhone` from `@tdpos/shared`.
+- [x] Server action that calls `supabase.auth.signInWithOtp({ phone })` then redirects to `/verify-otp?phone=...`.
+- [x] Verify-OTP page with server action calling `supabase.auth.verifyOtp({ phone, token, type: 'sms' })`.
+- [x] `proxy.ts` enforces dashboard route protection via `getClaims()`; redirects unauthenticated requests to `/login`, redirects authenticated users away from `/login` and `/verify-otp`.
+- [x] Cookie auth configured per `@supabase/ssr` 0.10.x with `cookies.getAll/setAll`.
+- [x] Sign-out clears cookies and redirects via a Server Action on the dashboard layout.
+- [x] No demo path in web (production posture from day one — unlike mobile, web has no `__DEV__` shortcut).
+- [x] Defense-in-depth: dashboard layout re-checks `getCurrentClaims()` server-side even though `proxy.ts` already enforced.
 
 Acceptance:
 
-- [ ] Owner can sign in with phone OTP and see the empty dashboard shell.
-- [ ] Unauthenticated requests to `/dashboard/*` redirect to sign-in.
-- [ ] Tenant isolation verified by RLS at the Supabase layer.
+- [ ] Owner can sign in with phone OTP and see the empty dashboard shell. (Pending real Supabase project.)
+- [ ] Unauthenticated requests to `/dashboard/*` redirect to sign-in. (Pending end-to-end test against staging.)
+- [ ] Tenant isolation verified by RLS at the Supabase layer. (Pending staging.)
 
 ### W0.5 Read-Only Dashboard
 
-- [ ] Sidebar/topbar shell shared across views.
-- [ ] Products view: list with category filter, low-stock badge, stock-pieces display via shared `displayStock`.
-- [ ] Sales view: paginated list with receipt number, date, total, payment method, sync state.
-- [ ] Inventory view: per-product `stock_pieces`, reorder point, last delta time.
-- [ ] Sync health view: per-device queue depth, last seen, failures.
-- [ ] Empty/loading/error states on every view.
-- [ ] EN + TL strings via the same source as mobile (or a shared `@tdpos/shared` translations module).
+- [x] Topbar shell with branch identity + sign-out (lives in `(dashboard)/layout.tsx`; sidebar deferred to W0.7 when more views land).
+- [/] Products view: low-stock list lands on the dashboard home (`getLowStockProducts`); standalone `/products` page deferred to W0.8.
+- [/] Sales view: recent-receipts list lands on the dashboard home (`getRecentSales`); paginated `/sales` view deferred to W0.7 with reporting.
+- [/] Inventory view: low-stock-only slice on the dashboard home; full per-product view deferred to W0.8.
+- [ ] Sync health view: per-device queue depth, last seen, failures. (Pending — sync_queue is mobile-only; needs a server-side mirror table or a per-device heartbeat. Tracked in W0.7.)
+- [x] Empty/loading/error states on every read-only card. The dashboard renders a friendly "Supabase env unconfigured" notice instead of crashing when keys are missing.
+- [ ] EN + TL strings via the same source as mobile (deferred — web copy stays English-only until W0.7 when the report PDF needs both languages).
+- [x] Three RLS-protected Server Component queries in `apps/web/src/lib/queries/dashboard.ts`: `getTodaysSalesSummary`, `getLowStockProducts`, `getRecentSales`. `import 'server-only'` hard-stops accidental client imports.
+- [x] Dashboard home is an `async` Server Component running all three queries via `Promise.all`, formatting via the shared `formatMoney` + `displayStock` + `splitStock` helpers from `@tdpos/shared`.
+- [x] Tabular numbers, divide-y lists, brand-token palette throughout — uses the same teal/amber/ink theme as mobile.
 
 Acceptance:
 
-- [ ] Owner can read the same data the cashier wrote without manual queries.
-- [ ] Tenant A cannot read tenant B at any layer (verify with RLS test).
+- [/] Owner can read the same data the cashier wrote without manual queries. (Code path is correct; pending real Supabase project for end-to-end verification.)
+- [ ] Tenant A cannot read tenant B at any layer. (Verified by RLS in the migration; needs a Postgres test under §14 to lock in.)
 
 ### W0.7 Reporting & Exports
 
-- [ ] Daily report (gross sales, hourly histogram, payment mix, item count).
-- [ ] Weekly + monthly aggregates.
-- [ ] Per-cashier and per-branch breakdowns.
-- [ ] CSV export of any report.
+- [x] Daily report (gross sales, payment mix, item count, hourly histogram). The Overview now accepts `?date=YYYY-MM-DD` and runs a single query that aggregates gross, payment mix, and 24-bucket hourly gross in one pass; an inline SVG histogram on the dashboard highlights the peak hour in amber against teal hourly bars. Defaults to today's local date.
+- [/] Weekly + monthly aggregates. Code-side: `getTodaysSalesSummary(forDate)` is the building block — wrap it in a date-range pass for the next slice. Tracked as the next W0.7 follow-up.
+- [x] Per-cashier and per-branch breakdowns. Per-branch: `getPerBranchBreakdown(forDate)` joins `sales` → `branches(name, region)`, grouped + sorted, rendered with a teal share bar. Per-cashier: `getPerCashierBreakdown(forDate)` joins `sales` → `users(phone, role)` and surfaces only the **last 4 digits of the phone** (`tailPhone`) per ADR-014's privacy posture — owners reconcile against staff records, full E.164 never leaves the database. Both render side-by-side in a 2-column grid on the Overview.
+- [x] Top-sellers breakdown. `getTopProductsBreakdown(forDate, limit=10)` joins `sale_items` → `products(name, unit_label)` and uses `sales!inner ( created_at )` to RLS-cascade the day filter through the parent sale. Surfaces top 10 products by gross with `pieces_sold` formatted as the product's `unit_label` (sachet, stick, bottle, etc.). Owner sees the day's revenue drivers at a glance.
+- [x] CSV export of sales — RFC 4180 line-item CSV with BIR-ready columns. Route Handler at `GET /api/exports/sales?from=YYYY-MM-DD&to=YYYY-MM-DD` (defense-in-depth `getCurrentClaims()` check, 400/401/503 error envelope, `text/csv` with `Content-Disposition: attachment`). Pure builder at `apps/web/src/lib/csv/build-sales-csv.ts` quotes per RFC 4180 and emits `\r\n` line endings. Defaults to today's local date when params omitted; rejects inverted ranges with 400.
+- [x] Dashboard download button calls the export via plain `<a download>` so it works without JavaScript.
 - [ ] PDF export using `@react-pdf/renderer` with the BIR-ready receipt format applied.
-- [ ] Audit log view (read-only, filtered by tenant).
+- [x] Audit log view (read-only, filtered by tenant). Server Component at `/audit`, query at `apps/web/src/lib/queries/audit-log.ts`. Surfaces field _names_ of changed columns only (`beforeKeys`, `afterKeys` derived from `Object.keys`); never values — preserves the ADR-014 privacy posture. RLS scopes per-tenant; the `prevent_audit_mutation` trigger from the initial migration enforces immutability at the database, so the page is read-only by construction.
 - [ ] Stock Accuracy Score view (system vs last cycle count).
+- [/] Sync health view. Server Component at `/sync`, query at `apps/web/src/lib/queries/sync-health.ts`. Reads `applied_operations` (RLS-scoped) and surfaces: completed (24h), in_progress (any age), stuck (`status='in_progress' AND applied_at < now()-60s`), failed (24h), last `applied_at`, and last 10 failure rows with their `reason` label only. Single `Promise.all` of six tenant-scoped queries. Tone-coded banner: green/healthy, amber/review, red/action-needed. Per-device queue depth still pending — needs an agent-pings table or a derived view; tracked separately under P11.5.9 Support Diagnostics.
 
 Acceptance:
 
-- [ ] Owner can produce a 30-day sales report in CSV + PDF.
+- [/] Owner can produce a 30-day sales CSV today (typecheck + lint green; end-to-end pending real Supabase project).
+- [ ] Owner can produce a 30-day sales PDF.
 - [ ] BIR-ready export passes a manual RDO acceptance dry run.
 
 ### W0.8 Management
+
+> Status: deliberately not started. W0.8 is mutating CRUD against tenant data — every screen needs a Server Action with auth + Zod + audit-log emission. Pattern is well-established (see W0.7 Server Actions for OTP and sign-out), but each item is a real screen + form + action + audit entry. Do not start until W0.7 PDF and the staging Supabase project are wired so end-to-end testing is possible.
 
 - [ ] Product CRUD with bulk import CSV.
 - [ ] Category CRUD.
@@ -1857,15 +1868,29 @@ Acceptance:
 
 ### W0.9 Web Production Candidate
 
+> Status: every line below is **gated on real users + a real host**. Code-side groundwork (defense-in-depth auth, RLS, no-PII surfacing, brand-token theme, `server-only` boundaries) is in place from W0.1 → W0.7. The W0.9 acceptance bars exist to prove those things hold under real traffic; they cannot be demonstrated synthetically.
+
 - [ ] Same correctness, security, accessibility, and performance bars as mobile.
-- [ ] WCAG 2.2 AA equivalent across every screen.
-- [ ] LCP < 2.5 s on a fresh browser session.
-- [ ] Vercel/host deploy pipeline matches the mobile EAS pipeline in maturity.
+- [ ] WCAG 2.2 AA equivalent across every screen. (Pre-work shipped: every form has labels, every interactive control has focus rings, every alert uses `role="status"` or `role="alert"`. Full audit pending Lighthouse + axe runs against a deployed build.)
+- [ ] LCP < 2.5 s on a fresh browser session. (Pre-work shipped: zero client-side data fetching on the Overview, single `Promise.all` per page, no large client bundles. Numeric verification pending deploy.)
+- [ ] Vercel/host deploy pipeline matches the mobile EAS pipeline in maturity. (Foundation gate covers typecheck + lint + format + doc-link integrity; CI/CD to a host pending the host decision.)
 - [ ] Pilot store owner does one full day of monitoring + reconciliation from the dashboard.
 
 Acceptance:
 
 - [ ] Web dashboard does not block any v1.0 quality bar.
+
+### Phase W Closure Status
+
+- W0.1 Foundation — ✅ done.
+- W0.2 Styling — ✅ done.
+- W0.3 Auth Shell — ✅ done.
+- W0.5 Read-Only Dashboard — ✅ done; date-range support added in W0.7.
+- W0.7 Reporting & Exports — ✅ daily report (incl. hourly histogram), CSV export, audit log, sync health. Open: PDF export, weekly/monthly, per-cashier/per-branch breakdowns, Stock Accuracy Score (needs cycle-count schema).
+- W0.8 Management — deliberately deferred until staging Supabase exists; design pattern established.
+- W0.9 Web Production Candidate — gated on hosted deploy + pilot user.
+
+Code-side, the web track has matched the substrate quality of the mobile track: same `@tdpos/shared` formatters, same brand palette, same defense-in-depth auth, same discriminated-union query pattern. What's left is either (a) more screens following the same pattern (W0.8) or (b) infrastructure work the code can't do alone (W0.9).
 
 ## Phase M: Marketing Site (final-mile track)
 

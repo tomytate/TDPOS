@@ -180,3 +180,43 @@
 - Local checkout queues the `sales` sync row before product `DELTA` rows, so processing order matches the remote dependency order.
 - The Edge Function only validates and delegates; tenant checks live in the security-definer function and return `{ ok: false, reason: ... }` for reviewable failures.
 - Postgres §14 tests must cover replay, tenant rejection, and partial-state prevention before the v0.6 tag.
+
+---
+
+## ADR-014: Diagnostics Are Local-Only, Manager-Initiated, And PII-Sanitized
+
+**Decision:** The diagnostics surface at `app/(app)/diagnostics.tsx` is a manager-only screen that reads local state — app version, schema version, install id, branch/cashier code, MMKV size, sync-queue health, last 10 sync errors — and produces a clipboard-ready support bundle via `buildSupportBundle()`. The bundle never leaves the device automatically. There is no remote logging, no telemetry beacon, no crash-report uploader. The sanitizer in `support-bundle.ts` strips email addresses and Philippine phone numbers from any error string before it reaches the bundle.
+
+**Why:**
+- The Philippine Data Privacy Act (RA 10173) treats customer phones, names, and addresses as personal information. Auto-uploading sync errors that may contain payload fragments would create a controller relationship the platform doesn't want at v1.0.
+- A clipboard-handoff model puts the manager in the loop. They see the text before they share it. Consent is explicit and per-incident.
+- Manager-only access matches the trust model: cashiers should not be exporting tenant state, even sanitized.
+- Sanitization is layered, not relied-on alone — `last_error` strings are constructed by the sync processor, never include raw payloads, and additionally pass through email/phone redaction.
+
+**Consequences:**
+- `expo-clipboard` is a hard dependency. Skill doc at `docs/skills/expo-clipboard.md` documents the `setStringAsync()` rule.
+- The bundle includes the install id (UUID v4 from `getOrCreateInstallId`) — a stable opaque identifier with no PII linkage. Useful for support correlation, useless for tracking individuals.
+- Recent-error queries truncate `client_operation_id` to its last 8 chars (`tailRef`) to reduce the chance of correlating bundles across stores.
+- A future remote-logging path (Sentry, etc.) is not blocked by this ADR but must (a) live behind an explicit user-initiated opt-in, (b) honor the same sanitizer, (c) record consent with timestamp under P11.5.6.
+- Tests at `support-bundle.test.ts`, `sync-health.test.ts`, and `diagnostics-metadata.test.ts` cover the contract.
+- The screen is not part of the offline cashier flow and must not block sales if any of the diagnostic queries fail.
+
+---
+
+## ADR-015: Node 24 LTS As The Project Toolchain Baseline
+
+**Decision:** TD POS targets Node 24 LTS for all local development, CI, and tooling. Pinned in `.nvmrc`, `.node-version`, the `actions/setup-node` `node-version-file` reference, `scripts/check-toolchain.mjs`, `scripts/use-toolchain.sh`, and `docs/development-setup.md`. Bun stays at 1.3.13.
+
+**Why:**
+- Node 20 reached End of Life in April 2026. Continuing to develop against an EOL runtime exposes the team to unpatched security advisories and silent removal of Node 20 from CI base images.
+- Node 24 is the active LTS line (released April 2025, LTS October 2025) and is supported through April 2028, which covers the v1.0 horizon and well beyond.
+- Expo SDK 55 documents Node 20.19.x as the minimum, not the maximum; Node 24 satisfies that constraint with margin.
+- Node 24 ships V8 12.4+, stable WebStreams, native `import.meta.resolve`, and stable `--watch` — all of which simplify scripts in `scripts/*.mjs` and the foundation gate.
+- One LTS pin avoids the multi-version matrix problem: every contributor, CI runner, and AI agent runs the same V8.
+
+**Consequences:**
+- Anyone joining the project after April 2026 must install Node 24 before the foundation gate will pass on their machine. `scripts/use-toolchain.sh` provides a brew-based PATH shim for hosts that pin an older Node globally.
+- `scripts/check-toolchain.mjs` validates the major version (`/^v24\./`) — bumping to Node 26 LTS in 2027 will be a one-line edit there plus the version files.
+- CI uses `actions/setup-node@v6` with `node-version-file: .node-version`, so the runner version follows the pin automatically.
+- Bun is independent of the Node pin (Bun is a separate runtime). The Bun `1.3.13` pin is enforced by `packageManager` in `package.json` and the `oven-sh/setup-bun` step in CI.
+- This ADR will be revisited when Node 26 enters Active LTS (October 2027) or when an Expo SDK requires a newer minimum.

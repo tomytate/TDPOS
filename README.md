@@ -82,14 +82,14 @@ eas update --branch production --message "fix: receipt alignment"
 ```
 TDPOS/
 ├── apps/mobile/             # Expo SDK 55 (iOS + Android + Tablet)
-├── apps/web/                # Next.js 16 web dashboard (Phase 3)
-├── packages/shared/         # Shared types, validators, constants
-├── packages/db/             # Database schema types
+├── apps/web/                # Next.js 16 owner dashboard (mainline per ADR-010 — auth + 6 owner views)
+├── packages/shared/         # Shared types, validators, constants, BIR copy
+├── packages/db/             # Database schema types + re-exported Zod validators
 ├── packages/typescript-config/
 ├── packages/eslint-config/
-├── supabase/                # PG17 migrations, Edge Functions, seed
-├── docs/                    # Spec, architecture, schema reference
-│   └── skills/              # 18 anti-hallucination skill docs (ALL agents)
+├── supabase/                # PG17 migrations (3), Edge Functions (2), seed
+├── docs/                    # Spec, architecture (15 ADRs), schema reference
+│   └── skills/              # 20 anti-hallucination skill docs (DocGate-3 enforced)
 └── UI/                      # Suki POS design canvas (reference only)
 ```
 
@@ -114,13 +114,17 @@ This project includes comprehensive anti-hallucination documentation for AI codi
 | `CODEX.md`  | OpenAI Codex  | Architecture notes, 17 critical rules, style guide              |
 | `GEMINI.md` | Google Gemini | Key decisions, deprecation-source pointer, coding standards     |
 
-### Skills (19 procedural docs in `docs/skills/`)
+### Skills (20 procedural docs in `docs/skills/`, DocGate-3 enforced)
 
-**Domain:** `inventory-tingi-model`, `sync-engine`, `receipt-numbering`, `bir-compliance`, `supabase-rls`
+**Domain (5):** `inventory-tingi-model`, `sync-engine`, `receipt-numbering`, `bir-compliance`, `supabase-rls`
 
-**API/Framework (Anti-Hallucination):** `react-19-patterns`, `expo-router-patterns`, `expo-sqlite-patterns`, `expo-clipboard`, `zustand-mmkv-stores`, `supabase-auth-phone-otp`, `thermal-printer-integration`, `nextjs-16-proxy-pattern`, `react-native-paper-theming`, `tanstack-query-offline`
+**Mobile framework (8):** `react-19-patterns`, `expo-router-patterns`, `expo-sqlite-patterns`, `zustand-mmkv-stores`, `supabase-auth-phone-otp`, `thermal-printer-integration`, `react-native-paper-theming`, `tanstack-query-offline`
 
-**Platform & Infrastructure:** `postgresql-17-patterns`, `eas-build-deploy`, `background-sync-task`, `supabase-server-edge-functions`
+**Web framework (1):** `nextjs-16-proxy-pattern`
+
+**Platform & Infrastructure (4):** `postgresql-17-patterns`, `eas-build-deploy`, `background-sync-task`, `supabase-server-edge-functions`
+
+**Cross-cutting (2):** `deprecations` (single-source deprecations table per DocGate-2), `expo-clipboard` (diagnostics support bundles per ADR-014)
 
 ## Documentation
 

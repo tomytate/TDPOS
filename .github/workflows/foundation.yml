@@ -49,6 +49,9 @@ jobs:
       - name: Check doc link integrity
         run: bun run check:doc-links
 
+      - name: Check skill-doc gate (DocGate-3)
+        run: bun run check:skill-docs
+
       - name: Typecheck
         run: bun run typecheck
 

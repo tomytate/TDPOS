@@ -3,7 +3,30 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "echo \"Web dashboard is deferred until the mobile offline core is ready.\"",
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
     "clean": "rm -rf .next dist .turbo"
+  },
+  "dependencies": {
+    "next": "^16.2.4",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "@supabase/ssr": "^0.10.2",
+    "@supabase/supabase-js": "^2.105.3",
+    "@tdpos/db": "workspace:*",
+    "@tdpos/shared": "workspace:*",
+    "server-only": "^0.0.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.2.4",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@types/node": "^22.10.0",
+    "postcss": "^8.5.0",
+    "tailwindcss": "^4.2.4",
+    "typescript": "^6.0.3"
   }
 }

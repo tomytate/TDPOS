@@ -65,3 +65,11 @@ If the scanner flags a non-violation (false positive), discuss in the PR and adj
 ## Versions Referenced
 
 This table is anchored to the verified May 9, 2026 stack. The per-package "verified version" lives in each package's skill doc under "Sources" (DocGate-3). When you bump a package, update its skill doc first, then re-verify this table's "use instead" column still points at the right package.
+
+## Sources
+
+This skill consolidates per-package deprecation notes. Per-package authoritative URLs and verified versions live in each package's own skill doc under its own `## Sources` section (DocGate-3).
+
+- Mechanical enforcement: `scripts/check-forbidden-patterns.mjs` (regex subset) + `scripts/check-skill-docs.mjs` (skill-doc structure).
+- Cross-references: every other doc that mentions a deprecation links here instead of duplicating the table (DocGate-2).
+- Last verified: 2026-05-09.

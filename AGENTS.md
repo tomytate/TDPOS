@@ -115,7 +115,7 @@ The canonical deprecations table lives in [`docs/skills/deprecations.md`](docs/s
 | "Provisional receipts"                         | "Official Receipts"                 |
 | "Sales Invoice format ready for accreditation" | "Sales Invoice" (without qualifier) |
 
-## Skills Reference (19 procedural docs in `docs/skills/`)
+## Skills Reference (20 procedural docs in `docs/skills/`)
 
 ### Domain Skills
 
@@ -170,7 +170,7 @@ TDPOS/
 ├── packages/eslint-config/
 ├── supabase/             # PG17 migrations, Edge Functions, seed
 ├── docs/                 # Spec, architecture, schema reference
-│   └── skills/           # 19 procedural skill docs (shared by ALL agents)
+│   └── skills/           # 20 procedural skill docs (shared by ALL agents)
 └── UI/                   # Suki POS design canvas (reference only)
 ```
 
