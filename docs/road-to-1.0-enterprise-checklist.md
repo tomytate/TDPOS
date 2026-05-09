@@ -461,9 +461,11 @@ Run this review once any paid service is enabled.
 
 #### Remaining
 
-- [ ] Bun is not installed as a direct `bun` shell command; `npx bun@1.3.13` was used for this pass.
-- [ ] Supabase CLI is not installed in the current shell.
-- [ ] EAS CLI is not installed; `bunx eas-cli` is the documented entry.
+- [x] Bun is installed as a direct shell command when `scripts/use-toolchain.sh` is sourced; interactive zsh also sees `bun`.
+- [x] Supabase CLI is installed (`2.98.2`).
+- [x] EAS CLI runner is available through `bunx`; no hidden global install required.
+- [!] Docker is not installed/running in this shell, so local Supabase containers cannot start yet.
+- [!] Supabase local phone login warns when no SMS provider is configured; hosted staging needs a provider/test-number strategy before real OTP closes.
 - [x] `docs/spec-v5.md` exists as the project spec meta-index.
 - [/] Supabase Edge Function folders exist. `apply-inventory-delta` and `create-sale` are implemented; `eod-report` is still planned.
 - [/] Tier A vertical: sale → checkout → receipt now writes a real `db.withTransactionAsync` transaction with sync-queue rows. Inventory and reports tabs now render local SQLite data; scanner is still intentionally disabled.

@@ -49,11 +49,17 @@ On this workstation, Node 24 is installed through Homebrew at `/usr/local/opt/no
 
 ## Local Supabase
 
+Local Supabase requires Docker or a Docker-compatible runtime. The CLI is installed, but `supabase start` will fail until the Docker daemon is available.
+
 ```bash
+source scripts/use-toolchain.sh
+supabase status
 bunx supabase start
 bunx supabase db push
 bunx supabase db seed
 ```
+
+Phone OTP also needs an SMS provider or a local test-number strategy. The committed config includes `auth.sms.test_otp` for development, but the CLI still warns when no provider is enabled; do not close P7.1 real OTP until hosted staging confirms the actual provider path.
 
 The app uses the new publishable-key naming:
 
