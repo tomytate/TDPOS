@@ -40,10 +40,10 @@ The spec is composed of these documents. Read them in this order.
 
 ### 4. Procedural skill docs (one per package or domain)
 
-`docs/skills/` is the canonical place where each integration is documented. Every package in the tech stack must have a skill doc that links to its official documentation, carries a verified version, and stamps a `Last verified:` date. The structure is mechanically enforced by `scripts/check-skill-docs.mjs` (DocGate-3) at the foundation gate. The count currently sits at **21**:
+`docs/skills/` is the canonical place where each integration is documented. Every package in the tech stack must have a skill doc that links to its official documentation, carries a verified version, and stamps a `Last verified:` date. The structure is mechanically enforced by `scripts/check-skill-docs.mjs` (DocGate-3) at the foundation gate. The count currently sits at **22**:
 
 - **Domain (5):** `inventory-tingi-model.md`, `sync-engine.md`, `receipt-numbering.md`, `bir-compliance.md`, `supabase-rls.md`.
-- **Mobile framework (8):** `react-19-patterns.md`, `expo-router-patterns.md`, `expo-sqlite-patterns.md`, `zustand-mmkv-stores.md`, `supabase-auth-phone-otp.md`, `thermal-printer-integration.md`, `react-native-paper-theming.md`, `tanstack-query-offline.md`.
+- **Mobile framework (9):** `react-19-patterns.md`, `expo-router-patterns.md`, `expo-sqlite-patterns.md`, `expo-file-system.md`, `zustand-mmkv-stores.md`, `supabase-auth-phone-otp.md`, `thermal-printer-integration.md`, `react-native-paper-theming.md`, `tanstack-query-offline.md`.
 - **Web framework (2):** `nextjs-16-proxy-pattern.md`, `react-pdf-renderer.md`. The Tailwind 4 + shadcn/ui doc remains tracked by W0.2/W0.8 follow-ups.
 - **Platform & infrastructure (4):** `postgresql-17-patterns.md`, `eas-build-deploy.md`, `background-sync-task.md`, `supabase-server-edge-functions.md`.
 - **Cross-cutting (2):** `deprecations.md` (single-source deprecations table per DocGate-2), `expo-clipboard.md` (diagnostics support bundles per ADR-014).
@@ -52,7 +52,11 @@ The spec is composed of these documents. Read them in this order.
 
 - [development-setup.md](development-setup.md) — required tools (Node 24, Bun 1.3.13, Supabase CLI), first-time setup, foundation gate.
 
-### 6. Per-agent context layers
+### 6. Operations and support
+
+- [operations/support-runbook.md](operations/support-runbook.md) — pilot support path, severity guide, top support scenarios, escalation packet, and single-owner support model.
+
+### 7. Per-agent context layers
 
 These are not the spec itself; they are agent-facing summaries that point back here.
 

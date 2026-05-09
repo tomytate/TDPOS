@@ -112,12 +112,12 @@ A surface (mobile, web, backend) meets the bar when **every** row below is `[x]`
 
 ### EG-7 Operations
 
-- [/] Diagnostics screen in the mobile app (manager+ only): sync queue health, app version, schema version, device identity, free disk, MMKV size, and support bundle copy exist; public runbook still pending.
+- [x] Diagnostics screen in the mobile app (manager+ only): sync queue health, app version, schema version, device identity, free disk, MMKV size, and support bundle copy exist.
 - [x] "Bundle support package" action copies diagnostics + recent sync errors for support email.
-- [ ] Public runbook covers: sync stuck, printer offline, lost device, change branch/cashier code, restore on new phone.
+- [x] Public runbook covers: sync stuck, printer offline, lost device, change branch/cashier code, restore on new phone. (`docs/operations/support-runbook.md`.)
 - [ ] Web dashboard has a sync health view (per-device queue depth, last seen).
-- [ ] On-call rotation defined or single-owner explicit (small team is fine; ambiguity is not).
-- [ ] Incident response template ready in `.github/`.
+- [x] On-call rotation defined or single-owner explicit (small team is fine; ambiguity is not). (`docs/operations/support-runbook.md` declares the pilot single-owner model.)
+- [x] Incident response template ready in `.github/`. (`.github/ISSUE_TEMPLATE/incident.md`.)
 
 ### EG-8 Compliance
 
@@ -1489,7 +1489,7 @@ Acceptance:
 
 - [ ] Add app error logging plan.
 - [x] Add local sync-health query. (`apps/mobile/src/features/diagnostics/lib/sync-health.ts`; 2 unit tests cover empty and mixed queue states.)
-- [/] Add sync error logs. Latest `sync_queue.last_error` is surfaced by `getSyncHealth`; a full recent-error list belongs to the diagnostics screen.
+- [x] Add sync error logs. Latest `sync_queue.last_error` is surfaced by `getSyncHealth`; the support bundle includes the most recent sync errors without raw payloads.
 - [x] Add local diagnostics screen. (`app/(app)/diagnostics.tsx`, linked from Reports for owner/manager roles only.)
 - [x] Show unsynced queue count.
 - [x] Show failed sync count.
@@ -1502,7 +1502,7 @@ Acceptance:
 
 Acceptance:
 
-- [ ] Support can diagnose “my sale did not sync” without opening SQLite manually.
+- [x] Support can diagnose “my sale did not sync” without opening SQLite manually. The diagnostics screen exposes queue health and the support bundle carries recent sanitized sync errors; the runbook defines the triage path.
 
 ### P10.4 Security And Privacy
 
@@ -1633,16 +1633,16 @@ Purpose: decide whether TD POS is safe to call v1.0. Per the Release Pact, v1.0 
 - [ ] Every package has a skill doc with verified official-source link.
 - [ ] Every architectural choice has an ADR.
 - [ ] CLAUDE.md / AGENTS.md / GEMINI.md / CODEX.md stay in sync via single-source references.
-- [ ] Public runbook covers the top 10 support scenarios.
+- [x] Public runbook covers the top 10 support scenarios. (`docs/operations/support-runbook.md`.)
 - [ ] Suki integration doc reconciled (live or archived).
 
 ### P11.6 Operations Gate
 
 - [ ] Pilot store completed at least one full reconciliation day with no manual database repair.
 - [ ] Web dashboard pilot completed at least one full owner-monitoring day.
-- [ ] Support process is defined and tested with a real ticket.
-- [ ] On-call rotation defined or single-owner explicit.
-- [ ] Incident response template ready.
+- [/] Support process is defined and tested with a real ticket. Defined in `docs/operations/support-runbook.md`; real-ticket test pending pilot.
+- [x] On-call rotation defined or single-owner explicit.
+- [x] Incident response template ready.
 - [ ] Diagnostics screen ships in mobile.
 - [ ] Sync health view ships in web.
 
@@ -1740,7 +1740,7 @@ Purpose: every row in this phase blocks v1.0. Per the Release Pact, "enterprise-
 - [ ] Document Supabase backup posture per plan (Free = no backups, Pro = PITR). Decide which plan v1.0 ships on.
 - [ ] Mobile-side: an "export local data" diagnostic that produces a compressed JSON dump of products, sales, sale_items, sync_queue.
 - [ ] Restore-from-server bootstrap: fresh device install pulls products/categories and gets a clean SQLite from scratch.
-- [ ] Lost-device runbook: device deactivation, sync-queue replay, receipt sequence reservation transfer to a new device.
+- [/] Lost-device runbook: device deactivation, sync-queue replay, receipt sequence reservation transfer to a new device. Process is documented in `docs/operations/support-runbook.md`; device-management implementation remains pending.
 - [ ] EAS Update rollback plan: every release has a known-good prior update channel pinned for fast revert.
 
 ### P11.5.8 EOD SMS Automation (Free → Starter Conversion Trigger)
@@ -1753,10 +1753,10 @@ Purpose: every row in this phase blocks v1.0. Per the Release Pact, "enterprise-
 
 ### P11.5.9 Support Diagnostics And Runbook
 
-- [/] In-app diagnostics screen (manager+ only) showing: app version, schema version, last successful sync, unsynced queue count, failed sync count, device id, free disk, MMKV size. Screen, sync-health metrics, app version, schema version, install ID, branch/cashier identity, free/total disk via `expo-file-system` `Paths`, MMKV size, and support bundle copy exist; public runbook still pending.
+- [x] In-app diagnostics screen (manager+ only) showing: app version, schema version, last successful sync, unsynced queue count, failed sync count, device id, free disk, MMKV size. Screen, sync-health metrics, app version, schema version, install ID, branch/cashier identity, free/total disk via `expo-file-system` `Paths`, MMKV size, and support bundle copy exist.
 - [x] One-tap "Bundle support package" action that copies the diagnostics text and the most recent N sync errors to clipboard for support email.
-- [ ] Public runbook covering: sync stuck, receipt printer not connecting, lost device, change branch/cashier code, restore data on new phone.
-- [ ] Support contact path documented (email + response SLA appropriate for the tier).
+- [x] Public runbook covering: sync stuck, receipt printer not connecting, lost device, change branch/cashier code, restore data on new phone.
+- [/] Support contact path documented (email + response SLA appropriate for the tier). Pilot support channel and response goals are documented; public email/domain remains Phase M.
 
 ### P11.5.10 Concurrency And Capacity Limits
 
@@ -2110,7 +2110,7 @@ Use this section as releases progress.
 - [x] Commit: first foundation snapshot created under Git on `main`.
 - [/] Duplicate sync test result: local idempotency confirmed against `bun:sqlite` (`sync-processor.test.ts` "marks reviewable" + executeCheckout local-idempotency); server-side TOCTOU test (§14 #6) requires Postgres test container.
 - [/] Negative stock test result: server returning `{ ok: false, reason: 'insufficient_stock_or_not_found' }` is mapped to `pending_sync_review:` in the local sync queue (`sync-processor.test.ts` "marks reviewable"); end-to-end test against real RPC pending.
-- [x] Notes: `sync-processor.ts` validates every payload with the shared `syncQueueEnvelopeSchema` Zod discriminated union before calling the network, defers `concurrent_in_progress`, and bumps non-retryable failures to `retry_count = 999` with a `pending_sync_review:` last_error. `getSyncHealth(db)` and `useSyncHealth()` summarize total/synced/unsynced/pending/failed/reviewable rows, max retry count, last successful sync, oldest pending row, and latest error; `getDiagnosticsMetadata(db, identity, storage)` adds app version, local schema version, persisted install ID, branch/cashier identity, role, MMKV byte size, and MMKV key count; `buildSupportBundle()` copies sanitized manager-triggered diagnostics through `expo-clipboard` without raw sync payloads. `app/(app)/diagnostics.tsx` exposes those metrics to owner/manager roles from the Reports tab. `runSyncQueueOnce(db)` is the shared foreground/background executor; `SyncTriggerEffect` no-ops until Supabase is configured and `authStore.userId` exists; `sync-task.ts` defines `TDPOS_BACKGROUND_SYNC` at module scope and `register-sync.ts` registers it with `expo-background-task` at a 15-minute minimum interval. `apply-inventory-delta` and `create-sale` use `withSupabase({ auth: 'user' })`; `create-sale` delegates to `create_sale_atomic(p_payload)` so remote `sales` + `sale_items` are all-or-nothing. End-to-end against a real Supabase project blocks on P7 auth pairing.
+- [x] Notes: `sync-processor.ts` validates every payload with the shared `syncQueueEnvelopeSchema` Zod discriminated union before calling the network, defers `concurrent_in_progress`, and bumps non-retryable failures to `retry_count = 999` with a `pending_sync_review:` last_error. `getSyncHealth(db)` and `useSyncHealth()` summarize total/synced/unsynced/pending/failed/reviewable rows, max retry count, last successful sync, oldest pending row, and latest error; `getDiagnosticsMetadata(db, identity, storage)` adds app version, local schema version, persisted install ID, branch/cashier identity, role, MMKV byte size, MMKV key count, and free/total disk; `buildSupportBundle()` copies sanitized manager-triggered diagnostics through `expo-clipboard` without raw sync payloads. `app/(app)/diagnostics.tsx` exposes those metrics to owner/manager roles from the Reports tab. `docs/operations/support-runbook.md` defines the top 10 support scenarios and `.github/ISSUE_TEMPLATE/incident.md` defines the incident packet. `runSyncQueueOnce(db)` is the shared foreground/background executor; `SyncTriggerEffect` no-ops until Supabase is configured and `authStore.userId` exists; `sync-task.ts` defines `TDPOS_BACKGROUND_SYNC` at module scope and `register-sync.ts` registers it with `expo-background-task` at a 15-minute minimum interval. `apply-inventory-delta` and `create-sale` use `withSupabase({ auth: 'user' })`; `create-sale` delegates to `create_sale_atomic(p_payload)` so remote `sales` + `sale_items` are all-or-nothing. End-to-end against a real Supabase project blocks on P7 auth pairing.
 
 ### v1.0 Evidence
 

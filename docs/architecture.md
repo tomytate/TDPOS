@@ -185,7 +185,7 @@
 
 ## ADR-014: Diagnostics Are Local-Only, Manager-Initiated, And PII-Sanitized
 
-**Decision:** The diagnostics surface at `app/(app)/diagnostics.tsx` is a manager-only screen that reads local state — app version, schema version, install id, branch/cashier code, MMKV size, sync-queue health, last 10 sync errors — and produces a clipboard-ready support bundle via `buildSupportBundle()`. The bundle never leaves the device automatically. There is no remote logging, no telemetry beacon, no crash-report uploader. The sanitizer in `support-bundle.ts` strips email addresses and Philippine phone numbers from any error string before it reaches the bundle.
+**Decision:** The diagnostics surface at `app/(app)/diagnostics.tsx` is a manager-only screen that reads local state — app version, schema version, install id, branch/cashier code, MMKV size, free/total disk, sync-queue health, last 10 sync errors — and produces a clipboard-ready support bundle via `buildSupportBundle()`. The bundle never leaves the device automatically. There is no remote logging, no telemetry beacon, no crash-report uploader. The sanitizer in `support-bundle.ts` strips email addresses and Philippine phone numbers from any error string before it reaches the bundle.
 
 **Why:**
 - The Philippine Data Privacy Act (RA 10173) treats customer phones, names, and addresses as personal information. Auto-uploading sync errors that may contain payload fragments would create a controller relationship the platform doesn't want at v1.0.
@@ -199,6 +199,7 @@
 - Recent-error queries truncate `client_operation_id` to its last 8 chars (`tailRef`) to reduce the chance of correlating bundles across stores.
 - A future remote-logging path (Sentry, etc.) is not blocked by this ADR but must (a) live behind an explicit user-initiated opt-in, (b) honor the same sanitizer, (c) record consent with timestamp under P11.5.6.
 - Tests at `support-bundle.test.ts`, `sync-health.test.ts`, and `diagnostics-metadata.test.ts` cover the contract.
+- `docs/operations/support-runbook.md` defines the top support scenarios and `.github/ISSUE_TEMPLATE/incident.md` defines the escalation packet.
 - The screen is not part of the offline cashier flow and must not block sales if any of the diagnostic queries fail.
 
 ---
