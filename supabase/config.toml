@@ -36,6 +36,31 @@ max_frequency = "5s"
 [auth.sms.test_otp]
 639171234567 = "123456"
 
+# GoTrue refuses to enable phone login unless at least one provider block is
+# enabled — even when only `test_otp` is in use. Dummy Twilio credentials
+# unlock the test_otp path without actually sending SMS, since `test_otp`
+# matches are short-circuited before the provider is invoked. Real provider
+# credentials only become necessary for non-test phone numbers.
+[auth.sms.twilio]
+enabled = true
+account_sid = "AC_LOCAL_DUMMY"
+message_service_sid = "MG_LOCAL_DUMMY"
+auth_token = "env(SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN)"
+
 [storage]
 enabled = true
 file_size_limit = "50MiB"
+
+# Vector log collection requires mounting Docker's host socket; not all
+# container runtimes (notably Colima with virtiofs/sshfs) pass Unix sockets
+# through reliably. Disabled locally — production / hosted Supabase still
+# has analytics on by default.
+[analytics]
+enabled = false
+
+# Edge runtime (Deno) crashes with "Bus error (core dumped)" on Colima x86_64
+# emulation. Edge functions ship to hosted Supabase, not local — disabling
+# locally avoids the startup failure. Re-enable if you need to test functions
+# against a real Docker Desktop install.
+[edge_runtime]
+enabled = false
