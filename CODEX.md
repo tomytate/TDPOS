@@ -38,6 +38,7 @@ bun install                    # Install deps
 bun run dev                    # Start all (turbo)
 bun run dev:mobile             # Expo only
 bun run dev:web                # Next.js only
+bun run check:mobile-bundle    # Android Metro bundle/export check
 bun run lint                   # ESLint 10
 bun run typecheck              # TS strict
 bun run test                   # All tests

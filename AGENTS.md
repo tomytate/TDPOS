@@ -11,7 +11,7 @@ TD POS is the operating system for Philippine business — a mobile-first, offli
 - **Database:** PostgreSQL 17 (via Supabase)
 - **Build & Deploy:** EAS Build + EAS Submit (iOS App Store + Google Play)
 
-## Tech Stack (Verified May 9, 2026)
+## Tech Stack (Verified May 10, 2026)
 
 ### Mobile (apps/mobile)
 
@@ -66,6 +66,7 @@ bun run dev                    # Start all apps in parallel (via turbo)
 bun run dev:mobile             # Expo dev server only
 bun run dev:web                # Next.js dev server only
 bun run build                  # Build all
+bun run check:mobile-bundle    # Android Metro bundle/export check
 bun run lint                   # ESLint 10 across workspace
 bun run typecheck              # TypeScript strict check
 bun run test                   # Run all tests

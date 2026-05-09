@@ -86,10 +86,10 @@ The full deprecations table lives in [`docs/skills/deprecations.md`](docs/skills
 After any code change, run:
 
 ```bash
-bun run typecheck && bun run lint && bun run test
+bun run check:foundation
 ```
 
-## Tech Stack Quick Reference (Verified May 9, 2026)
+## Tech Stack Quick Reference (Verified May 10, 2026)
 
 | Layer          | Package                                  | Version       |
 | -------------- | ---------------------------------------- | ------------- |

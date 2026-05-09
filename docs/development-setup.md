@@ -99,6 +99,9 @@ This runs:
 - `prettier --check .`
 - local SQLite schema drift check
 - forbidden/deprecated pattern scan
+- markdown link integrity check
+- skill-doc source metadata check
+- Android Metro bundle/export check
 - TypeScript
 - ESLint
 - tests
