@@ -290,7 +290,7 @@ Stay on EAS Free while builds are occasional. Do not pay just because the app is
 - [ ] Use development builds for native-module testing.
 - [ ] Batch native dependency changes to reduce build count.
 - [ ] Avoid unnecessary rebuilds for pure JS/design changes.
-- [ ] Use EAS Update only after update strategy is documented.
+- [x] Use EAS Update only after update strategy is documented. (`docs/operations/pilot-readiness.md` defines the channel/rollback guardrails and says not to enable OTA for pilot builds until `expo-updates` and the channel plan are intentional.)
 - [ ] Upgrade EAS when build queues block testing or release work.
 - [ ] Upgrade EAS when preview/production build cadence becomes regular.
 
@@ -1556,9 +1556,9 @@ Acceptance:
 - [ ] Create pilot data.
 - [ ] Train cashier.
 - [ ] Train owner/manager.
-- [ ] Prepare rollback plan.
-- [ ] Prepare manual receipt fallback.
-- [ ] Prepare support contact path.
+- [x] Prepare rollback plan. (`docs/operations/pilot-readiness.md`.)
+- [x] Prepare manual receipt fallback. (`docs/operations/pilot-readiness.md`.)
+- [/] Prepare support contact path. Pilot path and response goals are documented in `docs/operations/{pilot-readiness,support-runbook}.md`; public support email/domain remains Phase M.
 - [ ] Run one full day simulation.
 - [ ] Run one real pilot day.
 - [ ] Reconcile physical vs system stock.
@@ -1741,7 +1741,7 @@ Purpose: every row in this phase blocks v1.0. Per the Release Pact, "enterprise-
 - [ ] Mobile-side: an "export local data" diagnostic that produces a compressed JSON dump of products, sales, sale_items, sync_queue.
 - [ ] Restore-from-server bootstrap: fresh device install pulls products/categories and gets a clean SQLite from scratch.
 - [/] Lost-device runbook: device deactivation, sync-queue replay, receipt sequence reservation transfer to a new device. Process is documented in `docs/operations/support-runbook.md`; device-management implementation remains pending.
-- [ ] EAS Update rollback plan: every release has a known-good prior update channel pinned for fast revert.
+- [x] EAS Update rollback plan: every release has a known-good prior update channel pinned for fast revert. `docs/operations/pilot-readiness.md` documents rollback to previous update, rollback to embedded update, and the rule that pilot builds do not use OTA until the update channel plan is explicit.
 
 ### P11.5.8 EOD SMS Automation (Free → Starter Conversion Trigger)
 

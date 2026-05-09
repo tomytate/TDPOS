@@ -131,6 +131,7 @@ This project includes comprehensive anti-hallucination documentation for AI codi
 - [Spec v5 (meta-index)](docs/spec-v5.md) — entry point. Lists every operative spec doc.
 - [Road to 1.0 / Enterprise-Grade Checklist](docs/road-to-1.0-enterprise-checklist.md) — Release Pact, Definition of Enterprise-Grade, every phase and gate.
 - [Support Runbook](docs/operations/support-runbook.md) — pilot support path, top support scenarios, and incident escalation packet.
+- [Pilot Readiness Plan](docs/operations/pilot-readiness.md) — rollback plan, manual receipt fallback, support contact path, simulation checklist, and EAS Update guardrails.
 - [Architecture Decisions](docs/architecture.md)
 - [Database Schema](docs/database-schema.md)
 - [Development Setup](docs/development-setup.md)

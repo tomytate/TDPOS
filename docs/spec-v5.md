@@ -55,6 +55,7 @@ The spec is composed of these documents. Read them in this order.
 ### 6. Operations and support
 
 - [operations/support-runbook.md](operations/support-runbook.md) — pilot support path, severity guide, top support scenarios, escalation packet, and single-owner support model.
+- [operations/pilot-readiness.md](operations/pilot-readiness.md) — rollback plan, manual receipt fallback, support contact path, EAS Update policy, simulation checklist, and pilot stop conditions.
 
 ### 7. Per-agent context layers
 
