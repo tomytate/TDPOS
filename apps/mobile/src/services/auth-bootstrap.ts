@@ -1,24 +1,9 @@
 /**
  * Auth bootstrap — populates the local Zustand auth store from a verified
- * Supabase session.
- *
- * Called by the auth state listener whenever Supabase reports `INITIAL_SESSION`
- * or `SIGNED_IN`. Does the cross-table joins the JWT alone can't do:
- *
- *   1. Fetch `users` row by `auth.uid()` to get business_id + role.
- *   2. Fetch the user's first active branch from `branches`.
- *   3. Auto-derive a cashier code (last 2 of user_id) until proper device
- *      pairing lands as a separate flow.
- *
- * Returns a discriminated union so the caller can render the right error UI:
- *   - `account_not_provisioned`: auth.users exists but `users` row missing
- *     (admin needs to create one).
- *   - `business_not_assigned`: `users.business_id` is null.
- *   - `no_branches_configured`: business has no active branches.
- *   - `query_failed`: network/permission error (likely RLS misconfig).
- *
- * The function is pure: it takes its supabase client + store setters as
- * arguments so it can be unit-tested with mocks.
+ * Supabase session by joining auth.uid() against users + first branch +
+ * businesses (cross-table joins the JWT alone can't do). Pure function: takes
+ * its supabase client + store setters as arguments so it can be unit-tested
+ * with mocks.
  */
 
 import type { UserRole } from '@tdpos/shared'
@@ -191,14 +176,23 @@ export async function bootstrapAuthFromSession(params: {
   const role: UserRole = isValidRole(userRow.role) ? userRow.role : ROLE_FALLBACK
   const phone = session.user.phone ?? userRow.phone ?? null
 
-  // 2. Fetch the first active branch.
-  const branchRes = await supabase
-    .from('branches')
-    .select('id, name, region, is_active')
-    .eq('business_id', userRow.business_id)
-    .order('name', { ascending: true })
-    .limit(1)
-    .maybeSingle()
+  // 2 + 3. Fetch first branch + business metadata in parallel — both depend
+  // only on business_id from the users row. Business metadata is best-effort;
+  // failures there are swallowed and store name/address fall back to null.
+  const [branchRes, businessRes] = await Promise.all([
+    supabase
+      .from('branches')
+      .select('id, name')
+      .eq('business_id', userRow.business_id)
+      .order('name', { ascending: true })
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from('businesses')
+      .select('id, name, address, tin')
+      .eq('id', userRow.business_id)
+      .maybeSingle(),
+  ])
 
   if (branchRes.error) {
     return { ok: false, reason: 'query_failed', message: branchRes.error.message }
@@ -208,17 +202,9 @@ export async function bootstrapAuthFromSession(params: {
     return { ok: false, reason: 'no_branches_configured' }
   }
 
-  // 3. Fetch business metadata (best-effort; failures here are non-fatal).
   let storeName: string | null = null
   let storeAddress: string | null = null
   let tin: string | null = null
-
-  const businessRes = await supabase
-    .from('businesses')
-    .select('id, name, address, tin')
-    .eq('id', userRow.business_id)
-    .maybeSingle()
-
   if (!businessRes.error && businessRes.data) {
     const businessRow = businessRes.data as SupabaseBusinessRow
     storeName = businessRow.name

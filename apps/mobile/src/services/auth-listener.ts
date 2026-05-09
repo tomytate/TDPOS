@@ -33,7 +33,9 @@ export function useAuthStateListener() {
       session: { user: { id: string; phone?: string | null } } | null,
     ) => {
       if (event === 'SIGNED_OUT' || !session) {
-        clearAuth()
+        // Skip if already cleared — avoids a Zustand notification + re-render
+        // on every redundant SIGNED_OUT (or null-session) event.
+        if (useAuthStore.getState().userId !== null) clearAuth()
         return
       }
       if (event !== 'INITIAL_SESSION' && event !== 'SIGNED_IN' && event !== 'USER_UPDATED') {
@@ -42,10 +44,6 @@ export function useAuthStateListener() {
       }
 
       try {
-        // Cast: real `SupabaseClient` is structurally compatible with our
-        // narrow bootstrap shape; the `from(...).select(...).eq(...)` chain
-        // resolves through PostgrestFilterBuilder which we model as a
-        // PromiseLike.
         const outcome = await bootstrapAuthFromSession({
           supabase: supabase as unknown as SupabaseBootstrapClient,
           session,
@@ -53,9 +51,7 @@ export function useAuthStateListener() {
         })
         setBootstrapStatus(outcome)
       } catch (err) {
-        if (typeof console !== 'undefined') {
-          console.warn('[AuthListener] bootstrap failed', err)
-        }
+        console.warn('[AuthListener] bootstrap failed', err)
         setBootstrapStatus({
           ok: false,
           reason: 'query_failed',
@@ -77,5 +73,7 @@ export function useAuthStateListener() {
     return () => {
       subscription.unsubscribe()
     }
+    // Empty deps: setters are pulled from the store via `getState()` so we
+    // subscribe once on mount, not on every render.
   }, [])
 }

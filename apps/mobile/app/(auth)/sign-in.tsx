@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { View } from 'react-native'
 import { Button, HelperText, Surface, Text, TextInput } from 'react-native-paper'
 
+import { ErrorBanner } from '@/components/ui/error-banner'
 import { useAppTheme } from '@/constants/theme'
 import { describeBootstrapFailure } from '@/services/auth-bootstrap'
 import { supabase } from '@/services/supabase'
@@ -110,22 +111,7 @@ export default function SignInScreen() {
       </View>
 
       {bootstrapError ? (
-        <Surface
-          mode="flat"
-          style={{
-            padding: 12,
-            backgroundColor: theme.colors.errorContainer,
-            borderRadius: 8,
-            gap: 4,
-          }}
-        >
-          <Text variant="labelLarge" style={{ color: theme.colors.onErrorContainer }}>
-            Account setup needed
-          </Text>
-          <Text variant="bodySmall" style={{ color: theme.colors.onErrorContainer }}>
-            {bootstrapError}
-          </Text>
-        </Surface>
+        <ErrorBanner title="Account setup needed" message={bootstrapError} />
       ) : null}
 
       <View style={{ gap: 4 }}>

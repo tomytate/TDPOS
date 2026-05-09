@@ -1,8 +1,9 @@
 import { router, useLocalSearchParams } from 'expo-router'
 import { useState } from 'react'
 import { View } from 'react-native'
-import { Button, HelperText, Surface, Text, TextInput } from 'react-native-paper'
+import { Button, HelperText, Text, TextInput } from 'react-native-paper'
 
+import { ErrorBanner } from '@/components/ui/error-banner'
 import { useAppTheme } from '@/constants/theme'
 import { describeBootstrapFailure } from '@/services/auth-bootstrap'
 import { supabase } from '@/services/supabase'
@@ -81,30 +82,12 @@ export default function VerifyOtpScreen() {
       </Text>
 
       {bootstrapError ? (
-        <Surface
-          mode="flat"
-          style={{
-            padding: 12,
-            backgroundColor: theme.colors.errorContainer,
-            borderRadius: 8,
-            gap: 4,
-          }}
-        >
-          <Text variant="labelLarge" style={{ color: theme.colors.onErrorContainer }}>
-            Signed in, but account setup is incomplete
-          </Text>
-          <Text variant="bodySmall" style={{ color: theme.colors.onErrorContainer }}>
-            {bootstrapError}
-          </Text>
-          <Button
-            mode="outlined"
-            onPress={signOutAndReset}
-            textColor={theme.colors.onErrorContainer}
-            style={{ marginTop: 8, alignSelf: 'flex-start' }}
-          >
-            Sign out and try again
-          </Button>
-        </Surface>
+        <ErrorBanner
+          title="Signed in, but account setup is incomplete"
+          message={bootstrapError}
+          actionLabel="Sign out and try again"
+          onAction={signOutAndReset}
+        />
       ) : null}
 
       <View style={{ gap: 4 }}>
