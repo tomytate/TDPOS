@@ -5,7 +5,7 @@ import type { AsyncSqliteLike } from '@/db/async-sqlite'
 import { LOCAL_SCHEMA_SQL } from '@/db/schema'
 import { executeCheckout, type ExecuteCheckoutCart } from '@/features/sales/lib/execute-checkout'
 
-import { processSyncQueue, type SyncCallables } from './sync-processor'
+import { MAX_SYNC_BATCH_SIZE, processSyncQueue, type SyncCallables } from './sync-processor'
 
 function makeAdapter(sqlite: Database): AsyncSqliteLike {
   return {
@@ -89,6 +89,47 @@ async function seedQueueViaCheckout(sqlite: Database, db: AsyncSqliteLike) {
   })
   if (!result.ok) throw new Error(`Seed checkout failed: ${result.reason}`)
   return result
+}
+
+function testUuid(seed: number): string {
+  return `00000000-0000-4000-8000-${String(seed).padStart(12, '0')}`
+}
+
+function seedSaleSyncRows(sqlite: Database, count: number) {
+  const insert = sqlite.prepare(
+    `INSERT INTO sync_queue (client_operation_id, table_name, record_id, operation, payload, created_at)
+     VALUES (?, 'sales', ?, 'INSERT', ?, ?)`,
+  )
+
+  for (let index = 1; index <= count; index += 1) {
+    const saleId = testUuid(10_000 + index)
+    const payload = {
+      client_operation_id: testUuid(20_000 + index),
+      sale_id: saleId,
+      branch_id: BRANCH_ID,
+      business_id: BUSINESS_ID,
+      user_id: USER_ID,
+      customer_id: null,
+      total_amount: 7,
+      payment_method: 'cash',
+      is_utang: false,
+      utang_balance: null,
+      receipt_number: `QC01-C01-20260510-${String(index).padStart(6, '0')}`,
+      device_local_time: 1_777_777_000 + index,
+      items: [
+        {
+          sale_item_id: testUuid(30_000 + index),
+          product_id: PRODUCT_ID,
+          pieces_sold: 1,
+          was_sold_as: 'piece',
+          unit_price: 7,
+          subtotal: 7,
+        },
+      ],
+    }
+
+    insert.run(payload.client_operation_id, saleId, JSON.stringify(payload), index)
+  }
 }
 
 function makeCallables(overrides: Partial<SyncCallables> = {}): SyncCallables {
@@ -271,5 +312,59 @@ describe('processSyncQueue', () => {
     expect(deltaInvoked).toBe(0)
     expect(sync.total).toBe(1) // only the sales row is eligible
     expect(sync.synced).toBe(1)
+  })
+
+  test('processes only the requested batch size in one sync cycle', async () => {
+    const sqlite = freshDb()
+    const db = makeAdapter(sqlite)
+    seedSaleSyncRows(sqlite, 3)
+
+    let createSaleInvoked = 0
+    const sync = await processSyncQueue({
+      db,
+      batchSize: 2,
+      callables: makeCallables({
+        createSale: async () => {
+          createSaleInvoked += 1
+          return { data: { ok: true }, error: null }
+        },
+      }),
+    })
+
+    expect(sync.total).toBe(2)
+    expect(sync.synced).toBe(2)
+    expect(createSaleInvoked).toBe(2)
+
+    const remaining = sqlite
+      .prepare(`SELECT COUNT(*) AS c FROM sync_queue WHERE synced_at IS NULL`)
+      .get() as { c: number }
+    expect(remaining.c).toBe(1)
+  })
+
+  test('caps oversized batches at the background-task budget', async () => {
+    const sqlite = freshDb()
+    const db = makeAdapter(sqlite)
+    seedSaleSyncRows(sqlite, MAX_SYNC_BATCH_SIZE + 5)
+
+    let createSaleInvoked = 0
+    const sync = await processSyncQueue({
+      db,
+      batchSize: 500,
+      callables: makeCallables({
+        createSale: async () => {
+          createSaleInvoked += 1
+          return { data: { ok: true }, error: null }
+        },
+      }),
+    })
+
+    expect(sync.total).toBe(MAX_SYNC_BATCH_SIZE)
+    expect(sync.synced).toBe(MAX_SYNC_BATCH_SIZE)
+    expect(createSaleInvoked).toBe(MAX_SYNC_BATCH_SIZE)
+
+    const remaining = sqlite
+      .prepare(`SELECT COUNT(*) AS c FROM sync_queue WHERE synced_at IS NULL`)
+      .get() as { c: number }
+    expect(remaining.c).toBe(5)
   })
 })

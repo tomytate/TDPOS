@@ -79,16 +79,20 @@ export interface SyncProcessorResult {
   reviewable: number
 }
 
+export const DEFAULT_SYNC_BATCH_SIZE = 50
+export const MAX_SYNC_BATCH_SIZE = 50
+
 const REVIEW_SENTINEL = 999
 
 export async function processSyncQueue(params: SyncProcessorParams): Promise<SyncProcessorResult> {
   const {
     db,
     callables,
-    batchSize = 50,
+    batchSize = DEFAULT_SYNC_BATCH_SIZE,
     maxRetries = 10,
     now = () => Math.floor(Date.now() / 1000),
   } = params
+  const effectiveBatchSize = normaliseBatchSize(batchSize)
 
   const rows = await db.getAllAsync<SyncQueueRow>(
     `SELECT id, client_operation_id, table_name, record_id, operation, payload, retry_count, synced_at
@@ -96,7 +100,7 @@ export async function processSyncQueue(params: SyncProcessorParams): Promise<Syn
      WHERE synced_at IS NULL AND retry_count < ?
      ORDER BY created_at ASC, id ASC
      LIMIT ?`,
-    [maxRetries, batchSize],
+    [maxRetries, effectiveBatchSize],
   )
 
   let synced = 0
@@ -194,4 +198,9 @@ async function markReviewable(db: AsyncSqliteLike, id: number, error: string) {
 function stringifyError(err: unknown): string {
   if (err instanceof Error) return err.message
   return String(err)
+}
+
+function normaliseBatchSize(batchSize: number): number {
+  if (!Number.isFinite(batchSize) || batchSize < 1) return DEFAULT_SYNC_BATCH_SIZE
+  return Math.min(Math.floor(batchSize), MAX_SYNC_BATCH_SIZE)
 }
