@@ -1,0 +1,151 @@
+# TD POS
+
+> The operating system for Philippine business.
+
+**"Tama ang stock mo. Lagi."** — Your stock is correct. Always.
+
+TD POS is a mobile-first, offline-capable SaaS POS and inventory management system built specifically for Philippine commerce. From sari-sari stores to enterprise franchise chains. The technical wedge is the tingi/canonical-pieces inventory model — the one capability no international competitor handles correctly.
+
+## Release Posture
+
+- **Current baseline:** v0.1 Foundation Preview.
+- **Target:** v1.0 Public Launch — mobile + web dashboard + marketing site simultaneously.
+- **No release date.** v1.0 is a quality bar; time to v1.0 is determined by readiness.
+- **No partial release.** If any of the three surfaces is below the bar, v1.0 does not ship.
+
+The full release pact and the Definition of Enterprise-Grade live in [docs/road-to-1.0-enterprise-checklist.md](docs/road-to-1.0-enterprise-checklist.md). The operative spec index is [docs/spec-v5.md](docs/spec-v5.md).
+
+## Tech Stack (Verified May 8, 2026)
+
+| Layer              | Technology                                                                    | Version |
+| ------------------ | ----------------------------------------------------------------------------- | ------- |
+| **Mobile**         | Expo SDK 55 (React Native 0.83.2, React 19.2)                                 | SDK 55  |
+| **Web Dashboard**  | Next.js 16 (App Router, `proxy.ts`)                                           | 16.2.4  |
+| **Backend**        | Supabase (PostgreSQL 17, Auth, Realtime, Edge Functions)                      | PG 17   |
+| **Database**       | PostgreSQL 17 — `gen_random_uuid()` built-in, `JSON_TABLE`, `MERGE RETURNING` | 17      |
+| **State (client)** | Zustand 5 + MMKV (synchronous, no hydration flash)                            | 5.0.13  |
+| **State (server)** | TanStack React Query v5 (offline-first)                                       | 5.100.9 |
+| **UI**             | React Native Paper v5 (Material Design 3)                                     | 5.15.1  |
+| **Validation**     | Zod 4 (`z.uuid()`, `z.int()`, `z.e164()` top-level)                           | 4.4.3   |
+| **Auth**           | Supabase Phone OTP + MMKV storage                                             | —       |
+| **Edge Functions** | @supabase/server (`withSupabase` — auto JWT, context, CORS)                   | beta    |
+| **Printer**        | @haroldtran/react-native-thermal-printer (BLE/USB/LAN)                        | 1.2.0   |
+| **Build & Deploy** | EAS Build + EAS Submit (App Store + Google Play)                              | —       |
+| **Monorepo**       | Turborepo 2.9 + Bun                                                           | 2.9.9   |
+| **Language**       | TypeScript 6 (strict mode default)                                            | 6.0.3   |
+
+## Quick Start
+
+See [Development Setup](docs/development-setup.md) for the full local toolchain and foundation gate.
+
+```bash
+# Use Node 20, then install dependencies
+nvm use
+
+# Install dependencies
+bun install
+
+# Start mobile development
+bun run dev:mobile
+
+# Start web dashboard
+bun run dev:web
+
+# Start everything
+bun run dev
+
+# Local Supabase (PostgreSQL 17)
+bunx supabase start
+bunx supabase db push
+```
+
+## Build & Deploy (iOS + Android)
+
+```bash
+# Development builds (includes dev client)
+eas build --profile development --platform all
+
+# Production builds (store submission)
+eas build --profile production --platform all
+
+# Submit to App Store + Google Play
+eas submit --profile production --platform all
+
+# OTA update (no native rebuild)
+eas update --branch production --message "fix: receipt alignment"
+```
+
+> ⚠️ **Never use `expo build`** — classic build was removed in 2023. Use EAS Build exclusively.
+
+## Project Structure
+
+```
+TDPOS/
+├── apps/mobile/             # Expo SDK 55 (iOS + Android + Tablet)
+├── apps/web/                # Next.js 16 web dashboard (Phase 3)
+├── packages/shared/         # Shared types, validators, constants
+├── packages/db/             # Database schema types
+├── packages/typescript-config/
+├── packages/eslint-config/
+├── supabase/                # PG17 migrations, Edge Functions, seed
+├── docs/                    # Spec, architecture, schema reference
+│   └── skills/              # 18 anti-hallucination skill docs (ALL agents)
+└── UI/                      # Suki POS design canvas (reference only)
+```
+
+## Key Principles
+
+1. **Offline-first** — every cashier-facing screen works with zero internet. Writes go to SQLite first, sync is background via `expo-background-task`.
+2. **Inventory in canonical pieces** — `stock_pieces` INTEGER is the source of truth. Packs derived via `divmod`. No fractional stock.
+3. **Delta-based sync** — send `-1` not "stock = 99". No data loss from concurrent offline sales. Idempotent via `client_operation_id`.
+4. **BIR-ready** — designed to Philippine tax specification. Never say "BIR-compliant" until accredited.
+5. **Modules are opt-in** — utang, loyalty, SMS — all default OFF. UI hidden when disabled.
+6. **PostgreSQL 17** — `gen_random_uuid()` built-in (no extensions), `JSON_TABLE` for batch sync, `MERGE RETURNING` for upserts.
+7. **EAS Build only** — development builds required (not Expo Go). EAS Submit for App Store + Google Play.
+
+## AI Agent Documentation
+
+This project includes comprehensive anti-hallucination documentation for AI coding agents:
+
+| File        | Agent         | Purpose                                                         |
+| ----------- | ------------- | --------------------------------------------------------------- |
+| `AGENTS.md` | All agents    | Universal project context, full tech stack, deprecation table   |
+| `CLAUDE.md` | Claude        | Progressive disclosure, domain knowledge, code generation rules |
+| `CODEX.md`  | OpenAI Codex  | Architecture notes, 17 critical rules, style guide              |
+| `GEMINI.md` | Google Gemini | Key decisions, deprecation-source pointer, coding standards     |
+
+### Skills (19 procedural docs in `docs/skills/`)
+
+**Domain:** `inventory-tingi-model`, `sync-engine`, `receipt-numbering`, `bir-compliance`, `supabase-rls`
+
+**API/Framework (Anti-Hallucination):** `react-19-patterns`, `expo-router-patterns`, `expo-sqlite-patterns`, `expo-clipboard`, `zustand-mmkv-stores`, `supabase-auth-phone-otp`, `thermal-printer-integration`, `nextjs-16-proxy-pattern`, `react-native-paper-theming`, `tanstack-query-offline`
+
+**Platform & Infrastructure:** `postgresql-17-patterns`, `eas-build-deploy`, `background-sync-task`, `supabase-server-edge-functions`
+
+## Documentation
+
+- [Spec v5 (meta-index)](docs/spec-v5.md) — entry point. Lists every operative spec doc.
+- [Road to 1.0 / Enterprise-Grade Checklist](docs/road-to-1.0-enterprise-checklist.md) — Release Pact, Definition of Enterprise-Grade, every phase and gate.
+- [Architecture Decisions](docs/architecture.md)
+- [Database Schema](docs/database-schema.md)
+- [Development Setup](docs/development-setup.md)
+- [Suki POS Integration Tasks](docs/suki-pos-integration-tasks.md) — Multi-agent task plan (partly historical; reconciliation tracked under DocGate-1).
+
+## Development
+
+```bash
+bun run check:foundation # Full foundation gate
+bun run lint        # ESLint 9 (flat config)
+bun run typecheck   # TypeScript 6 strict
+bun run test        # All tests
+```
+
+Always run before committing:
+
+```bash
+bun run check:foundation
+```
+
+## License
+
+Proprietary — TomyTate Studios © 2026

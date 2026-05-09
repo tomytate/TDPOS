@@ -1,0 +1,412 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+/* ═══════════════════════════════════════════════════════════════════
+   SUKI POS DESIGN TOKENS
+   Tier A/B: Warm teal + amber (sari-sari / mini-mart)
+   Tier C+: Cool slate transitions (convenience → enterprise)
+═══════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* Design Canvas */
+  --dc-bg: #f8f6f3;
+  --dc-grid: rgba(0, 0, 0, 0.04);
+  --dc-title: #1a1917;
+  --dc-subtitle: #78716c;
+  --dc-label: #57534e;
+  --dc-font: ui-sans-serif, system-ui, -apple-system, sans-serif;
+
+  /* Warm Palette (Tier A/B) */
+  --teal-50: #f0fdfa;
+  --teal-100: #ccfbf1;
+  --teal-200: #99f6e4;
+  --teal-300: #5eead4;
+  --teal-400: #2dd4bf;
+  --teal-500: #14b8a6;
+  --teal-600: #0d9488;
+  --teal-700: #0f766e;
+  --teal-800: #115e59;
+  --teal-900: #134e4a;
+
+  --amber-50: #fffbeb;
+  --amber-100: #fef3c7;
+  --amber-200: #fde68a;
+  --amber-300: #fcd34d;
+  --amber-400: #fbbf24;
+  --amber-500: #f59e0b;
+  --amber-600: #d97706;
+  --amber-700: #b45309;
+
+  /* Ink (Neutrals) */
+  --ink-50: #fafaf9;
+  --ink-100: #f5f5f4;
+  --ink-200: #e7e5e4;
+  --ink-300: #d6d3d1;
+  --ink-400: #a8a29e;
+  --ink-500: #78716c;
+  --ink-600: #57534e;
+  --ink-700: #44403c;
+  --ink-800: #292524;
+  --ink-900: #1c1917;
+
+  /* Slate (Tier C+ corporate) */
+  --slate-50: #f8fafc;
+  --slate-100: #f1f5f9;
+  --slate-200: #e2e8f0;
+  --slate-300: #cbd5e1;
+  --slate-400: #94a3b8;
+  --slate-500: #64748b;
+  --slate-600: #475569;
+  --slate-700: #334155;
+  --slate-800: #1e293b;
+  --slate-900: #0f172a;
+
+  /* Sapphire (Tier E enterprise accent) */
+  --sapphire-50: #eff6ff;
+  --sapphire-100: #dbeafe;
+  --sapphire-200: #bfdbfe;
+  --sapphire-300: #93c5fd;
+  --sapphire-400: #60a5fa;
+  --sapphire-500: #3b82f6;
+  --sapphire-600: #2563eb;
+  --sapphire-700: #1d4ed8;
+  --sapphire-800: #1e40af;
+  --sapphire-900: #1e3a8a;
+
+  /* Semantic */
+  --green-500: #22c55e;
+  --green-600: #16a34a;
+  --red-500: #ef4444;
+  --red-600: #dc2626;
+  --blue-500: #3b82f6;
+  --blue-600: #2563eb;
+
+  /* Radius */
+  --r-sm: 4px;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --r-xl: 16px;
+  --r-pill: 999px;
+
+  /* Borders */
+  --border: rgba(0, 0, 0, 0.06);
+  --border-strong: rgba(0, 0, 0, 0.12);
+
+  /* Standard shadcn tokens */
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --radius: 0.625rem;
+}
+
+@theme inline {
+  --font-sans: 'Geist', 'Geist Fallback', ui-sans-serif, system-ui;
+  --font-mono: 'Geist Mono', 'Geist Mono Fallback', monospace;
+  --font-serif: Georgia, 'Times New Roman', serif;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   DESIGN CANVAS STYLES
+═══════════════════════════════════════════════════════════════════ */
+
+.design-canvas {
+  cursor: grab;
+  user-select: none;
+}
+
+.design-canvas:active {
+  cursor: grabbing;
+}
+
+.dc-header {
+  position: absolute;
+  top: -28px;
+  left: 0;
+  right: 0;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+  transform: scale(var(--dc-inv-zoom, 1));
+  transform-origin: bottom left;
+}
+
+.dc-labelrow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
+}
+
+.dc-labeltext {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.dc-grip {
+  cursor: grab;
+  padding: 4px;
+  margin: -4px;
+  opacity: 0.4;
+  transition: opacity 0.15s;
+}
+
+.dc-grip:hover {
+  opacity: 0.8;
+}
+
+.dc-btns {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.dc-kebab,
+.dc-expand {
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s;
+}
+
+[data-dc-slot]:hover .dc-kebab,
+[data-dc-slot]:hover .dc-expand {
+  opacity: 0.5;
+}
+
+.dc-kebab:hover,
+.dc-expand:hover {
+  opacity: 1 !important;
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.dc-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  min-width: 140px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  padding: 4px;
+  z-index: 100;
+}
+
+.dc-menu button {
+  appearance: none;
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  text-align: left;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.dc-menu button:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.dc-menu hr {
+  margin: 4px 0;
+  border: 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.dc-menu .dc-danger {
+  color: #dc2626;
+}
+
+.dc-card {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.dc-dragging {
+  z-index: 50;
+  opacity: 0.85;
+}
+
+[data-dc-slot] {
+  transition: transform 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dc-sectionhead {
+  /* No inverse zoom — section heads scale with the canvas so they
+     don't visually overflow into artboard rows at low zoom. */
+}
+
+.dc-editable {
+  outline: none;
+  border-radius: 4px;
+  padding: 2px 4px;
+  margin: -2px -4px;
+}
+
+.dc-editable:focus {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   PHONE SHELL STYLES
+═══════════════════════════════════════════════════════════════════ */
+
+.wp-card {
+  background: #fff;
+  border-radius: var(--r-lg);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.wp-num {
+  font-variant-numeric: tabular-nums;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   TIER SIDEBAR STYLES
+═══════════════════════════════════════════════════════════════════ */
+
+.tier-nav {
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 280px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px);
+  border-right: 1px solid rgba(0, 0, 0, 0.06);
+  z-index: 100;
+  overflow-y: auto;
+  transform: translateX(-100%);
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.tier-nav.open {
+  transform: translateX(0);
+}
+
+.tier-nav-item {
+  width: 100%;
+  appearance: none;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  cursor: pointer;
+  transition: background 0.15s;
+  border-left: 3px solid transparent;
+}
+
+.tier-nav-item:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.tier-nav-item.active {
+  background: rgba(13, 148, 136, 0.08);
+  border-left-color: var(--teal-600);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   FOCUS OVERLAY
+═══════════════════════════════════════════════════════════════════ */
+
+.focus-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.focus-card {
+  animation: scaleIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes scaleIn {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}

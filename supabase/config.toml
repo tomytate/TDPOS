@@ -1,0 +1,22 @@
+[project]
+id = "tdpos-local"
+name = "TD POS"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public"]
+
+[db]
+port = 54322
+major_version = 17
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+
+[auth.external.phone]
+enabled = true
+
+[storage]
+enabled = true

@@ -1,0 +1,2080 @@
+# TD POS Road to 1.0 / Enterprise-Grade Checklist
+
+> Current baseline: **v0.1 Foundation Preview**.
+> Target: **v1.0 Public Launch** — enterprise-grade from day one, mobile + web dashboard + marketing site simultaneously.
+> No release date. v1.0 is a quality bar; time to v1.0 is determined by readiness.
+
+This file is the release readiness checklist for TD POS. It is intentionally detailed. A task is not "done" because code exists; it is done only when the acceptance criteria, verification evidence, and release gate are satisfied.
+
+## Release Philosophy
+
+TD POS must earn trust in the boring parts first: inventory correctness, offline reliability, idempotent sync, tenant isolation, receipt numbering, and recovery from failure. Beautiful screens matter, but they sit on top of those guarantees.
+
+The product's wedge is:
+
+- **Tingi / canonical-pieces inventory**: `stock_pieces` is always the source of truth.
+- **Offline-first cashier workflow**: every sale works with zero internet.
+- **Delta sync**: remote inventory updates are deltas, never absolute stock writes.
+- **Idempotent operations**: every mutation has a `client_operation_id`.
+- **BIR-ready discipline**: never claim "BIR-compliant/certified/approved" until accredited.
+
+## Release Pact
+
+This is the explicit commitment between owner and team. Every contributor (human or AI) must read it before opening a PR.
+
+> **TD POS v1.0 is not a date — it is a quality bar.**
+>
+> Day-one release ships mobile + web dashboard + marketing site simultaneously. No partial release. No "soft launch with mobile only." If a single component is below the bar, v1.0 does not ship. We do not pre-announce a release date.
+>
+> Time to v1.0 is determined by readiness, not the other way around. We do not lower the bar to hit a deadline. We do not skip the boring correctness work.
+>
+> Every dependency is documented against its official source. Every architectural decision has an ADR. Every package has a skill doc. Every screen has tests, accessibility labels, and an empty/loading/error state. Every data path has tenant isolation, idempotency, and rollback. Every user-facing surface has EN + TL.
+>
+> "Enterprise-grade from day one" is the bar — see Definition of Enterprise-Grade below.
+
+### Operating Rules That Follow From The Pact
+
+- [ ] No public-facing release before all three surfaces (mobile, web dashboard, marketing site) hit the bar.
+- [ ] No "v1.0-rc" or "soft launch" announcements; the next public version IS v1.0.
+- [ ] No deferring scope to v1.1 to hit v1.0 — if it's enterprise-required, it is in v1.0.
+- [ ] No code change merges with a failing foundation gate, lint, or test.
+- [ ] No documentation drift between code and docs at merge time.
+- [ ] No skill doc without a verified link to the official package documentation.
+- [ ] No package added without a corresponding skill doc and a deprecation-check entry.
+- [ ] No screen shipped without EN + TL strings, accessibility labels, and empty/loading/error states.
+- [ ] No mutating RPC without a `client_operation_id` parameter.
+- [ ] No table without RLS.
+- [ ] No BIR-compliant/certified/approved language anywhere except in docs explicitly warning against it.
+
+## Definition of Enterprise-Grade
+
+A surface (mobile, web, backend) meets the bar when **every** row below is `[x]`. v1.0 ships when every surface is at the bar.
+
+### EG-1 Reliability
+
+- [ ] Mobile cashier flow works in airplane mode end-to-end (sale → checkout → receipt → next sale).
+- [ ] Local SQLite writes are durable before any UI shows "success."
+- [ ] Sync queue is fully drainable; no orphaned rows after a network partition + recovery cycle.
+- [ ] Every mutation is idempotent: replaying any `client_operation_id` produces the same result as the first call.
+- [ ] App restart in any state (mid-sale, mid-sync, mid-OTP) recovers without data loss.
+- [ ] Process kill / battery cut during checkout leaves either a complete sale or no sale — never a partial one.
+- [ ] Web dashboard reads are consistent with the mobile view to the second the sync queue last drained.
+
+### EG-2 Security
+
+- [ ] RLS enabled on every Supabase table; tenant A cannot read tenant B at any layer.
+- [ ] Mobile bundle contains only publishable/anon keys, never service-role.
+- [ ] Edge Functions use `@supabase/server` `withSupabase()`; no hand-rolled JWT.
+- [ ] Web dashboard uses `getClaims()`; no `getSession()`.
+- [ ] All mutating Edge Functions take `client_operation_id` and dedup via `applied_operations`.
+- [ ] No secrets in commits; pre-commit secret scan is part of the foundation gate.
+- [ ] Threat model documented: device theft, lost phone, malicious cashier, compromised cashier device, hostile network.
+- [ ] Rate limits configured per tenant on Edge Functions.
+
+### EG-3 Privacy (Philippine DPA / RA 10173)
+
+- [ ] Data retention table covers every PII surface (phones, customer names, utang ledger, audit log, sync_queue).
+- [ ] Disabled modules wipe their cached PII from device.
+- [ ] Owner can export all tenant data via one Edge Function call.
+- [ ] Customer-erasure path documented (PII fields blanked, transaction records retained per BIR).
+- [ ] Privacy notice surfaced in app + web dashboard with consent timestamp recorded.
+- [ ] No PII in crash/error logs without privacy review.
+
+### EG-4 Performance
+
+- [ ] Mobile cold launch < 2.5 s on a low-end Android (₱5k device target).
+- [ ] First sale screen interactive < 1.5 s after launch.
+- [ ] Add-to-cart tap latency < 100 ms on the same device.
+- [ ] Checkout transaction commits to SQLite < 250 ms for a 5-line cart.
+- [ ] 500 SKU product grid scrolls at 60fps.
+- [ ] Web dashboard Largest Contentful Paint < 2.5 s on a fresh browser session.
+- [ ] Background sync batch finishes within 30 s for a queue of 100 rows on a 3G connection.
+
+### EG-5 Accessibility
+
+- [ ] Every interactive element has an `accessibilityLabel` (mobile) or accessible name (web).
+- [ ] Touch targets ≥ 48 dp.
+- [ ] Cart total + change due use `accessibilityLiveRegion`.
+- [ ] Decorative charts hidden from screen readers.
+- [ ] VoiceOver and TalkBack complete the cashier flow without a sighted user.
+- [ ] Web dashboard meets WCAG 2.2 AA equivalent (contrast, keyboard, focus, headings, alt text).
+
+### EG-6 Documentation
+
+- [ ] Every package in the tech stack has a skill doc in `docs/skills/` with a verified link to its official documentation source.
+- [ ] Every architectural decision has an ADR in `docs/architecture.md`.
+- [ ] Every Supabase migration is idempotent and re-runnable.
+- [ ] Every Edge Function has a docstring describing its inputs, outputs, and dedup contract.
+- [ ] Every public screen has at least one test or a documented "manual test plan" entry.
+- [ ] CLAUDE.md, AGENTS.md, GEMINI.md, CODEX.md stay in sync; the deprecations table is single-source (one file, others reference).
+- [ ] README.md links resolve. No broken `docs/spec-v5.md` references.
+- [ ] Suki integration doc reflects current state or is archived as historical.
+
+### EG-7 Operations
+
+- [/] Diagnostics screen in the mobile app (manager+ only): sync queue health, app version, schema version, device identity, MMKV size, and support bundle copy exist; free disk and public runbook still pending.
+- [x] "Bundle support package" action copies diagnostics + recent sync errors for support email.
+- [ ] Public runbook covers: sync stuck, printer offline, lost device, change branch/cashier code, restore on new phone.
+- [ ] Web dashboard has a sync health view (per-device queue depth, last seen).
+- [ ] On-call rotation defined or single-owner explicit (small team is fine; ambiguity is not).
+- [ ] Incident response template ready in `.github/`.
+
+### EG-8 Compliance
+
+- [ ] BIR copy is centralized in one constants file; no "BIR-compliant/certified/approved" phrases.
+- [ ] EOPT (RA 11976) invoice schema present in DB even if accreditation is deferred.
+- [ ] BIR-ready data export passes a manual RDO-acceptance dry run.
+- [ ] Accreditation flip is one constant change (`BIR_RECEIPT_FOOTER`, `BIR_RECEIPT_NOTE`).
+
+### EG-9 Testing
+
+- [ ] All six §14 required tests pass in CI: tingi math, delta concurrency, negative stock guard, idempotency replay, receipt collision, TOCTOU race.
+- [ ] Local test suite includes: cart math, change calc, module visibility, helper utilities.
+- [ ] Server-side tests run against a Postgres 17 container, not against production.
+- [ ] At least one integration test per non-trivial Edge Function.
+- [ ] Mobile smoke test: app boots, signs in, completes one sale, displays receipt.
+- [ ] Web smoke test: dashboard boots, signs in, displays last 24h of sales.
+
+### EG-10 Localization
+
+- [ ] EN + TL strings on every cashier-facing surface.
+- [ ] EN + TL strings on every owner-facing surface (mobile + web).
+- [ ] EOD SMS template in EN + TL.
+- [ ] Receipt copy can render TL when the store opts in.
+
+### EG-11 Quality of Life
+
+- [ ] Every screen has empty, loading, and error states.
+- [ ] Error messages are actionable and avoid technical jargon ("device not paired" beats "branch_id is null").
+- [ ] Every destructive action has a confirmation step.
+- [ ] No `console.log` in production builds.
+- [ ] No `__DEV__`-only branches that ship to production users.
+- [ ] No demo-mode shortcut visible in production builds.
+
+### EG-12 Marketing And Brand
+
+- [ ] Marketing site live on a stable domain.
+- [ ] Marketing site uses approved BIR language only.
+- [ ] Pricing page reflects current tier model.
+- [ ] Privacy policy + terms of service published before launch.
+- [ ] Support contact path documented and reachable.
+- [ ] App Store + Play Store listings approved with screenshots from real builds.
+
+## Status Legend
+
+- [ ] Not started
+- [/] In progress
+- [x] Done
+- [!] Blocked
+- [~] Needs review / partially done
+
+## Release Levels
+
+TD POS releases on three parallel tracks. v1.0 ships only when every track meets the bar in Definition of Enterprise-Grade.
+
+### Mobile Track (apps/mobile)
+
+| Version | Name                   | Meaning                                                                            |
+| ------- | ---------------------- | ---------------------------------------------------------------------------------- |
+| `0.1`   | Foundation Preview     | Repo, docs, schema, design reference, early shared packages. Not usable by stores. |
+| `0.2`   | App Bootstrap          | Expo app boots locally with providers, routing, DB init, theme, and tooling.       |
+| `0.3`   | Data Contract Hardened | Database/RLS/schema/helpers are safe enough to build features against.             |
+| `0.4`   | Offline Sale MVP       | Cashier can complete a sale offline with stock, receipt, and sync queue writes.    |
+| `0.5`   | Tier A Cashier UX      | Sari-sari Tier A screens are usable and match the design direction.                |
+| `0.6`   | Sync Beta              | Foreground/background sync processes queued operations idempotently.               |
+| `0.7`   | Receipt + Printer Beta | BIR-ready receipt formatting and printer path work on device.                      |
+| `0.8`   | Correctness Test Gate  | Required inventory, sync, receipt, and race tests pass.                            |
+| `0.9`   | Production Candidate   | Pilot-ready build with CI, observability, runbooks, and release process.           |
+
+### Web Dashboard Track (apps/web)
+
+| Version | Name                     | Meaning                                                                                           |
+| ------- | ------------------------ | ------------------------------------------------------------------------------------------------- |
+| `W0.1`  | Web Foundation           | Next.js 16 + App Router + `proxy.ts` + Supabase SSR + shared theme tokens + Tailwind 4 set up.    |
+| `W0.3`  | Auth Shell               | Phone-OTP-backed sign-in shared with mobile, protected dashboard route, `getClaims()` everywhere. |
+| `W0.5`  | Read-Only Dashboard      | Products, sales, inventory views read directly from Supabase with tenant RLS.                     |
+| `W0.7`  | Reporting & Exports      | Daily/weekly/monthly sales, payment mix, BIR-ready CSV/PDF exports.                               |
+| `W0.8`  | Management               | Product CRUD, branch/user management, module toggles, sync health, audit log view.                |
+| `W0.9`  | Web Production Candidate | Pilot-ready dashboard with the same correctness, security, and accessibility bars as mobile.      |
+
+### Marketing Site Track
+
+| Version | Name                 | Meaning                                                                                                 |
+| ------- | -------------------- | ------------------------------------------------------------------------------------------------------- |
+| `M0.1`  | Marketing Foundation | Brand site scaffold (Next.js or static). Approved BIR language only. Privacy + ToS drafts in place.     |
+| `M0.5`  | Pricing & Pitch      | Pricing tiers reflect the cost strategy; pitch copy aligned with "Tama ang stock mo. Lagi."             |
+| `M0.9`  | Launch-Ready Site    | Final domain, TLS, analytics consent, support contact path, App/Play Store badges live on a hidden URL. |
+
+### Combined Release
+
+| Version | Name          | Meaning                                                                                                                                                                                                 |
+| ------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `1.0`   | Public Launch | Mobile + Web Dashboard + Marketing Site go live the same day. Every Definition of Enterprise-Grade bar met. Pilot evidence recorded for both mobile and web. No partial release. No pre-announced date. |
+
+> Time order is implied (mobile and web tracks run in parallel; marketing site is mostly final-mile). What's NOT implied is a calendar — every level ships when its acceptance is met, not before.
+
+## Bootstrap Cost Strategy
+
+TD POS starts as a founder-budget product. The rule is simple:
+
+> Use free tiers and local tooling until real sales, pilot commitments, or hard production limits justify upgrading.
+
+Do not pay for infrastructure because it feels more “serious.” Pay when it protects customers, prevents data loss, unlocks required builds, or supports revenue that already exists.
+
+Pricing changes over time. Before any paid upgrade, re-check the official pricing page and record the decision in this file.
+
+### Cost Principles
+
+- [ ] Default to free tier for every external service during `v0.1` to `v0.4`.
+- [ ] Prefer local development over hosted usage when possible.
+- [ ] Prefer usage caps/spend caps where available.
+- [ ] Do not add a paid product unless it has an owner, a purpose, and a cancellation rule.
+- [ ] Do not add a paid product only for “nice to have” dashboards before the first pilot.
+- [ ] Do not add enterprise features that force enterprise infrastructure before revenue.
+- [ ] Upgrade only when one of these is true:
+  - [ ] A paying customer depends on it.
+  - [ ] A pilot store would lose data or trust without it.
+  - [ ] Free limits are blocking development or release.
+  - [ ] Security/compliance requires the paid tier.
+  - [ ] Manual work costs more than the subscription.
+- [ ] Review infrastructure spend monthly once any paid plan is enabled.
+- [ ] Keep a “cancel if unused for 30 days” rule for non-critical subscriptions.
+
+### Free-First Stack
+
+| Product                             | Start Plan              | Why It Is Enough Early                                                                                                                                                                                               | Upgrade Trigger                                                                                                                                         |
+| ----------------------------------- | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Supabase                            | Free                    | Enough for schema, auth experiments, local/pilot sync, and early backend development. Current official pricing lists Free with unlimited API requests, 50k MAU, 500 MB DB, 1 GB file storage, and 2 active projects. | Upgrade when production pilot needs no project pausing, backups/support, more DB/storage/egress, or when the first paying stores depend on the backend. |
+| Expo / EAS                          | Free                    | Enough for limited low-priority builds and free updates while iterating. Most dev work should run locally or in development builds.                                                                                  | Upgrade when build queue/limits slow release work, internal distribution needs reliability, or production builds become routine.                        |
+| GitHub Actions                      | Free allocation         | Enough for early CI if jobs stay small and mostly Linux.                                                                                                                                                             | Upgrade or optimize when monthly minutes/storage are regularly exhausted.                                                                               |
+| Sentry                              | Developer / Free        | Enough for solo-dev error monitoring during pilot if event volume is low.                                                                                                                                            | Upgrade when multiple team members need access, integrations are required, or production error volume exceeds free allocation.                          |
+| PostHog                             | Free                    | Enough for early analytics if event capture is intentionally small. Current official pricing includes a generous free tier and product-level billing limits.                                                         | Upgrade only after analytics drives decisions for active stores or usage exceeds free limits.                                                           |
+| Vercel / web hosting                | Free/Hobby if used      | Web dashboard is post-mobile-core, so hosted web should stay free until dashboard matters.                                                                                                                           | Upgrade when dashboard has paying users, custom team workflow, or usage/commercial limits require it.                                                   |
+| SMS provider                        | None at first           | SMS is a module/conversion feature, not required for offline sale MVP.                                                                                                                                               | Enable only when customer SMS or EOD SMS creates measurable value.                                                                                      |
+| AI provider                         | None at first           | AI insights are Phase 3+, not required for v1.0 offline POS.                                                                                                                                                         | Enable after real sales data exists and AI insights can support retention or upsell.                                                                    |
+| Error logs / analytics alternatives | Local/simple logs first | Early debugging can start with local logs and sync diagnostics.                                                                                                                                                      | Add paid observability when support needs exceed manual diagnosis.                                                                                      |
+
+### Supabase Upgrade Policy
+
+Start on Supabase Free while building and validating. Upgrade to Pro only when at least one paid/pilot condition is true.
+
+- [ ] Keep local Supabase as the default for development.
+- [ ] Use hosted Supabase Free for staging/pilot only when needed.
+- [ ] Avoid storing unnecessary logs/blobs in Supabase during Free phase.
+- [ ] Keep product images small and defer Storage-heavy workflows.
+- [ ] Track DB size monthly.
+- [ ] Track MAU monthly.
+- [ ] Track file storage monthly.
+- [ ] Track egress monthly.
+- [ ] Track function/RPC usage monthly.
+- [ ] Upgrade to paid Supabase before production if project pausing, backups, or support risk customer trust.
+- [ ] Upgrade immediately if a real store depends on hosted sync and Free limits are close.
+- [ ] Keep spend cap/usage protections enabled where available.
+- [ ] Document the date, reason, and expected monthly cost before upgrading.
+
+Supabase paid upgrade decision record:
+
+- [ ] Date:
+- [ ] Plan:
+- [ ] Trigger:
+- [ ] Expected monthly cost:
+- [ ] Stores/customers depending on it:
+- [ ] Cancel/downgrade condition:
+- [ ] Official pricing checked:
+
+### Expo / EAS Upgrade Policy
+
+Stay on EAS Free while builds are occasional. Do not pay just because the app is serious; pay when build reliability or distribution speed becomes a release bottleneck.
+
+- [ ] Use local Expo dev server for JavaScript iteration.
+- [ ] Use development builds for native-module testing.
+- [ ] Batch native dependency changes to reduce build count.
+- [ ] Avoid unnecessary rebuilds for pure JS/design changes.
+- [ ] Use EAS Update only after update strategy is documented.
+- [ ] Upgrade EAS when build queues block testing or release work.
+- [ ] Upgrade EAS when preview/production build cadence becomes regular.
+
+EAS paid upgrade decision record:
+
+- [ ] Date:
+- [ ] Plan:
+- [ ] Trigger:
+- [ ] Build frequency:
+- [ ] Expected monthly cost:
+- [ ] Cancel/downgrade condition:
+- [ ] Official pricing checked:
+
+### Observability Upgrade Policy
+
+Early product stability matters, but paid observability should follow actual risk.
+
+- [x] Start with local sync diagnostics. (`getSyncHealth(db)` + `useSyncHealth()` summarize queue depth, reviewable rows, retry counts, last successful sync, and latest error.)
+- [ ] Add an in-app diagnostics screen before paying for complex observability.
+- [ ] Use Sentry free/developer only when mobile crash reports become useful.
+- [ ] Keep event volume low by filtering noisy/non-actionable events.
+- [ ] Do not send receipt contents, customer phone numbers, or sensitive store data to logs.
+- [ ] Use PostHog free only for a small set of business events:
+  - [ ] app_opened
+  - [ ] sale_started
+  - [ ] sale_completed
+  - [ ] checkout_failed
+  - [ ] sync_succeeded
+  - [ ] sync_failed
+  - [ ] receipt_printed
+- [ ] Avoid session replay until privacy policy and consent are ready.
+- [ ] Set product-level billing limits where available.
+
+### Paid Upgrade Milestones
+
+| Milestone                   | Maximum Spend Target | Allowed Paid Products                                               |
+| --------------------------- | -------------------- | ------------------------------------------------------------------- |
+| `v0.1` Foundation Preview   | `$0/mo`              | None. Local only.                                                   |
+| `v0.2` App Bootstrap        | `$0/mo`              | None unless build tooling is blocked.                               |
+| `v0.3` Data Contract        | `$0/mo`              | None. Use local Supabase.                                           |
+| `v0.4` Offline Sale MVP     | `$0/mo`              | None required.                                                      |
+| `v0.5` Tier A UX            | `$0/mo` preferred    | EAS paid only if native build limits block progress.                |
+| `v0.6` Sync Beta            | `$0-$25/mo` target   | Supabase Pro only if hosted sync is needed for pilot.               |
+| `v0.7` Printer Beta         | `$0-$25/mo` target   | Same as above; printer hardware may be the main cost.               |
+| `v0.8` Correctness Gate     | `$0-$50/mo` target   | Supabase/EAS only if CI/build/pilot requires it.                    |
+| `v0.9` Production Candidate | Revenue-backed       | Supabase Pro, EAS paid, Sentry/PostHog only with pilot need.        |
+| `1.0` Production            | Revenue-backed       | Paid services allowed when tied to paying stores and support needs. |
+
+### Revenue-Backed Upgrade Rule
+
+Before any recurring paid plan, answer:
+
+- [ ] What customer/store/release does this paid plan protect?
+- [ ] What breaks if we do not upgrade?
+- [ ] Can local tooling or free tier handle this for another month?
+- [ ] Is there a spending cap?
+- [ ] Who checks usage every month?
+- [ ] What metric tells us the plan is worth it?
+- [ ] What condition triggers downgrade/cancellation?
+
+### Monthly Cost Review
+
+Run this review once any paid service is enabled.
+
+- [ ] Supabase usage reviewed.
+- [ ] EAS usage reviewed.
+- [ ] GitHub Actions usage reviewed.
+- [ ] Error monitoring usage reviewed.
+- [ ] Analytics usage reviewed.
+- [ ] SMS spend reviewed.
+- [ ] AI/API spend reviewed.
+- [ ] Any unused product canceled.
+- [ ] Any product nearing limit has a mitigation plan.
+- [ ] Monthly total recorded:
+
+## Global Non-Negotiables
+
+- [ ] Every cashier-facing screen works without internet.
+- [ ] Every local write is durable before showing success.
+- [ ] Every state-mutating local operation produces a `client_operation_id`.
+- [ ] Every state-mutating remote operation accepts and deduplices `client_operation_id`.
+- [ ] Inventory writes are deltas only.
+- [ ] No code path stores fractional stock.
+- [ ] `stock_pieces` remains an integer everywhere.
+- [ ] Pack/piece display is derived via `divmod(stock_pieces, pieces_per_pack)`.
+- [ ] Sales are immutable after creation, except allowed sync metadata.
+- [ ] Receipt numbers use `BRANCH-CASHIER-DATE-SEQUENCE`.
+- [ ] Disabled modules are fully hidden, not merely disabled.
+- [ ] RLS is enabled on every Supabase table.
+- [ ] BIR language uses “BIR-ready,” “provisional receipt,” and similar safe wording only.
+- [ ] No deprecated stack choices: no Expo Go for production testing, no `expo-background-fetch`, no legacy `SQLite.openDatabase()`, no Next.js `middleware.ts`, no Zod `message:` param.
+
+## Current State: v0.1 Foundation Preview
+
+### What Exists
+
+#### Root + tooling
+
+- [x] Root monorepo scaffold exists.
+- [x] Root `package.json` has Turborepo scripts (`dev`, `build`, `lint`, `typecheck`, `test`, `format`, `db:*`, `mobile:*`, `check:foundation`).
+- [x] `turbo.json` uses `tasks`, not deprecated `pipeline`. Schema URL is `https://turborepo.dev/schema.json`.
+- [x] TypeScript base config exists (`tsconfig.base.json`, `target: es2025`, `strict`, `noUncheckedIndexedAccess`).
+- [x] ESLint 9 flat config exists (`eslint.config.mjs` with TS-ESLint, react-hooks, prettier).
+- [x] Prettier config exists (`.prettierrc`, `.prettierignore`).
+- [x] `.gitignore` covers node_modules, build outputs, native folders, env files, OS files.
+- [x] `.nvmrc` and `.node-version` pin Node 20.
+- [x] `.env.example` uses publishable-key naming, no anon key.
+- [x] PR template (`.github/PULL_REQUEST_TEMPLATE.md`) lists the foundation gate and BIR/RLS rules.
+- [x] CI workflow (`.github/workflows/foundation.yml`) runs install, format check, SQLite drift, forbidden patterns, typecheck, lint, test on Bun 1.3.13.
+- [x] Foundation gate scripts: `scripts/check-forbidden-patterns.mjs` (17 banned patterns), `scripts/check-local-sqlite-schema.mjs` (drift between SQL file and embedded string).
+
+#### Workspace packages
+
+- [x] `packages/shared` exists with types, constants, Zod 4 validators (product/saleItem/inventoryDelta/PH phone), and tested utilities (formatMoney, splitStock, displayStock, piecesForSaleUnit, generateReceiptNumber, isValidReceiptNumber, normalizePhPhone, isValidPhPhone).
+- [x] `packages/db` exists with `DbProduct`, `DbSale`, `DbSaleItem`, `DbCategory`, `DbInventoryLog`, `DbCustomer`, `DbSyncQueueRow`, `DbAppliedOperation`, `DbAuditLog`, `DbBranch`, `DbBusiness`, `DbUser`.
+- [x] `packages/typescript-config` exposes `base`, `react-native`, `nextjs` configs.
+- [x] `packages/eslint-config` package shell exists.
+
+#### Mobile app (placeholders, but every shell exists)
+
+- [x] `apps/mobile/package.json` with Expo SDK 55 dependency set (printer, MMKV, sqlite, audio, haptics, camera, FlashList v2, Reanimated 4, gesture-handler, SVG, vector icons).
+- [x] `app.config.ts` with iOS/Android bundles, BLE/camera permissions, `UIBackgroundModes`, `BGTaskSchedulerPermittedIdentifiers`, Bluetooth strings, `expo-build-properties` setting min/compile/target SDK.
+- [x] `babel.config.js` (`babel-preset-expo` + module-resolver + reanimated plugin), `metro.config.js` (default Expo).
+- [x] `tsconfig.json` extends react-native config and adds `@/*` path; `tsconfig.test.json` adds Bun types.
+- [x] Root provider stack: `GestureHandlerRootView` → `SQLiteProvider` → `QueryClientProvider` → `PaperProvider` → `Stack` with dual `Stack.Protected` guards.
+- [x] Route shells: `(auth)/sign-in.tsx`, `(auth)/verify-otp.tsx`, `(app)/(tabs)/index.tsx` (sale), `(app)/(tabs)/inventory.tsx`, `(app)/(tabs)/reports.tsx`, `(app)/checkout.tsx`, `(app)/receipt.tsx`, `(app)/scanner.tsx`, root `index.tsx` redirect.
+- [x] Services: `services/storage.ts` (single MMKV + Zustand adapter), `services/query-client.ts` (5min stale, 30min gc, retry 2, no refetchOnFocus), `services/supabase.ts` (publishable-key, MMKV auth storage, `autoRefreshToken`, `persistSession`, no URL detection).
+- [x] Zustand stores with MMKV persist: `stores/auth-store.ts` (user/business/role/branch/cashier/store/TIN), `stores/cart-store.ts` (CartItem with line totals, partialize items only), `stores/settings-store.ts` (modules, language, themeMode, all modules default OFF).
+- [x] Local DB: `db/init.ts`, `db/schema.ts` (LOCAL_SCHEMA_SQL), `db/migrations/001_initial_schema.sql` (products, categories, sales, sale_items, sync_queue, receipt_sequence, customers, inventory_logs, settings, schema_version with PRAGMA WAL + foreign_keys ON, idempotent CREATE IF NOT EXISTS).
+- [x] Theme + design tokens: `constants/colors.ts` (teal/amber/ink/semantic/categoryBg) with passing test, `constants/theme.ts` (MD3 light + dark + `useAppTheme`).
+- [x] i18n: `i18n/translations.ts` (29 EN + 29 TL keys, `useT()` reads from settings store).
+- [x] Feature hooks: `features/products/hooks/use-products.ts` (filter by `category_id`, sort by name), `features/products/hooks/use-categories.ts` (with product counts), `features/reports/hooks/use-daily-sales.ts` (hourly bucket, payment mix, totals).
+- [x] Hooks: `hooks/use-haptics.ts` (`tapLight`, `tapMedium`, `selection`, `success`, `error`).
+
+#### Web app
+
+- [x] `apps/web/package.json` exists as a deferred placeholder (no Next.js install yet).
+
+#### Supabase
+
+- [x] `supabase/config.toml` (PG17, port 54321/54322, phone auth enabled).
+- [x] `supabase/migrations/20260508000000_initial_schema.sql` covers users, businesses, branches, categories, products, customers, sales (UNIQUE business_id+receipt_number), sale_items, receipts, inventory_logs, payments, utang_payments, audit_logs (with immutability trigger), applied_operations.
+- [x] RLS enabled on every Supabase table. SELECT/INSERT/UPDATE policies follow `auth.uid()` pattern; child tables (sale_items, receipts, payments, utang_payments) isolate via parent.
+- [x] `apply_inventory_delta` SECURITY DEFINER RPC with race-safe `INSERT...ON CONFLICT DO NOTHING RETURNING`, tenant guard, `in_progress`/`completed`/`failed` lifecycle, negative-stock fallback, `replayed: true` on cached result.
+- [x] `supabase/seed.sql` with sample sari-sari business + 6 tingi products (shampoo, yosi, kape, noodles, kendi, drinks).
+
+#### Reference
+
+- [x] `docs/skills/` contains the 19 procedural docs (domain, framework, infra).
+- [x] Suki POS UI reference exists under `UI/` (CSS-only — used as design source, not migrated to RN code).
+
+### Resolved And Remaining Gaps
+
+#### Resolved
+
+- [x] `apps/mobile/package.json` now exists.
+- [x] `apps/web/package.json` now exists as a deferred web-dashboard placeholder.
+- [x] Mobile app runtime entry point now exists through Expo Router.
+- [x] `apps/mobile/app/_layout.tsx` now exists with the full provider stack.
+- [x] Expo config (`app.config.ts`) and EAS config (`eas.json`) now exist.
+- [x] RLS gaps in the initial Supabase migration have been patched (every table is covered).
+- [x] Shared helper tests and a mobile token smoke test now exist.
+- [x] `bun.lock` now exists and was generated with Bun `1.3.13`.
+- [x] CI workflow exists and runs the same foundation gate.
+- [x] Foundation forbidden-pattern scanner and SQLite-drift checker exist.
+- [x] All Zustand stores, services, theme tokens, and i18n exist.
+- [x] All Tier A route shells exist (auth, app/tabs, checkout, receipt, scanner) and compile.
+
+#### Remaining
+
+- [ ] Bun is not installed as a direct `bun` shell command; `npx bun@1.3.13` was used for this pass.
+- [ ] Supabase CLI is not installed in the current shell.
+- [ ] EAS CLI is not installed; `bunx eas-cli` is the documented entry.
+- [x] `docs/spec-v5.md` exists as the project spec meta-index.
+- [/] Supabase Edge Function folders exist. `apply-inventory-delta` and `create-sale` are implemented; `eod-report` is still planned.
+- [/] Tier A vertical: sale → checkout → receipt now writes a real `db.withTransactionAsync` transaction with sync-queue rows. Inventory and reports tabs are still placeholders. Scanner is still intentionally disabled.
+- [/] Sync processor exists with foreground AppState trigger, background-task registration, auth guard, shared executor, and a local sync-health query. Real Supabase staging verification is still pending.
+- [ ] No printer integration exists.
+- [x] `createClientOperationId()` helper exists (`@tdpos/shared`) and is used by checkout.
+- [x] Sale-row + sync-queue payload Zod validators exist (`saleSchema`, `syncQueueEnvelopeSchema` discriminated union).
+- [x] SQLite seed helper for development products/categories exists (`db/seed-dev.ts`, gated on `__DEV__`).
+- [/] `app/(auth)/sign-in.tsx` still ships a demo-mode shortcut. Production builds now hide the button and a `DEMO MODE` banner is shown in dev. Real OTP flow lands under P7.1.
+- [ ] No git repository initialized in the working directory yet — `git status` is non-functional, so commit history and branch protection are not yet possible.
+
+### v0.1 Exit Criteria
+
+- [x] This roadmap exists in `docs/`.
+- [x] Project owner agrees that current release, if tagged, is `v0.1`.
+- [x] First implementation milestone is selected: foundation-first Expo/Supabase bootstrap.
+- [ ] Missing external docs such as `screen-specs.md` are either copied into repo or explicitly ignored.
+
+## Phase 0: Project Control Tower
+
+Purpose: make the repo controllable before building features.
+
+### P0.1 Source Control And Hygiene
+
+- [x] Initialize or restore Git repo metadata if missing.
+- [x] Confirm default branch name (`main`).
+- [x] Add a clean `.gitignore` policy for generated files.
+- [x] Stop ignoring `bun.lock`; lockfile must be committed.
+- [x] Keep `UI/` as reference-only unless deliberately migrated.
+- [x] Decide whether to commit `UI/b_g4eU9LYiRKM/tsconfig.tsbuildinfo`; preferred: ignore/remove generated build info.
+- [x] Add `docs/spec-v5.md` if available.
+- [ ] Copy any external planning docs into `docs/` if they are required for implementation.
+
+Acceptance:
+
+- [x] `git status` works.
+- [x] Generated artifacts are ignored.
+- [x] Project-critical docs live in the repo.
+
+### P0.2 Local Toolchain
+
+- [ ] Install Bun matching `packageManager` as a direct shell command.
+- [x] Install or document Node version. Preferred: Node 20 LTS for Expo/Supabase compatibility.
+- [x] Add `.nvmrc` or `.node-version`.
+- [ ] Install Supabase CLI.
+- [ ] Install EAS CLI or document `bunx eas-cli`.
+- [ ] Verify `bun --version`.
+- [ ] Verify `node --version`.
+- [ ] Verify `supabase --version`.
+- [ ] Verify `eas --version` or `bunx eas-cli --version`.
+
+Acceptance:
+
+- [ ] New developer can install dependencies from a clean checkout.
+- [ ] Tooling versions are documented.
+- [ ] No task requires a hidden global install without docs.
+
+### P0.3 Workspace Scripts
+
+- [x] Ensure root scripts work once apps are added:
+      `dev`, `dev:mobile`, `dev:web`, `build`, `lint`, `typecheck`, `test`.
+- [x] Add `format` script.
+- [x] Add `clean` script that does not delete user files.
+- [x] Add `db:start`, `db:stop`, `db:reset`, `db:push`, and `db:seed` scripts when Supabase CLI is ready.
+- [x] Add `mobile:ios`, `mobile:android`, and `mobile:start` scripts.
+
+Acceptance:
+
+- [ ] Root commands are the only commands needed for normal work.
+- [ ] Scripts do not depend on undocumented directories.
+
+## Phase 1: App Bootstrap, v0.2
+
+Purpose: the app boots, has providers, can open SQLite, and can render a placeholder route.
+
+### P1.1 Mobile Package
+
+- [x] Create `apps/mobile/package.json`.
+- [x] Set package name to `@tdpos/mobile`.
+- [x] Add `main` entry compatible with Expo Router.
+- [x] Add scripts:
+      `dev`, `start`, `ios`, `android`, `web`, `lint`, `typecheck`, `test`, `clean`.
+- [x] Add Expo SDK 55 dependency.
+- [x] Add Expo Router 55 dependency.
+- [x] Add React 19.2 and React Native 0.83.2.
+- [x] Add `expo-sqlite`.
+- [x] Add `expo-background-task`.
+- [x] Add `expo-task-manager`.
+- [x] Add React Native Paper v5.
+- [x] Add Zustand v5.
+- [x] Add React Query v5.
+- [x] Add React Native MMKV.
+- [x] Add Supabase JS v2.
+- [x] Add `@haroldtran/react-native-thermal-printer`.
+- [x] Add `@shopify/flash-list`.
+- [x] Add `expo-image`.
+- [x] Add `expo-haptics`.
+- [x] Add `expo-audio`.
+- [x] Add `expo-camera`.
+- [x] Add `expo-linear-gradient`.
+- [x] Add `react-native-svg`.
+- [x] Add `react-native-reanimated`.
+- [x] Add `react-native-gesture-handler`.
+- [x] Add local package deps: `@tdpos/shared` and `@tdpos/db`.
+
+Acceptance:
+
+- [x] `bun install` produces `bun.lock`.
+- [x] No deprecated packages are introduced.
+- [x] Mobile package can be discovered by Turborepo.
+
+### P1.2 Mobile Config
+
+- [x] Add `apps/mobile/app.config.ts`.
+- [x] Add app name `TD POS`.
+- [x] Add slug.
+- [x] Add scheme `tdpos`.
+- [x] Add bundle identifier.
+- [x] Add Android package name.
+- [x] Add `expo-router` plugin.
+- [x] Add `expo-sqlite` plugin.
+- [x] Add `expo-background-task` plugin.
+- [x] Add Bluetooth permission strings.
+- [x] Add camera permission strings.
+- [x] Add iOS `UIBackgroundModes: ['processing']` and `BGTaskSchedulerPermittedIdentifiers`.
+- [x] Do not set removed `newArchEnabled` flag.
+- [x] Add `eas.projectId` placeholder or document how to set it.
+- [x] Add environment variable usage for Supabase URL/key.
+
+Acceptance:
+
+- [ ] `expo config` resolves without fatal errors.
+- [ ] Native capabilities needed for printer, camera, background task are declared.
+
+### P1.3 Metro, Babel, TypeScript
+
+- [x] Add `apps/mobile/tsconfig.json`.
+- [x] Extend repo TypeScript config.
+- [x] Add path alias `@/*` for mobile source.
+- [x] Add package alias compatibility for `@tdpos/shared` and `@tdpos/db`.
+- [x] Add `babel.config.js` with Expo preset.
+- [x] Add Reanimated plugin in correct position.
+- [x] Add `metro.config.js` if workspace resolution requires it.
+- [x] Confirm TypeScript strict mode stays enabled.
+
+Acceptance:
+
+- [ ] TypeScript can resolve mobile paths.
+- [ ] Expo bundler can resolve workspace packages.
+
+### P1.4 Root Provider Stack
+
+- [x] Create `apps/mobile/app/_layout.tsx`.
+- [x] Wrap app with `GestureHandlerRootView`.
+- [x] Wrap app with `SQLiteProvider databaseName="tdpos.db"`.
+- [x] Pass `initializeDatabase` to `SQLiteProvider.onInit`.
+- [x] Wrap app with `QueryClientProvider`.
+- [x] Wrap app with `PaperProvider`.
+- [x] Use Expo Router `Stack`.
+- [x] Use `Stack.Protected` only after auth shell is ready.
+- [x] Use Paper’s built-in portal support via `PaperProvider`.
+- [x] Avoid adding external `PortalProvider` unless a separate portal library is installed.
+- [x] Switch theme using `useColorScheme()` plus settings override.
+
+Acceptance:
+
+- [ ] App renders a placeholder screen.
+- [ ] SQLite initializes without crashing.
+- [ ] Paper theme is applied.
+
+### P1.5 Database Init
+
+- [x] Create `apps/mobile/src/db/init.ts`.
+- [x] Import or embed migration text safely.
+- [x] Execute `PRAGMA journal_mode = WAL`.
+- [x] Execute `PRAGMA foreign_keys = ON`.
+- [x] Execute `001_initial_schema.sql`.
+- [x] Record migration version.
+- [x] Make repeated initialization idempotent.
+- [x] Add a local seed helper for development only. (`apps/mobile/src/db/seed-dev.ts`, gated on `__DEV__`, idempotent — only seeds when `products` is empty.)
+
+Acceptance:
+
+- [ ] App can create a fresh local DB.
+- [ ] App can reopen existing local DB.
+- [ ] Migration can run repeatedly without destructive effects.
+
+### P1.6 Theme And Design Tokens
+
+- [x] Create `apps/mobile/src/constants/colors.ts`.
+- [x] Add teal scale from Suki CSS.
+- [x] Add amber scale from Suki CSS.
+- [x] Add ink scale from Suki CSS.
+- [x] Add semantic colors: green, red, blue.
+- [x] Add category background map.
+- [x] Create `apps/mobile/src/constants/theme.ts`.
+- [x] Use `MD3LightTheme`.
+- [x] Use `MD3DarkTheme`.
+- [x] Use `configureFonts()`.
+- [x] Map `primary` to teal.
+- [x] Map `tertiary` to amber.
+- [x] Map `secondary` to success green.
+- [x] Export `useAppTheme`.
+- [x] Update `docs/skills/react-native-paper-theming.md` if it still shows old green as the project theme.
+
+Acceptance:
+
+- [ ] Screens can import one theme source.
+- [ ] Design token values match `UI/b_g4eU9LYiRKM/app/globals.css`.
+
+## Phase 2: Data Contract Hardening, v0.3
+
+Purpose: the schema and shared helpers are trustworthy before business flows are implemented.
+
+### P2.1 Supabase RLS Coverage
+
+- [x] Enable RLS on `users`.
+- [x] Enable RLS on `businesses`.
+- [x] Enable RLS on `branches`.
+- [x] Enable RLS on `categories`.
+- [x] Enable RLS on `products`.
+- [x] Enable RLS on `customers`.
+- [x] Enable RLS on `sales`.
+- [x] Enable RLS on `sale_items`.
+- [x] Enable RLS on `receipts`.
+- [x] Enable RLS on `inventory_logs`.
+- [x] Enable RLS on `payments`.
+- [x] Enable RLS on `utang_payments`.
+- [x] Enable RLS on `audit_logs`.
+- [x] Enable RLS on `applied_operations`.
+- [x] Add tenant-safe SELECT policies for all tenant-visible tables.
+- [x] Add tenant-safe INSERT policies where direct client inserts are allowed.
+- [x] Add tenant-safe UPDATE policies only where updates are allowed.
+- [x] Do not add DELETE policies for immutable/audit-critical tables.
+
+Acceptance:
+
+- [x] Script or manual query shows no table missing RLS.
+- [ ] Tenant A cannot read Tenant B data.
+- [ ] Child tables are isolated via parent relationships where they do not have `business_id`.
+
+### P2.2 Migration Idempotency
+
+- [x] Use `CREATE TABLE IF NOT EXISTS`.
+- [x] Use `CREATE INDEX IF NOT EXISTS`.
+- [x] Make constraints idempotent or wrap safely.
+- [x] Make triggers idempotent by dropping/replacing safely.
+- [x] Avoid extension setup that is unnecessary in PG17.
+- [x] Confirm no `uuid-ossp`.
+- [x] Confirm `gen_random_uuid()` usage is valid.
+
+Acceptance:
+
+- [ ] Migration can be applied to a clean database.
+- [ ] Migration can be re-run in local dev without failing.
+
+### P2.3 Immutability And Audit
+
+- [x] Add trigger to prevent DELETE on `sales`. (`prevent_sales_mutation` in `20260509000000_immutability_triggers.sql`)
+- [x] Add trigger or policy guard to prevent unauthorized UPDATE on `sales` (allow `synced_at` only).
+- [x] Audit log immutability trigger exists (`prevent_audit_mutation` on `audit_logs`).
+- [x] Allow `sales.synced_at` update only if needed; reject all other column updates by trigger.
+- [x] Prevent UPDATE/DELETE on `sale_items`. (`prevent_sale_items_mutation`)
+- [x] Prevent UPDATE/DELETE on `inventory_logs`. (`prevent_inventory_logs_mutation`)
+- [ ] Decide immutability rules for `payments` and `receipts`.
+- [ ] Add compensating/void strategy document covering:
+  - [ ] Void = new compensating sale row with `status = 'voided'` and a reference to the original `sale_id`.
+  - [ ] Inventory restore via positive `apply_inventory_delta` keyed by a fresh `client_operation_id`.
+  - [ ] Receipt sequence does NOT skip; void produces a separate void receipt referencing the original.
+  - [ ] Void requires owner or manager role; cashier can request only.
+  - [ ] Void window: configurable per business (default same calendar day, end-of-day cutoff).
+
+Acceptance:
+
+- [ ] Attempted mutation of immutable rows fails.
+- [ ] Void/correction path is documented and exercised by an integration test.
+
+### P2.4 Shared Helpers
+
+- [x] Add `formatMoney(value)` using `en-PH`.
+- [x] Add `displayStock(stockPieces, piecesPerPack, unitLabel?)`.
+- [x] Add `splitStock(stockPieces, piecesPerPack)` returning packs and loose pieces.
+- [x] Add `piecesForSaleUnit(qty, wasSoldAs, piecesPerPack)`.
+- [x] Add `generateReceiptNumber(branchCode, cashierCode, date, sequence)`.
+- [x] Add `isValidReceiptNumber(receiptNumber)`.
+- [x] Add `normalizePhPhone(input)`.
+- [x] Add `isValidPhPhone(input)`.
+- [x] Add `createClientOperationId()` helper. Implemented in `@tdpos/shared` using `globalThis.crypto.randomUUID` with a portable RFC 4122 v4 fallback. Used by checkout and per-line inventory delta queueing.
+- [x] Add `formatReceiptDate(date)` helper for `YYYYMMDD` from device-local time. (Tested.)
+- [x] Add tests for each helper.
+
+Acceptance:
+
+- [ ] UI and sync code use shared helpers rather than duplicate logic.
+- [ ] Tests prove pack/piece math.
+
+### P2.5 Package Validators
+
+- [x] Add Zod validators for product rows. (`productSchema` in `packages/shared/src/validators/index.ts`)
+- [x] Add Zod validators for sale rows. (`saleSchema`)
+- [x] Add Zod validators for sale item rows. (`saleItemSchema`)
+- [x] Add Zod validators for sync queue payloads. (`syncQueueEnvelopeSchema` discriminated union: INSERT sales | DELTA products.)
+- [x] Add Zod validators for inventory deltas. (`inventoryDeltaSchema`)
+- [x] Add Zod validators for Philippine phone numbers. (`phPhoneSchema` using `z.e164`)
+- [x] Use Zod 4 `error:` or shorthand strings.
+- [x] Avoid deprecated `message:` param.
+- [ ] Re-export validators from `@tdpos/db` so server-side code can import the same schemas.
+
+Acceptance:
+
+- [ ] Invalid payloads fail before being queued.
+- [ ] Runtime validation protects sync boundaries.
+- [ ] Same schema used on local checkout, sync queue, and Edge Function entry points.
+
+## Phase 3: Local State And Services
+
+Purpose: create the app services that every screen depends on.
+
+### P3.1 MMKV Storage
+
+- [x] Create `apps/mobile/src/services/storage.ts`.
+- [x] Export exactly one `storage = createMMKV()`.
+- [x] Export `mmkvStorage` adapter for Zustand.
+- [x] Export Supabase-compatible MMKV adapter or keep it in `supabase.ts`.
+- [x] Do not use AsyncStorage.
+
+Acceptance:
+
+- [ ] Zustand stores persist synchronously.
+- [ ] Auth session can persist without hydration flash.
+
+### P3.2 Query Client
+
+- [x] Create `apps/mobile/src/services/query-client.ts`.
+- [x] Set default `staleTime` to 5 minutes.
+- [x] Set default `gcTime` to 30 minutes.
+- [x] Set `retry` to 2.
+- [x] Set `refetchOnWindowFocus` to false.
+- [ ] Add network awareness later with NetInfo if dependency is added.
+- [x] Do not use removed React Query v5 `onSuccess` on queries.
+
+Acceptance:
+
+- [ ] Query hooks share one client.
+- [ ] No `cacheTime` appears in code.
+
+### P3.3 Supabase Client
+
+- [x] Create `apps/mobile/src/services/supabase.ts`.
+- [x] Use `@supabase/supabase-js` v2.
+- [x] Use `EXPO_PUBLIC_SUPABASE_URL`.
+- [x] Use `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` for the mobile client.
+- [x] Use MMKV auth storage.
+- [x] Set `autoRefreshToken: true`.
+- [x] Set `persistSession: true`.
+- [x] Set `detectSessionInUrl: false`.
+- [ ] Add auth state listener integration with auth store.
+
+Acceptance:
+
+- [ ] Phone OTP session persists after app restart.
+- [ ] No Firebase/auth-helper patterns appear.
+
+### P3.4 Auth Store
+
+- [x] Create `apps/mobile/src/stores/auth-store.ts`.
+- [x] Store `userId`.
+- [x] Store `businessId`.
+- [x] Store `role`.
+- [x] Store `branchId`.
+- [x] Store `branchCode`.
+- [x] Store `branchName`.
+- [x] Store `cashierCode`.
+- [x] Store store name/address/TIN if needed for receipts.
+- [x] Add `setAuth`.
+- [x] Add `setDevice`.
+- [x] Add `clearAuth`.
+- [x] Persist only stable auth/device fields.
+
+Acceptance:
+
+- [ ] Receipt generation has branch/cashier identity offline.
+- [ ] Protected routes can use auth state.
+
+### P3.5 Settings Store
+
+- [x] Create `apps/mobile/src/stores/settings-store.ts`.
+- [x] Import `DEFAULT_MODULE_STATE`.
+- [x] Store `modules`.
+- [x] Store `language: 'en' | 'tl'`.
+- [x] Store `themeMode: 'system' | 'light' | 'dark'`.
+- [x] Add `toggleModule`.
+- [x] Add `setLanguage`.
+- [x] Add `setThemeMode`.
+- [x] Persist settings only.
+- [x] Keep all modules default OFF.
+
+Acceptance:
+
+- [ ] Utang UI is hidden while module is OFF.
+- [ ] Language can switch without code edits.
+
+### P3.6 Cart Store
+
+- [x] Create `apps/mobile/src/stores/cart-store.ts`.
+- [x] Define `CartItem`.
+- [x] Track `productId`.
+- [x] Track `name`.
+- [x] Track `qty`.
+- [x] Track `unitPrice`.
+- [x] Track `wasSoldAs`.
+- [x] Track `piecesPerPack`.
+- [x] Track `categoryId`.
+- [x] Track `imageUri`.
+- [x] Track `lineTotal`.
+- [x] Store `paymentMethod`.
+- [x] Store `tendered`.
+- [x] Store `lastSaleResult`.
+- [x] Add `addItem`.
+- [x] Add `removeItem`.
+- [x] Add `updateQty`.
+- [x] Add `setPaymentMethod`.
+- [x] Add `setTendered`.
+- [x] Add `setLastSaleResult`.
+- [x] Add `clear`.
+- [x] Persist cart items only.
+- [x] Do not persist tendered/payment state.
+- [ ] Use `useShallow` whenever selecting multiple values in screens.
+
+Acceptance:
+
+- [ ] Cart survives app restart before checkout.
+- [ ] Payment state does not leak into next sale.
+- [ ] Pack item line totals and pieces sold are correct.
+
+## Phase 4: Offline Sale MVP, v0.4
+
+Purpose: build the core business loop before polishing every screen.
+
+### P4.1 Product Query
+
+- [x] Create `apps/mobile/src/features/products/hooks/use-products.ts`.
+- [x] Query SQLite via `useSQLiteContext()`.
+- [x] Use `DbProduct` from `@tdpos/db`.
+- [x] Filter by `category_id`, not nonexistent `category`.
+- [x] Filter `is_active = 1`.
+- [x] Sort by name or sales priority.
+- [x] Use query key `['products', categoryId ?? 'all']`.
+- [x] Use React Query v5 object syntax.
+- [x] Use `gcTime`.
+- [x] Do not use `onSuccess`.
+
+Acceptance:
+
+- [ ] Products render from local SQLite with no network.
+
+### P4.2 Category Query
+
+- [x] Create `useCategories()`.
+- [x] Query local `categories`.
+- [x] Include product counts if needed for chips.
+- [ ] Add synthetic “All” category in UI, not DB.
+
+Acceptance:
+
+- [ ] Category chips match available local data.
+
+### P4.3 Sale Screen MVP
+
+- [x] Create route `apps/mobile/app/(app)/(tabs)/index.tsx`.
+- [x] Render products from `useProducts()`.
+- [x] Add products to cart. (Pressable card → `cartStore.addItem` + light haptic.)
+- [x] Show cart total.
+- [x] Show item count.
+- [x] Show piece count.
+- [x] Navigate to checkout. (Charge button → `/(app)/checkout` + medium haptic.)
+- [x] Add basic loading state. (`ActivityIndicator` while `isPending`.)
+- [x] Add empty state.
+- [x] Add accessibility labels. (Per-tile `accessibilityLabel` and `accessibilityRole="button"`.)
+- [x] Category filter chips. (All + per-category with product counts.)
+- [x] Low-stock visual cue on tile.
+- [ ] Move the product grid to FlashList v2 once the SKU count justifies it.
+- [ ] Replace placeholder cart-add sound with the real audio file (P5.2).
+
+Acceptance:
+
+- [ ] Cashier can add products offline. (Verifiable on device — local SQLite is the source of truth.)
+- [x] Cart total is correct. (Computed from line totals; covered by checkout integration tests.)
+
+### P4.4 Checkout Transaction
+
+- [x] Create route `apps/mobile/app/(app)/checkout.tsx`.
+- [x] Extract checkout to a pure function (`apps/mobile/src/features/sales/lib/execute-checkout.ts`) so it is unit-testable against `bun:sqlite` via the `AsyncSqliteLike` interface.
+- [x] Validate cart is not empty.
+- [x] Validate selected payment method.
+- [x] Validate tendered amount for cash.
+- [x] Use sale id == `client_operation_id` for local idempotency. Same op id returns the existing receipt with `replayed: true`.
+- [x] Generate `client_operation_id` via `createClientOperationId()` from `@tdpos/shared`.
+- [x] Generate local date `YYYYMMDD` via `formatReceiptDate()`.
+- [x] Read/update `receipt_sequence` inside transaction with `ON CONFLICT (branch_code, cashier_code, date) DO UPDATE`.
+- [x] Generate receipt number via `generateReceiptNumber()`.
+- [x] Use `db.withTransactionAsync()`.
+- [x] Insert `sales`.
+- [x] Insert `sale_items`.
+- [x] Update `products.stock_pieces = stock_pieces - piecesSold`.
+- [x] Guard local negative stock with a pre-flight check that returns `insufficient_stock` and writes nothing.
+- [x] Insert `inventory_logs` (one per item, type `sale`, negative `pieces_delta`).
+- [x] Insert `sync_queue` row for sale creation.
+- [x] Insert `sync_queue` row for each inventory delta with its own `client_operation_id`.
+- [x] Queue the `sales` sync row before product `DELTA` rows so remote replay order matches the sale → stock dependency.
+- [x] Update `receipt_sequence`.
+- [x] If Utang is enabled and selected, set `payment_method = 'cash'` and `is_utang = 1`. (Wired in `executeCheckout`; UI exposes only Cash + GCash today because the utang module is OFF by default.)
+- [x] Do not invent `payment_method = 'utang'`. (Type-checked: `PaymentMethod` has no `'utang'` variant.)
+- [x] Store last sale result on the cart store.
+- [x] Navigate to receipt.
+
+Acceptance:
+
+- [x] If any write fails, the whole sale rolls back. (Pre-flight stock check; transaction rollback path covered by `insufficient_stock` test.)
+- [x] If sale succeeds, local stock and receipt are consistent. (Covered by §14 #1 integration test.)
+- [ ] Sale succeeds without internet. (Verifiable on device — no network calls in `executeCheckout`.)
+
+### P4.5 Receipt Screen MVP
+
+- [x] Create route `apps/mobile/app/(app)/receipt.tsx`.
+- [x] Show sale success state.
+- [x] Show receipt number (`BRANCH-CASHIER-DATE-SEQUENCE` format from `lastSaleResult`).
+- [x] Show total.
+- [x] Show tendered amount (cash only).
+- [x] Show change (cash only).
+- [x] Show line items.
+- [x] Show BIR-ready safe footer using the centralized `BIR_RECEIPT_FOOTER`/`BIR_RECEIPT_NOTE` constants from `@tdpos/shared`.
+- [x] Add New Sale action.
+- [x] Clear cart only after `lastSaleResult` is set. (Cart is cleared in checkout _after_ `setLastSaleResult` succeeds, before navigating to receipt.)
+- [x] Render an empty/no-recent-sale fallback if a user lands on `/receipt` directly.
+
+Acceptance:
+
+- [ ] Cashier sees enough information to handwrite/print receipt if printer is unavailable. (Receipt screen now contains store name, address, TIN, receipt number, items, totals, and tendered/change.)
+
+### P4.6 Offline MVP Gate
+
+- [ ] Put device in airplane mode.
+- [ ] Open app.
+- [ ] Add at least two products.
+- [ ] Checkout with cash.
+- [ ] Confirm receipt number format.
+- [ ] Confirm local stock decremented.
+- [ ] Confirm sync queue row exists.
+- [ ] Restart app.
+- [ ] Confirm data persists.
+
+Gate result:
+
+- [ ] v0.4 can be tagged only after this passes on a physical development build or simulator with equivalent SQLite behavior.
+
+## Phase 5: Tier A Cashier Experience, v0.5
+
+Purpose: make the MVP feel like the intended Suki/TD POS cashier product.
+
+### P5.1 Shared UI Components
+
+- [ ] `money.tsx`: peso formatting, tabular numbers, accessibility label.
+- [ ] `chip-row.tsx`: horizontal Paper chips, active state.
+- [ ] `product-glyph.tsx`: `expo-image` plus category fallback.
+- [ ] `kpi-card.tsx`: compact metric card.
+- [ ] `eyebrow.tsx`: compact section label.
+- [ ] `spark-bar.tsx`: SVG mini bar chart.
+- [ ] `skeleton-loader.tsx`: custom Reanimated skeleton.
+- [ ] `status-chip.tsx`: live/low/sync status.
+- [ ] `empty-state.tsx`: operational empty states.
+- [ ] `screen-shell.tsx`: consistent safe-area and background handling if useful.
+
+Acceptance:
+
+- [ ] UI components are reusable and do not duplicate business logic.
+- [ ] Components are mobile-native, not copied DOM/CSS from `UI/`.
+
+### P5.2 Sale Screen Polish
+
+- [ ] Teal app bar.
+- [ ] Store/branch subtitle.
+- [ ] Search action placeholder or working search.
+- [ ] Category chips.
+- [ ] FlashList product grid.
+- [ ] No `estimatedItemSize`.
+- [ ] Product tile accessibility label.
+- [ ] Product image fallback.
+- [ ] Price badge.
+- [ ] Cart bar in teal-800.
+- [ ] Amber Charge button.
+- [ ] Haptic on product add.
+- [ ] Cart-add sound.
+- [ ] Skeleton grid.
+- [ ] Empty category state.
+
+Acceptance:
+
+- [ ] 500 SKU grid scrolls smoothly.
+- [ ] No text overlaps on small devices.
+
+### P5.3 Checkout Screen Polish
+
+- [ ] Payment cards: Cash, GCash, Utang only if module enabled.
+- [ ] Selected payment visual state.
+- [ ] Denomination grid.
+- [ ] Hide denomination grid for Utang.
+- [ ] Change due live region.
+- [ ] Cancel button.
+- [ ] Confirm button.
+- [ ] Haptic on payment select.
+- [ ] Haptic on denomination tap.
+- [ ] Success haptic on confirm.
+- [ ] Error haptic on validation failure.
+- [ ] Sale-success sound.
+- [ ] Error sound.
+
+Acceptance:
+
+- [ ] Cashier can complete checkout with one hand.
+- [ ] Utang cannot appear when module is OFF.
+
+### P5.4 Receipt Screen Polish
+
+- [ ] Dark teal success screen.
+- [ ] Animated checkmark.
+- [ ] Thermal receipt visual.
+- [ ] Torn edge SVG.
+- [ ] Monospace receipt section.
+- [ ] Store name/address/TIN from auth/store settings.
+- [ ] Receipt number in full format.
+- [ ] Line items align with tabular numbers.
+- [ ] BIR-ready language only.
+- [ ] SMS button placeholder.
+- [ ] Print button placeholder until printer integration.
+- [ ] New Sale primary action.
+
+Acceptance:
+
+- [ ] Receipt screen can be used as fallback if printer fails.
+
+### P5.5 Inventory Screen
+
+- [ ] Route `apps/mobile/app/(app)/(tabs)/inventory.tsx`.
+- [ ] KPI header: stock value, low items, out of stock.
+- [ ] Category/filter chips.
+- [ ] Product list from SQLite.
+- [ ] Stock display via `divmod`.
+- [ ] Low stock badge.
+- [ ] Low stock row background.
+- [ ] Spark bar decorative chart.
+- [ ] Restock button placeholder.
+- [ ] Skeleton list.
+- [ ] Accessibility label for low badge.
+
+Acceptance:
+
+- [ ] Inventory never displays fractional stock.
+- [ ] Low stock rules use `reorder_point_pieces`.
+
+### P5.6 End-of-Day Screen
+
+- [ ] Route `apps/mobile/app/(app)/(tabs)/reports.tsx`.
+- [ ] Create `useDailySales(dateStr)`.
+- [ ] Query `sales.total_amount`, not nonexistent `total`.
+- [ ] Use SQLite `created_at` as unix seconds, not milliseconds.
+- [ ] Aggregate hourly sales.
+- [ ] Aggregate payment mix.
+- [ ] Include sale count.
+- [ ] Include item count from `sale_items`.
+- [ ] Render gross sales.
+- [ ] Render hourly SVG chart.
+- [ ] Render payment mix bar.
+- [ ] Include Utang in mix only if module enabled or if data exists and user has permission.
+
+Acceptance:
+
+- [ ] EOD works offline from local sales data.
+
+### P5.7 Scanner Modal
+
+- [x] Route `apps/mobile/app/(app)/scanner.tsx` exists as a "scanner unavailable" placeholder.
+- [ ] Use `expo-camera` `CameraView`.
+- [ ] Request camera permissions.
+- [ ] Support EAN-13.
+- [ ] Support UPC-A.
+- [ ] Support Code 128.
+- [ ] Throttle scan handling.
+- [ ] Lookup product by `sku`.
+- [ ] Add product to cart.
+- [ ] Play scan beep.
+- [ ] Haptic on successful scan.
+- [ ] Show permission denied fallback.
+
+Acceptance:
+
+- [ ] Barcode scan adds a product without network.
+
+### P5.8 i18n
+
+- [x] Create `apps/mobile/src/i18n/translations.ts`.
+- [x] Add English keys.
+- [x] Add Tagalog keys.
+- [x] Add `useT()` hook.
+- [x] Read language from settings store.
+- [~] Avoid hard-coded user-facing strings in Tier A screens where practical. (Tab labels, sale, checkout, receipt, inventory, reports placeholders are translated; auth screens still hard-code.)
+
+Acceptance:
+
+- [ ] Core sale flow can switch EN/TL on a real device build.
+
+## Phase 6: Sync Beta, v0.6
+
+Purpose: local operations safely reach Supabase without double-applying.
+
+### P6.1 Sync Queue Contract
+
+- [ ] Define sync queue payload types.
+- [ ] Define operation types.
+- [ ] Confirm each payload includes `client_operation_id`.
+- [ ] Confirm inventory payload uses `delta`.
+- [ ] Confirm sale payload includes immutable sale and items.
+- [ ] Confirm retry fields are updated locally.
+
+Acceptance:
+
+- [ ] Every queued row is self-sufficient for retry.
+
+### P6.2 Foreground Sync Processor
+
+- [x] Create `apps/mobile/src/services/sync-processor.ts`.
+- [x] Open/read unsynced queue rows.
+- [x] Process oldest first (`ORDER BY created_at ASC, id ASC`).
+- [x] Limit batch size (default 50, configurable).
+- [x] Handle `DELTA`.
+- [x] Handle sale creation (`INSERT` to `sales`).
+- [x] Mark `synced_at` on success and clear `last_error`.
+- [x] Increment `retry_count` on failure.
+- [x] Store `last_error`.
+- [x] Skip rows above max retries (default 10).
+- [x] Validate every payload with the shared `syncQueueEnvelopeSchema` Zod discriminated union before calling the network. Invalid envelopes are bumped to `retry_count = 999` with `invalid_envelope:` so they never auto-retry.
+- [x] Defer rows when the server returns `concurrent_in_progress` without bumping `retry_count`.
+- [x] Mark rows reviewable (`retry_count = 999`, `pending_sync_review:` last_error) when the server returns `ok: false` for a non-transient reason such as `insufficient_stock_or_not_found`.
+- [x] Return `{ total, synced, failed, deferred, reviewable }`.
+
+Acceptance:
+
+- [x] Running processor twice does not double-apply inventory. (Verified by `sync-processor.test.ts` "defers concurrent_in_progress" + "marks reviewable" + the existing local-idempotency executeCheckout test.)
+- [ ] Wire to real Supabase project at runtime under P7 (auth pairing).
+
+### P6.3 Background Sync
+
+- [x] Create `sync-task.ts`.
+- [x] Define task at module top level.
+- [x] Use `expo-background-task`.
+- [x] Do not use `expo-background-fetch`.
+- [x] Create `register-sync.ts`.
+- [x] Register background task on app startup. (`useBackgroundSyncRegistration()` runs from root `_layout.tsx` and unregisters when signed out.)
+- [x] Add foreground AppState sync trigger. (`SyncTriggerEffect` runs on mount/active only when Supabase is configured and `authStore.userId` exists.)
+- [x] Add dev-only manual trigger. (`triggerBackgroundSyncForTesting()` wraps `BackgroundTask.triggerTaskWorkerForTestingAsync()` and returns `false` outside dev.)
+- [x] Foreground and background sync share the same executor. (`runSyncQueueOnce(db)` prevents route drift.)
+- [x] Foreground/background overlap does not double-run. (`createSyncRunner` now uses a module-level lock; covered by `sync-runner.test.ts`.)
+
+Acceptance:
+
+- [/] Sync can run when app returns to foreground. Code path is wired; staging Supabase verification is blocked on P7 auth pairing.
+- [/] Background task is registered in development build. Code path is wired; physical-device development build verification is pending because background tasks cannot be proven by local unit tests alone.
+
+### P6.4 Supabase RPC / Edge Functions
+
+- [x] Implement or wrap `apply_inventory_delta`. (`supabase/migrations/20260508000000_initial_schema.sql` defines the RPC; `supabase/functions/apply-inventory-delta/index.ts` is the HTTP wrapper that validates the payload before calling it.)
+- [x] Ensure RPC uses `INSERT...ON CONFLICT DO NOTHING RETURNING`. (Verified in the migration — `INSERT INTO applied_operations ... ON CONFLICT (business_id, client_operation_id) DO NOTHING RETURNING true`.)
+- [x] Return cached result for replayed completed operations. (RPC returns `existing_result || jsonb_build_object('replayed', true)` for completed/failed prior ops.)
+- [x] Return retry response for concurrent in-progress operations. (RPC returns `{ ok: false, reason: 'concurrent_in_progress', retry_after_ms: 500 }`.)
+- [x] Return failed result for negative stock. (RPC returns `{ ok: false, reason: 'insufficient_stock_or_not_found' }` and stores it in applied_operations as `failed`.)
+- [x] Implement sale creation sync path. (`supabase/functions/create-sale/index.ts` validates the payload and delegates to `create_sale_atomic(p_payload)`, which commits `sales` + `sale_items` together and returns replay for duplicate sale ids.)
+- [x] Use `@supabase/server` for Edge Functions. (`withSupabase({ auth: 'user' }, ...)` in both functions; verified against <https://supabase.com/blog/introducing-supabase-server> on 2026-05-09.)
+- [x] Do not hand-roll JWT verification.
+- [x] Do not create `_shared/supabase.ts` boilerplate.
+- [x] Mobile-side wiring helper: `apps/mobile/src/services/sync-callables.ts` (`createSyncCallables(supabase)`) routes `applyInventoryDelta` → `supabase.rpc('apply_inventory_delta')` and `createSale` → `supabase.functions.invoke('create-sale', { body })`. Adapter is structurally compatible with `@supabase/supabase-js` v2 client. 4 unit tests (`sync-callables.test.ts`).
+- [x] Remote sale creation is atomic. (`supabase/migrations/20260509000001_create_sale_atomic.sql` creates `create_sale_atomic`; inventory deltas remain separate race-safe operations.)
+
+Acceptance:
+
+- [x] Same operation id sent twice produces one mutation. (RPC race-safe pattern + Edge Function idempotency check on `sales.id` and `applied_operations` primary key.)
+- [x] Tenant checks happen inside security-definer RPCs. (`apply_inventory_delta` reads `auth.uid()`'s `business_id`; `create_sale_atomic` validates business, branch, user, customer, and product ownership before inserting.)
+- [ ] End-to-end verification against a real Supabase project blocked on P7 auth pairing.
+
+### P6.5 Conflict Handling
+
+- [x] Negative stock remote conflict marks local sync_queue row reviewable. (Sync processor sets `retry_count = 999` with `pending_sync_review:insufficient_stock_or_not_found`.)
+- [ ] UI exposes sync issues to manager/owner. (P10.3 Diagnostics screen.)
+- [x] Failed rows retain full error details. (`last_error` column populated; not cleared on retry, only on success.)
+- [ ] Retry does not lose original payload.
+- [ ] Manual review flow is documented.
+
+Acceptance:
+
+- [ ] Conflicts are visible and recoverable.
+
+## Phase 7: Auth And Onboarding
+
+Purpose: stores can log in, identify branch/cashier, and operate offline after setup.
+
+### P7.1 Phone OTP
+
+- [ ] Create sign-in route.
+- [ ] Validate Philippine phone numbers.
+- [ ] Normalize `09XX` to `+639XX`.
+- [ ] Send OTP with Supabase.
+- [ ] Create OTP verification route.
+- [ ] Verify OTP.
+- [ ] Persist session in MMKV.
+- [ ] Load user/business/branch metadata.
+
+Acceptance:
+
+- [ ] User can sign in with phone OTP.
+- [ ] App stays signed in after restart.
+
+### P7.2 Device / Cashier Setup
+
+- [ ] Assign or fetch `branchCode`.
+- [ ] Assign or fetch `cashierCode`.
+- [/] Store device identity locally. Branch/cashier live in `auth-store`; install ID persists in MMKV via `getOrCreateInstallId()`. Real server-issued device registration still pending.
+- [ ] Prevent checkout without branch/cashier code.
+- [ ] Document how new devices get a code.
+
+Acceptance:
+
+- [ ] Receipt namespace is physically uncollidable offline.
+
+### P7.3 Initial Data Sync
+
+- [ ] Download products.
+- [ ] Download categories.
+- [ ] Download customers if enabled/allowed.
+- [ ] Store in SQLite.
+- [ ] Support app restart after initial sync.
+- [ ] Show “ready for offline sales” state.
+
+Acceptance:
+
+- [ ] After setup, device can sell offline.
+
+## Phase 8: BIR-Ready Receipts And Printer, v0.7
+
+Purpose: receipts are legally careful, readable, and printable.
+
+### P8.1 Receipt Copy Discipline
+
+- [ ] Use “BIR-ready receipt format.”
+- [ ] Use “Provisional receipt” where appropriate.
+- [ ] Do not use “BIR-compliant.”
+- [ ] Do not use “BIR-certified.”
+- [ ] Do not use “BIR-approved.”
+- [ ] Do not use “Official Receipt” until legally allowed.
+- [ ] Add copy scan to PR checklist.
+
+Acceptance:
+
+- [ ] Grep finds forbidden language only inside docs warning against it.
+
+### P8.2 Receipt Fields
+
+- [ ] Store name.
+- [ ] Store address.
+- [ ] TIN if available.
+- [ ] Receipt number.
+- [ ] Date/time.
+- [ ] Cashier/device code.
+- [ ] Line item description.
+- [ ] Quantity as sold.
+- [ ] Unit price.
+- [ ] Line subtotal.
+- [ ] Total.
+- [ ] Payment method.
+- [ ] Tendered.
+- [ ] Change.
+- [ ] Footer.
+- [ ] TD POS branding.
+
+Acceptance:
+
+- [ ] Screen and printed receipt contain the same core data.
+
+### P8.3 Printer Integration
+
+- [ ] Verify `@haroldtran/react-native-thermal-printer` installation.
+- [ ] Device-test transitive `react-native-ping` peer range warning from the printer package before enabling print UI.
+- [ ] Build printer service.
+- [ ] Initialize BLE printer.
+- [ ] List devices.
+- [ ] Connect to device.
+- [ ] Save selected printer.
+- [ ] Format ESC/POS text.
+- [ ] Print receipt.
+- [ ] Handle printer unavailable.
+- [ ] Handle print retry.
+- [ ] Add fallback “show receipt” behavior.
+
+Acceptance:
+
+- [ ] Physical test print succeeds on Android.
+- [ ] Physical test print succeeds on iOS or iOS limitation is documented.
+
+## Phase 9: Correctness Tests, v0.8
+
+Purpose: prove the product’s core promises.
+
+### P9.1 Required Phase 1 Tests
+
+- [x] Tingi inventory math:
+      sell 7 from a 12-sachet pack, remaining `stock_pieces = 5`. (`execute-checkout.test.ts`, `bun:sqlite` integration.)
+- [ ] Delta concurrency:
+      two offline branches both sell 1 of 2, final server stock = 0. (Requires Postgres test environment — server-side path.)
+- [~] Negative stock guard:
+  sale exceeding stock becomes `pending_sync_review`. (Local pre-flight refuses the write today; the `pending_sync_review` server-state mapping lands when the sync processor does.)
+- [x] Idempotency replay (local):
+      same `client_operation_id` twice through `executeCheckout` produces one sale row, one stock decrement, and `replayed: true` on the second call. The server-side replay test still requires Postgres.
+- [x] Receipt collision:
+      two cashier codes × 5 sales each on the same date yield 10 unique receipt numbers.
+- [ ] TOCTOU race:
+      100 concurrent calls with same op id cause exactly one decrement. (Postgres-side; covered by `apply_inventory_delta` design but not yet asserted in CI.)
+
+Acceptance:
+
+- [/] Three of six tests pass in CI today (the local-only subset). The remaining three require a Supabase PG17 test container — track under P9.4.
+
+### P9.2 Local Unit Tests
+
+- [x] `displayStock`.
+- [x] `splitStock`.
+- [x] `piecesForSaleUnit`.
+- [x] `generateReceiptNumber`.
+- [x] `isValidReceiptNumber`.
+- [x] `createClientOperationId` produces RFC 4122 v4 UUIDs and unique values.
+- [x] `formatReceiptDate` returns `YYYYMMDD` from device-local components.
+- [x] cart line totals (covered indirectly by the §14 #1 integration test).
+- [x] cash change calculation (covered by `executeCheckout` `change` field tests).
+- [ ] module visibility logic (utang gating once the UI exposes it).
+
+Acceptance:
+
+- [x] Business math can be changed only with tests failing first. (13 shared tests + 5 mobile checkout integration tests.)
+
+### P9.3 Local Integration Tests
+
+- [ ] SQLite migration initializes.
+- [ ] Checkout transaction inserts sale/items.
+- [ ] Checkout transaction decrements stock.
+- [ ] Checkout transaction writes sync queue.
+- [ ] Checkout transaction rolls back on failure.
+- [ ] Receipt sequence increments.
+
+Acceptance:
+
+- [ ] Offline sale persistence is covered.
+
+### P9.4 Database Tests
+
+- [ ] Apply migrations to local Supabase.
+- [ ] Verify RLS exists on every table.
+- [ ] Verify tenant isolation.
+- [ ] Verify immutable triggers.
+- [ ] Verify `apply_inventory_delta` idempotency.
+- [ ] Verify negative stock guard.
+- [ ] Verify stale in-progress behavior.
+
+Acceptance:
+
+- [ ] Database behavior is tested outside the app.
+
+## Phase 10: Production Candidate, v0.9
+
+Purpose: prepare for pilot stores.
+
+### P10.1 CI/CD
+
+- [x] Add GitHub Actions workflow.
+- [x] Run install.
+- [x] Run typecheck.
+- [x] Run lint.
+- [x] Run tests.
+- [x] Run migration validation if feasible.
+- [ ] Cache Bun dependencies.
+- [ ] Protect main branch with CI.
+
+Acceptance:
+
+- [ ] Broken code cannot merge without an explicit override.
+
+### P10.2 EAS Builds
+
+- [x] Add `eas.json`.
+- [x] Add development profile.
+- [x] Add preview profile.
+- [x] Add production profile.
+- [x] Configure iOS simulator dev build.
+- [ ] Configure Android internal build.
+- [x] Configure production app bundle.
+- [ ] Separate local/staging/prod env vars.
+- [ ] Document credential setup.
+
+Acceptance:
+
+- [ ] Team can produce a reproducible dev build.
+- [ ] Team can produce a preview build for pilot users.
+
+### P10.3 Observability
+
+- [ ] Add app error logging plan.
+- [x] Add local sync-health query. (`apps/mobile/src/features/diagnostics/lib/sync-health.ts`; 2 unit tests cover empty and mixed queue states.)
+- [/] Add sync error logs. Latest `sync_queue.last_error` is surfaced by `getSyncHealth`; a full recent-error list belongs to the diagnostics screen.
+- [x] Add local diagnostics screen. (`app/(app)/diagnostics.tsx`, linked from Reports for owner/manager roles only.)
+- [x] Show unsynced queue count.
+- [x] Show failed sync count.
+- [x] Show last successful sync time.
+- [x] Show reviewable sync count.
+- [x] Show app version, local schema version, install ID, branch/cashier identity, role, MMKV byte size, and MMKV key count.
+- [x] Copy sanitized support bundle. (`support-bundle.ts` excludes raw queue payloads, shortens operation ids, and sanitizes obvious phone/email strings.)
+- [ ] Add crash reporting when approved.
+- [ ] Add privacy review for logs.
+
+Acceptance:
+
+- [ ] Support can diagnose “my sale did not sync” without opening SQLite manually.
+
+### P10.4 Security And Privacy
+
+- [ ] Document stored local data.
+- [ ] Document customer data handling.
+- [ ] Document phone auth flow.
+- [ ] Ensure secrets are not committed.
+- [ ] Ensure service role keys are never in mobile app.
+- [ ] Review RLS policies.
+- [ ] Review Edge Function auth modes.
+- [ ] Review logs for PII.
+
+Acceptance:
+
+- [ ] Mobile app contains publishable/anon keys only.
+- [ ] Tenant isolation is validated.
+
+### P10.5 Accessibility
+
+- [ ] Product tiles have labels.
+- [ ] Cart total changes are announced politely.
+- [ ] Change due is announced assertively.
+- [ ] Buttons have roles.
+- [ ] Decorative charts are hidden from screen readers.
+- [ ] Touch targets are at least 48dp.
+- [ ] VoiceOver full sale flow works.
+- [ ] TalkBack full sale flow works.
+
+Acceptance:
+
+- [ ] A cashier can complete the core flow with screen reader enabled.
+
+### P10.6 Performance
+
+- [ ] Cold launch measured.
+- [ ] First sale screen render measured.
+- [ ] Product grid scroll tested with 500 SKUs.
+- [ ] Checkout transaction duration measured.
+- [ ] Receipt render measured.
+- [ ] Image cache behavior tested.
+- [ ] Background sync batch duration measured.
+- [ ] Low-end Android phone tested.
+
+Acceptance:
+
+- [ ] Cashier flow feels instant on target low-cost devices.
+
+### P10.7 Pilot Readiness
+
+- [ ] Choose one pilot store.
+- [ ] Create pilot data.
+- [ ] Train cashier.
+- [ ] Train owner/manager.
+- [ ] Prepare rollback plan.
+- [ ] Prepare manual receipt fallback.
+- [ ] Prepare support contact path.
+- [ ] Run one full day simulation.
+- [ ] Run one real pilot day.
+- [ ] Reconcile physical vs system stock.
+
+Acceptance:
+
+- [ ] One pilot day completes without data loss.
+
+## Phase 11: v1.0 Combined Launch Gate
+
+Purpose: decide whether TD POS is safe to call v1.0. Per the Release Pact, v1.0 ships only when **every** sub-gate below is `[x]`. There is no partial release. There is no "ship mobile, then web later." There is no calendar pressure.
+
+### P11.1 Mobile Core Product Gate
+
+- [ ] Cashier can sign in via real phone OTP (no demo-mode shortcut).
+- [ ] Device has branch/cashier identity.
+- [ ] Products are available offline.
+- [ ] Cashier can complete sale offline.
+- [ ] Receipt number is generated offline.
+- [ ] Stock decrements locally.
+- [ ] Sync queue records mutation.
+- [ ] App can restart before sync without losing sale.
+- [ ] App can reconnect and sync.
+- [ ] Duplicate sync does not duplicate mutation.
+- [ ] Negative stock conflict is visible.
+- [ ] Receipt can be printed or displayed.
+- [ ] End-of-day totals are available locally.
+
+### P11.2 Web Dashboard Gate
+
+- [ ] Owner can sign in via the same phone OTP path as mobile.
+- [ ] Read-only dashboard reflects latest synced state for the tenant.
+- [ ] Reports (daily/weekly/monthly) work and export CSV + PDF.
+- [ ] Product, branch, user, module management all work.
+- [ ] Sync health view shows per-device queue depth and last seen.
+- [ ] Audit log view is accessible to owner/manager.
+- [ ] Tenant A cannot see tenant B at any layer (RLS verified).
+- [ ] WCAG 2.2 AA equivalent across every screen.
+- [ ] LCP < 2.5 s on a fresh browser session (cold cache).
+- [ ] No `getSession()` in any code path.
+- [ ] No `middleware.ts`; only `proxy.ts`.
+
+### P11.3 Marketing Site Gate
+
+- [ ] Site live on stable domain with TLS.
+- [ ] Approved BIR language only.
+- [ ] Privacy policy + Terms of Service published.
+- [ ] Pricing page reflects current tier model.
+- [ ] App Store + Play Store badges live (or documented as Day-One pending).
+- [ ] Support contact path live and reachable.
+- [ ] Analytics consent banner working.
+
+### P11.4 Engineering Gate
+
+- [ ] `bun run typecheck` passes for every workspace.
+- [ ] `bun run lint` passes for every workspace.
+- [ ] `bun run test` passes for every workspace.
+- [ ] All six §14 required tests pass: tingi math, delta concurrency, negative stock guard, idempotency replay, receipt collision, TOCTOU race.
+- [ ] CI is green on the latest main commit.
+- [ ] EAS production builds pass for both iOS and Android.
+- [ ] Web production build passes.
+- [ ] Supabase migrations apply cleanly to a fresh PG17 instance.
+- [ ] Forbidden-patterns scan finds nothing.
+- [ ] No known critical security issue.
+- [ ] No known data-loss bug.
+- [ ] No `__DEV__`-only branches reachable in production builds.
+
+### P11.5 Documentation Gate
+
+- [ ] Documentation Quality Gate (DocGate-1 through DocGate-6) all `[x]`.
+- [ ] `docs/spec-v5.md` resolves to a real meta-index.
+- [ ] Every package has a skill doc with verified official-source link.
+- [ ] Every architectural choice has an ADR.
+- [ ] CLAUDE.md / AGENTS.md / GEMINI.md / CODEX.md stay in sync via single-source references.
+- [ ] Public runbook covers the top 10 support scenarios.
+- [ ] Suki integration doc reconciled (live or archived).
+
+### P11.6 Operations Gate
+
+- [ ] Pilot store completed at least one full reconciliation day with no manual database repair.
+- [ ] Web dashboard pilot completed at least one full owner-monitoring day.
+- [ ] Support process is defined and tested with a real ticket.
+- [ ] On-call rotation defined or single-owner explicit.
+- [ ] Incident response template ready.
+- [ ] Diagnostics screen ships in mobile.
+- [ ] Sync health view ships in web.
+
+### P11.7 Business Gate
+
+- [ ] Pricing/tier for v1.0 is defined and live on the marketing site.
+- [ ] Store onboarding steps are documented and tested by a non-engineer.
+- [ ] Owner understands and accepts BIR-ready (not BIR-accredited) posture.
+- [ ] Manual fallback process exists and is tested.
+- [ ] Pilot feedback has been reviewed and critical issues are closed.
+
+### P11.8 Definition of Enterprise-Grade
+
+- [ ] EG-1 Reliability — every row `[x]`.
+- [ ] EG-2 Security — every row `[x]`.
+- [ ] EG-3 Privacy — every row `[x]`.
+- [ ] EG-4 Performance — every row `[x]`.
+- [ ] EG-5 Accessibility — every row `[x]`.
+- [ ] EG-6 Documentation — every row `[x]`.
+- [ ] EG-7 Operations — every row `[x]`.
+- [ ] EG-8 Compliance — every row `[x]`.
+- [ ] EG-9 Testing — every row `[x]`.
+- [ ] EG-10 Localization — every row `[x]`.
+- [ ] EG-11 Quality of Life — every row `[x]`.
+- [ ] EG-12 Marketing And Brand — every row `[x]`.
+
+### P11.9 Final v1.0 Definition
+
+TD POS v1.0 can ship when **all** of the following are true on the same day:
+
+1. A sari-sari store can run a full day of cashier sales offline, reconnect later, sync without duplicate or lost inventory changes, print or display BIR-ready provisional receipts, and reconcile stock without manual database repair.
+2. The store's owner can monitor that day from the web dashboard, export a BIR-ready report, and manage products/branches/users without touching the database.
+3. The marketing site is live, accurate, and uses approved BIR language only.
+4. Every Definition of Enterprise-Grade row is `[x]`.
+5. Every doc gate is `[x]`.
+6. No critical or high-severity issue is open.
+
+If any one of these is false, v1.0 does not ship. There is no exception.
+
+## Phase 11.5: Enterprise Hardening (v1.0 GATE — not optional)
+
+Purpose: every row in this phase blocks v1.0. Per the Release Pact, "enterprise-grade from day one" means these items must land **before** v1.0 ships, not after a pilot. The earlier framing ("between pilot and multi-store") was wrong; pilot is still required, but pilot evidence with these items missing does not unlock v1.0.
+
+### P11.5.1 Local Database Versioning
+
+- [ ] Add a forward-migrator that reads `schema_version`, applies missing migrations in order, and writes one row per applied version.
+- [ ] Migration files numbered `00X_*.sql` with a Bun script that runs them on a fresh DB.
+- [ ] Drift checker (`scripts/check-local-sqlite-schema.mjs`) extended to enforce migration ordering, not only the v1 string.
+- [ ] Test: open an old DB created from `001_initial_schema.sql`, run app, confirm `002_*` applies once and never again.
+- [ ] Document a downgrade rule: ship-only-forward; downgrades require export + reinstall.
+
+### P11.5.2 Clock Skew And Receipt Date Safety
+
+- [ ] Decide the canonical sale clock: device wall-clock at the moment of `db.withTransactionAsync` start.
+- [ ] Capture `device_local_time` AND `device_timezone` AND `synced_server_time_at_last_handshake` per sale.
+- [ ] Reject device clocks that are >24h ahead/behind last server handshake from issuing new receipts; show "Set device time" prompt instead.
+- [ ] Server stores both `device_local_time` and server-side `received_at` so reports can detect skew.
+- [ ] Receipt `DATE` segment uses local sale date — not server date — to keep receipts unambiguous offline.
+- [ ] Document the skew tolerance in the ops runbook so support can explain "why my receipt date is yesterday."
+
+### P11.5.3 Cycle Count And Stock Adjustment
+
+- [ ] Inventory screen exposes a "Stock take" entry (manager+ only).
+- [ ] Stock take produces an `inventory_logs` row with `type = 'adjustment'` and a positive or negative `pieces_delta`.
+- [ ] Adjustment requires a `reason` enum: `count_correction`, `damage`, `theft`, `expiry`, `other` (free text).
+- [ ] Stock take goes through `apply_inventory_delta` so the same idempotent path covers physical counts.
+- [ ] Stock Accuracy Score (SAS) compares last stock take vs current `stock_pieces`. Used as the marketing metric in CLAUDE.md.
+
+### P11.5.4 Refund / Void Workflow
+
+- [ ] Receipt screen exposes a "Void this sale" path (manager+ only) within the configured void window.
+- [ ] Void writes a compensating sale row (see P2.3) and inventory delta row, both with fresh `client_operation_id`.
+- [ ] Past-day correction uses a separate "Stock adjustment" path that does NOT modify any sale row.
+- [ ] Void receipt prints with "VOID — refers to <original receipt #>" header.
+- [ ] EOD totals subtract voids correctly and surface a void count separately.
+
+### P11.5.5 Subscription / Module Validation Offline
+
+- [ ] On every successful sync, cache `subscription_tier`, `module_state`, `entitlements_valid_until` locally.
+- [ ] Sale path remains fully available offline regardless of subscription status (cashier flow must not block).
+- [ ] Manager/owner gates (utang ledger, multi-branch, exports) check the cached entitlement and fail closed once `entitlements_valid_until` is more than 7 days old without a successful sync.
+- [ ] Free tier limits (`FREE_MAX_PRODUCTS`, `FREE_MAX_DEVICES`, `FREE_MAX_USERS`) enforced both client-side (UI) and server-side (RPC reject).
+
+### P11.5.6 Data Privacy (Philippine DPA / RA 10173)
+
+- [ ] Data retention table: list every PII surface (phones, customer names, utang ledger, audit log, sync_queue) and the retention rule for each.
+- [ ] Disabled modules wipe their cached PII (e.g. when utang module is turned OFF, customer balances stay on server but the local cache is cleared).
+- [ ] Right-to-export: business owner can export all of their tenant's data through one Edge Function call.
+- [ ] Right-to-erasure for end customers: store owner can soft-delete a customer; PII fields blanked, transactions remain (BIR retention requires sales records).
+- [ ] No PII (names, phone numbers, addresses) is ever sent to crash/error logging without the privacy review on P10.4.
+- [ ] Privacy notice surface in app settings; consent recorded with timestamp.
+
+### P11.5.7 Backup, Restore, And Disaster Recovery
+
+- [ ] Document Supabase backup posture per plan (Free = no backups, Pro = PITR). Decide which plan v1.0 ships on.
+- [ ] Mobile-side: an "export local data" diagnostic that produces a compressed JSON dump of products, sales, sale_items, sync_queue.
+- [ ] Restore-from-server bootstrap: fresh device install pulls products/categories and gets a clean SQLite from scratch.
+- [ ] Lost-device runbook: device deactivation, sync-queue replay, receipt sequence reservation transfer to a new device.
+- [ ] EAS Update rollback plan: every release has a known-good prior update channel pinned for fast revert.
+
+### P11.5.8 EOD SMS Automation (Free → Starter Conversion Trigger)
+
+- [ ] Edge Function `eod-report` runs nightly via Supabase Cron and computes per-business EOD totals.
+- [ ] When SMS module is enabled, sends an EOD summary to the owner's phone via the chosen SMS provider.
+- [ ] Failure path: send-once-per-night with a 3-retry budget; daily diagnostics surface failures.
+- [ ] Cost guard: SMS spend cap configured per business (per the Cost Principles in this doc).
+- [ ] Conversion metric: track Free businesses that opt into SMS and become Starter within 30 days.
+
+### P11.5.9 Support Diagnostics And Runbook
+
+- [/] In-app diagnostics screen (manager+ only) showing: app version, schema version, last successful sync, unsynced queue count, failed sync count, device id, free disk, MMKV size. Screen, sync-health metrics, app version, schema version, install ID, branch/cashier identity, MMKV size, and support bundle copy exist; free disk still pending.
+- [x] One-tap "Bundle support package" action that copies the diagnostics text and the most recent N sync errors to clipboard for support email.
+- [ ] Public runbook covering: sync stuck, receipt printer not connecting, lost device, change branch/cashier code, restore data on new phone.
+- [ ] Support contact path documented (email + response SLA appropriate for the tier).
+
+### P11.5.10 Concurrency And Capacity Limits
+
+- [ ] Document concurrent device count per Supabase plan (Free vs Pro) and the Edge Function rate ceiling we expect at pilot scale.
+- [ ] Enforce a per-business concurrency cap on `apply_inventory_delta` to prevent a runaway loop from exhausting connection pool.
+- [ ] Per-device sync batch size cap; large queues drained over multiple cycles, not one giant request.
+- [ ] Load test script that simulates N stores × M cashiers × K sales/hour against a staging Supabase project.
+
+### P11.5.11 Receipt Hardening
+
+- [ ] Re-print last receipt: cashier can re-show the latest sale's receipt screen even after navigating away.
+- [ ] Print receipt for any past sale within the void window from the EOD screen.
+- [ ] BIR-ready footer copy is centralized in one constant so accreditation language can flip in one place.
+- [ ] Receipt PDF generator (uses store name/address/TIN and the stored receipt rows) — used by exports and by the web dashboard later.
+
+### P11.5.12 Doc Repair (Critical Cleanup)
+
+- [ ] Fix the `docs/spec-v5.md` references in `README.md`, `CLAUDE.md`, `GEMINI.md`, and this checklist. Either commit a stub that points to this checklist + skills + ADRs as the operative spec, or replace each link.
+- [ ] Audit `docs/suki-pos-integration-tasks.md` against the current code (multiple WPs are already done) and either close the doc as historical or update its checkboxes.
+- [ ] Move the BIR language list out of `AGENTS.md` and `CLAUDE.md` into a single skill so changes happen once.
+- [ ] Remove the demo-mode shortcut in `app/(auth)/sign-in.tsx` and replace it with the real phone-OTP flow before pilot.
+
+## Phase W: Web Dashboard (parallel mainline track)
+
+Purpose: the web dashboard is no longer a post-1.0 expansion. It is co-equal with the mobile track and gates v1.0. Day-one launch ships mobile and web simultaneously.
+
+### W0.1 Web Foundation
+
+- [ ] Replace the placeholder `apps/web/package.json` with a real Next.js 16 install.
+- [ ] App Router only — no Pages Router.
+- [ ] `proxy.ts` with named export `proxy()`. NEVER `middleware.ts`.
+- [ ] `@supabase/ssr` 0.10.x with `getClaims()` only. NEVER `getSession()`.
+- [ ] Tailwind 4 with the same teal/amber/ink palette as mobile (single source — pull from `packages/shared` if practical).
+- [ ] shadcn/ui base components installed and themed against MD3-equivalent tokens.
+- [ ] `tsconfig.json` extends `@tdpos/typescript-config/nextjs.json`.
+- [ ] Workspace deps: `@tdpos/shared`, `@tdpos/db`.
+- [ ] Add `apps/web/dev`, `build`, `lint`, `typecheck`, `test` scripts that work via `bun --filter @tdpos/web`.
+- [ ] CI foundation gate covers web typecheck and lint.
+- [ ] Skill doc: `docs/skills/nextjs-16-proxy-pattern.md` reviewed against current code (already exists).
+- [ ] New skill doc (if not present): `docs/skills/tailwindcss-4-shadcn.md` covering Tailwind 4 + shadcn/ui patterns.
+
+Acceptance:
+
+- [ ] `bun --filter @tdpos/web run dev` starts a Next.js 16 dev server.
+- [ ] `bun --filter @tdpos/web run typecheck` passes.
+
+### W0.3 Auth Shell
+
+- [ ] Sign-in page using phone OTP, sharing the `+639XX` validation rule with mobile.
+- [ ] Server action that calls Supabase Auth.
+- [ ] `proxy.ts` enforces dashboard route protection via `getClaims()`.
+- [ ] Cookie auth configured per `@supabase/ssr` 0.10.x.
+- [ ] Sign-out clears cookies and redirects.
+- [ ] `__DEV__` shortcut path for local development is gated identically to mobile (no demo path in production).
+
+Acceptance:
+
+- [ ] Owner can sign in with phone OTP and see the empty dashboard shell.
+- [ ] Unauthenticated requests to `/dashboard/*` redirect to sign-in.
+- [ ] Tenant isolation verified by RLS at the Supabase layer.
+
+### W0.5 Read-Only Dashboard
+
+- [ ] Sidebar/topbar shell shared across views.
+- [ ] Products view: list with category filter, low-stock badge, stock-pieces display via shared `displayStock`.
+- [ ] Sales view: paginated list with receipt number, date, total, payment method, sync state.
+- [ ] Inventory view: per-product `stock_pieces`, reorder point, last delta time.
+- [ ] Sync health view: per-device queue depth, last seen, failures.
+- [ ] Empty/loading/error states on every view.
+- [ ] EN + TL strings via the same source as mobile (or a shared `@tdpos/shared` translations module).
+
+Acceptance:
+
+- [ ] Owner can read the same data the cashier wrote without manual queries.
+- [ ] Tenant A cannot read tenant B at any layer (verify with RLS test).
+
+### W0.7 Reporting & Exports
+
+- [ ] Daily report (gross sales, hourly histogram, payment mix, item count).
+- [ ] Weekly + monthly aggregates.
+- [ ] Per-cashier and per-branch breakdowns.
+- [ ] CSV export of any report.
+- [ ] PDF export using `@react-pdf/renderer` with the BIR-ready receipt format applied.
+- [ ] Audit log view (read-only, filtered by tenant).
+- [ ] Stock Accuracy Score view (system vs last cycle count).
+
+Acceptance:
+
+- [ ] Owner can produce a 30-day sales report in CSV + PDF.
+- [ ] BIR-ready export passes a manual RDO acceptance dry run.
+
+### W0.8 Management
+
+- [ ] Product CRUD with bulk import CSV.
+- [ ] Category CRUD.
+- [ ] Branch CRUD with branch-code uniqueness checked across tenant.
+- [ ] User CRUD (cashier, manager, owner) with role assignment.
+- [ ] Module toggles (utang, customer SMS, loyalty, multi-branch, etc.) — with confirmation step.
+- [ ] EOD SMS configuration (provider, schedule, opt-in customers).
+- [ ] Subscription tier display + upgrade path (no in-app payment yet).
+
+Acceptance:
+
+- [ ] Owner can configure a new branch + cashier without touching the database.
+- [ ] Toggling utang OFF clears local cached PII on next mobile sync.
+
+### W0.9 Web Production Candidate
+
+- [ ] Same correctness, security, accessibility, and performance bars as mobile.
+- [ ] WCAG 2.2 AA equivalent across every screen.
+- [ ] LCP < 2.5 s on a fresh browser session.
+- [ ] Vercel/host deploy pipeline matches the mobile EAS pipeline in maturity.
+- [ ] Pilot store owner does one full day of monitoring + reconciliation from the dashboard.
+
+Acceptance:
+
+- [ ] Web dashboard does not block any v1.0 quality bar.
+
+## Phase M: Marketing Site (final-mile track)
+
+Purpose: the public-facing brand site that ships the same day as mobile + web. Mostly content + design, but it is a release blocker.
+
+### M0.1 Marketing Foundation
+
+- [ ] Domain decided and reserved.
+- [ ] Site stack picked (Next.js or static; reuse the monorepo if it makes sense).
+- [ ] Approved BIR language only (lint the marketing copy with the same `check:patterns` script).
+- [ ] Privacy policy + Terms of Service drafts ready for legal review.
+
+### M0.5 Pricing And Pitch
+
+- [ ] Pricing page reflects the current tier model (Free, Starter, Growth, Pro, Business, Enterprise).
+- [ ] Pitch copy aligned with "Tama ang stock mo. Lagi."
+- [ ] No "BIR-compliant/certified/approved" wording. Only "BIR-ready" / "Provisional receipts."
+- [ ] Demo screenshots from a real build, not mockups.
+
+### M0.9 Launch-Ready Site
+
+- [ ] Final TLS configured.
+- [ ] Analytics with consent (PostHog or equivalent, free tier first).
+- [ ] App Store + Play Store badges (placeholders until the apps are listed).
+- [ ] Support contact path live and reachable.
+- [ ] 404 + 500 pages designed.
+- [ ] OG image + Twitter card set.
+
+Acceptance:
+
+- [ ] Site is hosted on a hidden URL and verified end-to-end before launch day.
+
+## Documentation Quality Gate
+
+These checks belong in CI alongside the foundation gate. Documentation is a deliverable — broken docs block merges, broken docs block v1.0.
+
+### DocGate-1 Link Integrity
+
+- [ ] Every internal link in `README.md`, `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, `CODEX.md`, and `docs/**/*.md` resolves to a file that exists.
+- [ ] Add a `scripts/check-doc-links.mjs` to enforce.
+
+### DocGate-2 Single Source for the Deprecations Table
+
+- [ ] The deprecations table lives in exactly one file (`docs/skills/deprecations.md`).
+- [ ] CLAUDE.md / AGENTS.md / GEMINI.md / CODEX.md reference it instead of duplicating it.
+- [ ] `scripts/check-forbidden-patterns.mjs` reads from the same source.
+
+### DocGate-3 Skill Doc Sourcing
+
+- [ ] Each skill doc in `docs/skills/` opens with a "Sources" line linking to the official package documentation URL it derives from.
+- [ ] Each skill doc records the package version it was verified against.
+- [ ] When a package version bumps, its skill doc gets re-verified before merge.
+
+### DocGate-4 ADR Coverage
+
+- [ ] Every architectural choice that's hard to reverse has an ADR in `docs/architecture.md`.
+- [ ] ADRs include: decision, context, alternatives considered, consequences.
+
+### DocGate-5 Spec Index Integrity
+
+- [ ] `docs/spec-v5.md` exists as a meta-index pointing to: this checklist, ADRs, schema reference, skill docs, and the Definition of Enterprise-Grade.
+- [ ] No file references a missing doc.
+
+### DocGate-6 Code-To-Doc Drift
+
+- [ ] `scripts/check-local-sqlite-schema.mjs` keeps the SQL file and the embedded SQL string in sync (already in place).
+- [ ] When a public type/constant changes in `@tdpos/shared`, the relevant skill doc updates in the same PR.
+- [ ] Pull requests touching `app.config.ts`, `eas.json`, or `supabase/migrations/` also update the matching skill doc or ADR.
+
+## Post-1.0 Enterprise Roadmap
+
+These are enterprise-grade expansion tracks **after** the v1.0 combined launch (mobile + web + marketing) is live and stable. None of these block v1.0; the web dashboard explicitly does not appear here because it is mainline (see Phase W).
+
+### E1 [Removed — Web Dashboard Promoted To Mainline]
+
+The web dashboard is no longer a Post-1.0 expansion. See **Phase W: Web Dashboard (parallel mainline track)** above. This entry is intentionally kept here as a tombstone so contributors don't reintroduce it as a deferred item.
+
+### E2 Multi-Branch
+
+- [ ] Branch management.
+- [ ] Branch-level stock.
+- [ ] Transfer workflow.
+- [ ] Branch dashboard.
+- [ ] Branch-specific receipt namespace.
+- [ ] Branch-level sync monitoring.
+
+### E3 Customer Modules
+
+- [ ] Utang ledger.
+- [ ] Customer SMS.
+- [ ] Loyalty points.
+- [ ] Customer profiles.
+- [ ] Payment reminders.
+- [ ] Module-level permissions.
+
+### E4 Owner Analytics
+
+- [ ] Stock Accuracy Score.
+- [ ] Daily Active Retailer metric.
+- [ ] Gross sales trend.
+- [ ] Low-stock prediction.
+- [ ] Fast/slow moving items.
+- [ ] Margin reporting.
+- [ ] EOD SMS automation.
+
+### E5 Compliance Expansion
+
+- [ ] EOPT invoice schema (RA 11976) ready in DB even before accreditation.
+- [ ] Audit export (per tenant, immutable rows only, signed manifest).
+- [ ] BIR-ready data export (sales, sale_items, inventory_logs, receipts, payments) in formats acceptable to RDO audits.
+- [ ] Accreditation workflow: track per-business `eopt_accredited` and per-device accreditation state.
+- [ ] Flip the receipt copy from "BIR-ready" to "BIR-accredited" / "Official Receipt" only once the business + device pair is accredited (centralized constant).
+- [ ] eSales submission path: scheduled job that posts the BIR-required summary to the BIR portal API.
+- [ ] Accreditation fee accounting: ₱5,600 per device pass-through where applicable; track which devices are covered under umbrella accreditation.
+
+### E6 Tier B-E Product Expansion
+
+- [ ] Tier B tablet POS.
+- [ ] Tier B owner dashboard.
+- [ ] Tier C shift handoff.
+- [ ] Tier C convenience workflows.
+- [ ] Tier D supermarket workflows.
+- [ ] Tier D scale/weighted PLU.
+- [ ] Tier E chain/HQ rollup.
+- [ ] Tier E returns/warranty desk.
+- [ ] Tier E self-service kiosk.
+
+## Next 10 Implementation Tasks
+
+Updated 2026-05-09 after background sync wiring, manager diagnostics/support bundle, the auth-gated foreground trigger, and atomic remote sale creation landed. The remaining work to reach v0.4 → v0.6 → v1.0 is now mostly device-side, hosted Supabase wiring, Postgres test coverage, Tier A screen polish, and Phase W (web dashboard) bootstrap.
+
+- [x] 1. Initialize git and commit the current foundation (P0.1). Without a repo, no PR-based review and no branch protection (P10.1).
+- [ ] 2. Install Bun + Supabase CLI directly. Document the toolchain in `docs/development-setup.md`.
+- [ ] 3. Stand up a hosted Supabase Free project for staging. Apply the initial schema, immutability triggers, and `create_sale_atomic` migration. Configure publishable + secret keys in `eas.json` per profile.
+- [ ] 4. Add Postgres §14 tests for delta concurrency, remote negative-stock review, `create_sale_atomic` replay, and TOCTOU behavior.
+- [ ] 5. Finish Tier A cashier polish: Inventory and Reports tabs (`P5.5`, `P5.6`) using the existing `useProducts()` and `useDailySales()` hooks.
+- [ ] 6. Land P7.1 phone OTP flow on `app/(auth)/sign-in.tsx` + `app/(auth)/verify-otp.tsx` and keep the demo shortcut behind `__DEV__`.
+- [ ] 7. Build `apps/web` Next.js 16 foundation (Phase W0.1): `proxy.ts`, `getClaims()`, App Router skeleton, `@supabase/ssr` wired to the same staging project.
+- [ ] 8. EAS dev build (iOS simulator + Android internal) and run the offline-sale gate test (P4.6) on a real device. Tag `v0.4` once the airplane-mode round-trip is recorded in the Evidence Log.
+- [ ] 9. In the dev build, verify `triggerBackgroundSyncForTesting()` and an OS-scheduled background task against the staging Supabase project.
+- [ ] 10. Add free-disk/storage metadata to diagnostics when the package choice is verified.
+
+Original "First 10" (kept for history) — every item except 2 and the device runs is `[x]`.
+
+- [x] 1. Restore/init Git and commit this roadmap.
+- [ ] 2. Install Bun as a direct shell command.
+- [x] 2a. Generate `bun.lock` with Bun 1.3.13.
+- [x] 3. Add `apps/mobile/package.json`.
+- [x] 4. Add Expo config and root mobile TypeScript config.
+- [x] 5. Add root mobile `_layout.tsx` with providers.
+- [x] 6. Add `storage.ts`, `query-client.ts`, and `db/init.ts`.
+- [x] 7. Patch Supabase RLS gaps.
+- [x] 8. Add shared inventory and receipt helper tests.
+- [x] 9. Build offline checkout transaction.
+- [x] 10. Build minimal Sale → Checkout → Receipt loop.
+
+Original First 10 (kept for history):
+
+- [x] 1. Restore/init Git and commit this roadmap.
+- [ ] 2. Install Bun as a direct shell command.
+- [x] 2a. Generate `bun.lock` with Bun 1.3.13.
+- [x] 3. Add `apps/mobile/package.json`.
+- [x] 4. Add Expo config and root mobile TypeScript config.
+- [x] 5. Add root mobile `_layout.tsx` with providers.
+- [x] 6. Add `storage.ts`, `query-client.ts`, and `db/init.ts`.
+- [x] 7. Patch Supabase RLS gaps.
+- [x] 8. Add shared inventory and receipt helper tests.
+- [x] 9. Build offline checkout transaction.
+- [x] 10. Build minimal Sale → Checkout → Receipt loop.
+
+## Evidence Log
+
+Use this section as releases progress.
+
+### Foundation Checkpoint — Latest-Docs Audit
+
+- [x] Date: 2026-05-09.
+- [x] Gate: `npx bun@1.3.13 run check:foundation` passes end-to-end after the README skill-doc count drift was corrected.
+- [x] Test count: 43 passing tests total — 13 shared + 30 mobile.
+- [x] Latest-doc spot check: Expo SDK 55 BackgroundTask, Clipboard, and SQLite docs; TanStack Query v5 migration docs; Supabase `@supabase/server` public beta announcement.
+- [x] Dependency posture: current mobile package versions stay aligned with the verified stack — Expo SDK 55, React 19.2, React Native 0.83.2, React Query 5.100.x, React Native Paper 5.15.x, and `expo-clipboard` SDK 55.
+- [!] Residual blockers: no hosted Supabase project, no EAS/dev-device run, and no Postgres container tests yet. These are tracked in Next 10 and must not be treated as shipped quality.
+
+### v0.2 Evidence
+
+- [x] Date: 2026-05-09
+- [x] Commit: first foundation snapshot created under Git on `main`.
+- [x] Commands run: `npx bun@1.3.13 run check:foundation`, `node --check`, `npx esbuild` parse checks, `node scripts/check-local-sqlite-schema.mjs`, RLS SQL scan.
+- [ ] Device/simulator: not run on physical device yet — runtime acceptance criteria for P1.4/P1.5 still open.
+- [x] Notes: Mobile foundation scaffolded and the full foundation gate passes locally through `npx bun@1.3.13`. All providers, stores, services, theme, i18n, feature hooks, and route shells exist. Tier A screens are placeholders only — checkout transaction, sync engine, and printer integration have not started.
+
+### v0.4 Evidence
+
+- [/] Date: 2026-05-09 (offline checkout vertical wired in code; airplane-mode device test still pending).
+- [x] Commit: first foundation snapshot created under Git on `main`.
+- [ ] Airplane mode sale completed: pending physical device run.
+- [ ] Receipt number: pending physical device run.
+- [ ] Sync queue row id: pending physical device run.
+- [x] Notes: `executeCheckout` writes sales + sale_items + product stock decrement + inventory_logs + sync_queue + receipt_sequence in one `withTransactionAsync` block. §14 #1 (tingi math), #5 (receipt collision), local idempotency replay, insufficient-stock rollback, and empty-cart/short-tender guards all pass under `bun:sqlite` integration tests. Demo-mode shortcut still in place — real OTP flow blocks the v0.4 tag.
+
+### v0.6 Evidence
+
+- [/] Date: 2026-05-09 (sync processor + Edge Function shells exist in code; remote-end-to-end run pending real Supabase project).
+- [x] Commit: first foundation snapshot created under Git on `main`.
+- [/] Duplicate sync test result: local idempotency confirmed against `bun:sqlite` (`sync-processor.test.ts` "marks reviewable" + executeCheckout local-idempotency); server-side TOCTOU test (§14 #6) requires Postgres test container.
+- [/] Negative stock test result: server returning `{ ok: false, reason: 'insufficient_stock_or_not_found' }` is mapped to `pending_sync_review:` in the local sync queue (`sync-processor.test.ts` "marks reviewable"); end-to-end test against real RPC pending.
+- [x] Notes: `sync-processor.ts` validates every payload with the shared `syncQueueEnvelopeSchema` Zod discriminated union before calling the network, defers `concurrent_in_progress`, and bumps non-retryable failures to `retry_count = 999` with a `pending_sync_review:` last_error. `getSyncHealth(db)` and `useSyncHealth()` summarize total/synced/unsynced/pending/failed/reviewable rows, max retry count, last successful sync, oldest pending row, and latest error; `getDiagnosticsMetadata(db, identity, storage)` adds app version, local schema version, persisted install ID, branch/cashier identity, role, MMKV byte size, and MMKV key count; `buildSupportBundle()` copies sanitized manager-triggered diagnostics through `expo-clipboard` without raw sync payloads. `app/(app)/diagnostics.tsx` exposes those metrics to owner/manager roles from the Reports tab. `runSyncQueueOnce(db)` is the shared foreground/background executor; `SyncTriggerEffect` no-ops until Supabase is configured and `authStore.userId` exists; `sync-task.ts` defines `TDPOS_BACKGROUND_SYNC` at module scope and `register-sync.ts` registers it with `expo-background-task` at a 15-minute minimum interval. `apply-inventory-delta` and `create-sale` use `withSupabase({ auth: 'user' })`; `create-sale` delegates to `create_sale_atomic(p_payload)` so remote `sales` + `sale_items` are all-or-nothing. End-to-end against a real Supabase project blocks on P7 auth pairing.
+
+### v1.0 Evidence
+
+- [ ] Date:
+- [ ] Commit/tag:
+- [ ] Pilot store:
+- [ ] Full-day offline run:
+- [ ] Reconciliation result:
+- [ ] Known risks:

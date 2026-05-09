@@ -1,0 +1,13 @@
+node_modules
+dist
+.turbo
+.next
+.expo
+coverage
+
+# Reference/imported material. Keep formatting stable unless deliberately migrated.
+UI/
+docs/skills/
+docs/architecture.md
+docs/database-schema.md
+docs/suki-pos-integration-tasks.md

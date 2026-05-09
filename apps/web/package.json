@@ -1,0 +1,9 @@
+{
+  "name": "@tdpos/web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "echo \"Web dashboard is deferred until the mobile offline core is ready.\"",
+    "clean": "rm -rf .next dist .turbo"
+  }
+}
