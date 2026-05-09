@@ -25,6 +25,7 @@ curl -fsSL https://bun.sh/install | bash -s "bun-v1.3.13"
 # 3. Verify toolchain
 node --version
 bun --version
+bun run check:toolchain
 
 # 4. Install dependencies and create bun.lock
 bun install
@@ -63,6 +64,14 @@ bun run mobile:android
 Use development builds for real device testing. Expo Go is not a production test target for this app because the native dependency set includes SQLite, MMKV, background tasks, camera, haptics, audio, and printer support.
 
 ## Foundation Gate
+
+Before the foundation gate, run:
+
+```bash
+bun run check:toolchain
+```
+
+This intentionally fails when the shell is not using Node 20.x, Bun 1.3.13 is not installed as `bun`, Supabase CLI is missing, or EAS cannot be reached through either a direct `eas` command or the `bunx` runner.
 
 ```bash
 bun run check:foundation

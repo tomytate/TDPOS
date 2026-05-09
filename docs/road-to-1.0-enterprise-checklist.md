@@ -510,16 +510,17 @@ Acceptance:
 - [x] Add `.nvmrc` or `.node-version`.
 - [ ] Install Supabase CLI.
 - [ ] Install EAS CLI or document `bunx eas-cli`.
-- [ ] Verify `bun --version`.
-- [ ] Verify `node --version`.
-- [ ] Verify `supabase --version`.
-- [ ] Verify `eas --version` or `bunx eas-cli --version`.
+- [x] Add `bun run check:toolchain` doctor so local version drift is mechanical.
+- [!] Verify `bun --version` (current shell: missing; `npx bun@1.3.13` works as fallback only).
+- [!] Verify `node --version` (current shell: v25.9.0; project target remains Node 20.x).
+- [!] Verify `supabase --version` (current shell: missing).
+- [!] Verify `eas --version` or `bunx eas-cli --version` (current shell: missing until Bun/EAS is installed).
 
 Acceptance:
 
 - [ ] New developer can install dependencies from a clean checkout.
 - [ ] Tooling versions are documented.
-- [ ] No task requires a hidden global install without docs.
+- [x] No task requires a hidden global install without docs.
 
 ### P0.3 Workspace Scripts
 
@@ -1994,7 +1995,7 @@ The web dashboard is no longer a Post-1.0 expansion. See **Phase W: Web Dashboar
 Updated 2026-05-09 after background sync wiring, manager diagnostics/support bundle, the auth-gated foreground trigger, and atomic remote sale creation landed. The remaining work to reach v0.4 → v0.6 → v1.0 is now mostly device-side, hosted Supabase wiring, Postgres test coverage, Tier A screen polish, and Phase W (web dashboard) bootstrap.
 
 - [x] 1. Initialize git and commit the current foundation (P0.1). Without a repo, no PR-based review and no branch protection (P10.1).
-- [ ] 2. Install Bun + Supabase CLI directly. Document the toolchain in `docs/development-setup.md`.
+- [/] 2. Install Bun + Supabase CLI directly. Document the toolchain in `docs/development-setup.md`.
 - [ ] 3. Stand up a hosted Supabase Free project for staging. Apply the initial schema, immutability triggers, and `create_sale_atomic` migration. Configure publishable + secret keys in `eas.json` per profile.
 - [ ] 4. Add Postgres §14 tests for delta concurrency, remote negative-stock review, `create_sale_atomic` replay, and TOCTOU behavior.
 - [ ] 5. Finish Tier A cashier polish: Inventory and Reports tabs (`P5.5`, `P5.6`) using the existing `useProducts()` and `useDailySales()` hooks.
