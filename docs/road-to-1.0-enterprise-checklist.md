@@ -1777,7 +1777,7 @@ Purpose: the web dashboard is no longer a post-1.0 expansion. It is co-equal wit
 
 ### W0.1 Web Foundation
 
-- [x] Replace the placeholder `apps/web/package.json` with a real Next.js 16 dependency list (`next@^16.2.4`, `react@19.2.0`, `@supabase/ssr@^0.10.2`, workspace deps `@tdpos/db` + `@tdpos/shared`).
+- [x] Replace the placeholder `apps/web/package.json` with a real Next.js 16 dependency list (`next@16.2.6`, `react@19.2.0`, `@supabase/ssr@^0.10.2`, workspace deps `@tdpos/db` + `@tdpos/shared`).
 - [x] App Router only — no Pages Router. (`apps/web/src/app/*`.)
 - [x] `proxy.ts` with named export `proxy()`. (`apps/web/proxy.ts`.) NEVER `middleware.ts`.
 - [x] `@supabase/ssr` 0.10.x with `getClaims()` only. (`src/lib/supabase/{proxy,server,client}.ts`.) NEVER `getSession()`.
@@ -1821,8 +1821,8 @@ Acceptance:
 - [ ] Sync health view: per-device queue depth, last seen, failures. (Pending — sync_queue is mobile-only; needs a server-side mirror table or a per-device heartbeat. Tracked in W0.7.)
 - [x] Empty/loading/error states on every read-only card. The dashboard renders a friendly "Supabase env unconfigured" notice instead of crashing when keys are missing.
 - [ ] EN + TL strings via the same source as mobile (deferred — web copy stays English-only until W0.7 when the report PDF needs both languages).
-- [x] Three RLS-protected Server Component queries in `apps/web/src/lib/queries/dashboard.ts`: `getTodaysSalesSummary`, `getLowStockProducts`, `getRecentSales`. `import 'server-only'` hard-stops accidental client imports.
-- [x] Dashboard home is an `async` Server Component running all three queries via `Promise.all`, formatting via the shared `formatMoney` + `displayStock` + `splitStock` helpers from `@tdpos/shared`.
+- [x] RLS-protected Server Component query module in `apps/web/src/lib/queries/dashboard.ts`: sales summary, low stock, recent receipts, branch breakdown, cashier breakdown, and top sellers. `import 'server-only'` hard-stops accidental client imports.
+- [x] Dashboard home is an `async` Server Component running the read-only query set via `Promise.all`, formatting via the shared `formatMoney` + `displayStock` + `splitStock` helpers from `@tdpos/shared`.
 - [x] Tabular numbers, divide-y lists, brand-token palette throughout — uses the same teal/amber/ink theme as mobile.
 
 Acceptance:
@@ -1832,10 +1832,10 @@ Acceptance:
 
 ### W0.7 Reporting & Exports
 
-- [x] Daily report (gross sales, payment mix, item count, hourly histogram). The Overview now accepts `?date=YYYY-MM-DD` and runs a single query that aggregates gross, payment mix, and 24-bucket hourly gross in one pass; an inline SVG histogram on the dashboard highlights the peak hour in amber against teal hourly bars. Defaults to today's local date.
-- [/] Weekly + monthly aggregates. Code-side: `getTodaysSalesSummary(forDate)` is the building block — wrap it in a date-range pass for the next slice. Tracked as the next W0.7 follow-up.
-- [x] Per-cashier and per-branch breakdowns. Per-branch: `getPerBranchBreakdown(forDate)` joins `sales` → `branches(name, region)`, grouped + sorted, rendered with a teal share bar. Per-cashier: `getPerCashierBreakdown(forDate)` joins `sales` → `users(phone, role)` and surfaces only the **last 4 digits of the phone** (`tailPhone`) per ADR-014's privacy posture — owners reconcile against staff records, full E.164 never leaves the database. Both render side-by-side in a 2-column grid on the Overview.
-- [x] Top-sellers breakdown. `getTopProductsBreakdown(forDate, limit=10)` joins `sale_items` → `products(name, unit_label)` and uses `sales!inner ( created_at )` to RLS-cascade the day filter through the parent sale. Surfaces top 10 products by gross with `pieces_sold` formatted as the product's `unit_label` (sachet, stick, bottle, etc.). Owner sees the day's revenue drivers at a glance.
+- [x] Daily report (gross sales, payment mix, item count, hourly histogram). The Overview accepts `?date=YYYY-MM-DD&range=today` and runs a single query that aggregates gross, payment mix, and 24-bucket hourly gross in one pass; an inline SVG histogram highlights the peak hour in amber against teal hourly bars. Defaults to today's local date.
+- [x] Weekly + monthly aggregates. The Overview now accepts `?range=week` and `?range=month`, computes Monday→Sunday or calendar-month windows from the selected anchor date, and passes the same `{ from, to }` window into summary, branch, cashier, top-seller, CSV, and PDF paths. Exports use `from`/`to` dates from the selected reporting window.
+- [x] Per-cashier and per-branch breakdowns. Per-branch: `getPerBranchBreakdown(range)` joins `sales` → `branches(name, region)`, grouped + sorted, rendered with a teal share bar. Per-cashier: `getPerCashierBreakdown(range)` joins `sales` → `users(phone, role)` and surfaces only the **last 4 digits of the phone** (`tailPhone`) per ADR-014's privacy posture — owners reconcile against staff records, full E.164 never leaves the database. Both render side-by-side in a 2-column grid on the Overview.
+- [x] Top-sellers breakdown. `getTopProductsBreakdown(range, limit=10)` joins `sale_items` → `products(name, unit_label)` and uses `sales!inner ( created_at )` to RLS-cascade the reporting window through the parent sale. Surfaces top 10 products by gross with `pieces_sold` formatted as the product's `unit_label` (sachet, stick, bottle, etc.). Owner sees the period's revenue drivers at a glance.
 - [x] CSV export of sales — RFC 4180 line-item CSV with BIR-ready columns. Route Handler at `GET /api/exports/sales?from=YYYY-MM-DD&to=YYYY-MM-DD` (defense-in-depth `getCurrentClaims()` check, 400/401/503 error envelope, `text/csv` with `Content-Disposition: attachment`). Pure builder at `apps/web/src/lib/csv/build-sales-csv.ts` quotes per RFC 4180 and emits `\r\n` line endings. Defaults to today's local date when params omitted; rejects inverted ranges with 400.
 - [x] Dashboard download button calls the export via plain `<a download>` so it works without JavaScript.
 - [x] PDF export using `@react-pdf/renderer` with the BIR-ready receipt format applied. Route Handler: `GET /api/exports/sales/pdf?from=YYYY-MM-DD&to=YYYY-MM-DD`, Node runtime, defense-in-depth `getCurrentClaims()` check, RLS-scoped `getSalesForExport()`, `renderToBuffer`, `application/pdf`, `Cache-Control: private, no-store`.
@@ -1886,7 +1886,7 @@ Acceptance:
 - W0.2 Styling — ✅ done.
 - W0.3 Auth Shell — ✅ done.
 - W0.5 Read-Only Dashboard — ✅ done; date-range support added in W0.7.
-- W0.7 Reporting & Exports — ✅ daily report (incl. hourly histogram), CSV/PDF export, audit log, sync health. Open: weekly/monthly aggregates and Stock Accuracy Score (needs cycle-count schema).
+- W0.7 Reporting & Exports — ✅ daily/weekly/monthly report (incl. hourly pattern), CSV/PDF export, audit log, sync health. Open: Stock Accuracy Score (needs cycle-count schema).
 - W0.8 Management — deliberately deferred until staging Supabase exists; design pattern established.
 - W0.9 Web Production Candidate — gated on hosted deploy + pilot user.
 

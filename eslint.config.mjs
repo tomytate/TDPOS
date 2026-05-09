@@ -9,14 +9,22 @@ export default [
   {
     ignores: [
       'node_modules/**',
+      '**/node_modules/**',
       'dist/**',
+      '**/dist/**',
       '.turbo/**',
+      '**/.turbo/**',
       '.next/**',
+      '**/.next/**',
       '.expo/**',
+      '**/.expo/**',
+      '**/next-env.d.ts',
       'android/**',
       'ios/**',
       'build/**',
+      '**/build/**',
       'coverage/**',
+      '**/coverage/**',
       // Supabase Edge Functions run on Deno (npm: imports, Deno globals);
       // they are typechecked and linted by Supabase's own toolchain, not ours.
       'supabase/functions/**',

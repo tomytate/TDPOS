@@ -105,7 +105,7 @@ bun run typecheck && bun run lint && bun run test
 | Validation     | zod                                      | 4.4.3   |
 | Language       | typescript                               | 6.0.3   |
 | Node runtime   | node                                     | 24 LTS  |
-| Web framework  | next                                     | 16.2.4  |
+| Web framework  | next                                     | 16.2.6  |
 | CSS            | tailwindcss                              | 4.2.4   |
 | SSR auth       | @supabase/ssr                            | 0.10.2  |
 | Monorepo       | turbo                                    | 2.9.9   |

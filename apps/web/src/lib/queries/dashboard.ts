@@ -14,7 +14,7 @@ import { displayStock, formatMoney, splitStock } from '@tdpos/shared'
 
 import { getServerSupabase } from '@/lib/supabase/server'
 
-// ----- Today's sales summary --------------------------------------------------
+// ----- Sales summary ----------------------------------------------------------
 
 export type SalesPaymentMixRow = {
   paymentMethod: string
@@ -23,7 +23,12 @@ export type SalesPaymentMixRow = {
   saleCount: number
 }
 
-export type TodaysSalesSummary =
+export type SalesDateRange = {
+  from: Date
+  to: Date
+}
+
+export type SalesSummary =
   | { ready: false; reason: 'supabase_unconfigured' | 'query_failed'; message?: string }
   | {
       ready: true
@@ -34,6 +39,8 @@ export type TodaysSalesSummary =
       hourlyGross: number[]
       hourlyPeak: number
     }
+
+export type TodaysSalesSummary = SalesSummary
 
 interface SalesRow {
   total_amount: number | string
@@ -50,9 +57,18 @@ function endOfLocalDay(d: Date = new Date()): Date {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999)
 }
 
-export async function getTodaysSalesSummary(
-  forDate: Date = new Date(),
-): Promise<TodaysSalesSummary> {
+function normalizeDateRange(input: Date | SalesDateRange = new Date()): SalesDateRange {
+  if (input instanceof Date) {
+    return {
+      from: startOfLocalDay(input),
+      to: endOfLocalDay(input),
+    }
+  }
+
+  return input
+}
+
+export async function getSalesSummaryForRange(range: SalesDateRange): Promise<SalesSummary> {
   let supabase
   try {
     supabase = await getServerSupabase()
@@ -60,14 +76,11 @@ export async function getTodaysSalesSummary(
     return { ready: false, reason: 'supabase_unconfigured' }
   }
 
-  const fromIso = startOfLocalDay(forDate).toISOString()
-  const toIso = endOfLocalDay(forDate).toISOString()
-
   const { data, error } = await supabase
     .from('sales')
     .select('total_amount, payment_method, is_utang, created_at')
-    .gte('created_at', fromIso)
-    .lte('created_at', toIso)
+    .gte('created_at', range.from.toISOString())
+    .lte('created_at', range.to.toISOString())
 
   if (error) {
     return { ready: false, reason: 'query_failed', message: error.message }
@@ -110,6 +123,12 @@ export async function getTodaysSalesSummary(
     hourlyGross,
     hourlyPeak: Math.max(0, ...hourlyGross),
   }
+}
+
+export async function getTodaysSalesSummary(
+  forDate: Date = new Date(),
+): Promise<TodaysSalesSummary> {
+  return getSalesSummaryForRange(normalizeDateRange(forDate))
 }
 
 // ----- Low-stock products -----------------------------------------------------
@@ -262,7 +281,9 @@ interface PerBranchSaleRow {
   branches: Array<{ name: string; region: string | null }> | null
 }
 
-export async function getPerBranchBreakdown(forDate: Date = new Date()): Promise<PerBranchResult> {
+export async function getPerBranchBreakdown(
+  rangeOrDate: Date | SalesDateRange = new Date(),
+): Promise<PerBranchResult> {
   let supabase
   try {
     supabase = await getServerSupabase()
@@ -270,14 +291,13 @@ export async function getPerBranchBreakdown(forDate: Date = new Date()): Promise
     return { ready: false, reason: 'supabase_unconfigured' }
   }
 
-  const fromIso = startOfLocalDay(forDate).toISOString()
-  const toIso = endOfLocalDay(forDate).toISOString()
+  const range = normalizeDateRange(rangeOrDate)
 
   const { data, error } = await supabase
     .from('sales')
     .select('branch_id, total_amount, branches ( name, region )')
-    .gte('created_at', fromIso)
-    .lte('created_at', toIso)
+    .gte('created_at', range.from.toISOString())
+    .lte('created_at', range.to.toISOString())
 
   if (error) {
     return { ready: false, reason: 'query_failed', message: error.message }
@@ -352,7 +372,7 @@ function tailPhone(phone: string | null | undefined): string {
 }
 
 export async function getPerCashierBreakdown(
-  forDate: Date = new Date(),
+  rangeOrDate: Date | SalesDateRange = new Date(),
 ): Promise<PerCashierResult> {
   let supabase
   try {
@@ -361,14 +381,13 @@ export async function getPerCashierBreakdown(
     return { ready: false, reason: 'supabase_unconfigured' }
   }
 
-  const fromIso = startOfLocalDay(forDate).toISOString()
-  const toIso = endOfLocalDay(forDate).toISOString()
+  const range = normalizeDateRange(rangeOrDate)
 
   const { data, error } = await supabase
     .from('sales')
     .select('user_id, total_amount, users ( phone, role )')
-    .gte('created_at', fromIso)
-    .lte('created_at', toIso)
+    .gte('created_at', range.from.toISOString())
+    .lte('created_at', range.to.toISOString())
 
   if (error) {
     return { ready: false, reason: 'query_failed', message: error.message }
@@ -438,7 +457,7 @@ interface TopProductsRow {
 }
 
 export async function getTopProductsBreakdown(
-  forDate: Date = new Date(),
+  rangeOrDate: Date | SalesDateRange = new Date(),
   limit = 10,
 ): Promise<TopProductsResult> {
   let supabase
@@ -448,18 +467,17 @@ export async function getTopProductsBreakdown(
     return { ready: false, reason: 'supabase_unconfigured' }
   }
 
-  const fromIso = startOfLocalDay(forDate).toISOString()
-  const toIso = endOfLocalDay(forDate).toISOString()
+  const range = normalizeDateRange(rangeOrDate)
 
-  // Pull every sale_item whose parent sale falls in the day window. RLS on
+  // Pull every sale_item whose parent sale falls in the selected window. RLS on
   // `sale_items` cascades through the parent `sales` row's tenant scope.
   const { data, error } = await supabase
     .from('sale_items')
     .select(
       'product_id, pieces_sold, subtotal, products ( name, unit_label ), sales!inner ( created_at )',
     )
-    .gte('sales.created_at', fromIso)
-    .lte('sales.created_at', toIso)
+    .gte('sales.created_at', range.from.toISOString())
+    .lte('sales.created_at', range.to.toISOString())
 
   if (error) {
     return { ready: false, reason: 'query_failed', message: error.message }

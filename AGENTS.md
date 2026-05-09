@@ -28,7 +28,7 @@ TD POS is the operating system for Philippine business — a mobile-first, offli
 
 ### Web Dashboard (apps/web)
 
-- Next.js 16.2.4 (App Router, `proxy.ts` replaces `middleware.ts`)
+- Next.js 16.2.6 (App Router, `proxy.ts` replaces `middleware.ts`)
 - TailwindCSS 4.2.4 + shadcn/ui
 - Recharts 3.8.1, @react-pdf/renderer 4.5.1, papaparse 5.5.3, date-fns 4.1.0
 - @supabase/ssr 0.10.2 (`getClaims()` not `getSession()`)

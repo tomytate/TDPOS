@@ -6,6 +6,7 @@ dist/
 build/
 .next/
 .expo/
+next-env.d.ts
 *.tsbuildinfo
 
 # Turborepo

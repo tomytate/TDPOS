@@ -1,7 +1,7 @@
 // Phase W0.5 + W0.7 — Read-Only Dashboard.
 //
-// Server Component that runs three RLS-protected queries against the same
-// Supabase schema mobile writes to. Accepts ?date=YYYY-MM-DD to view any day.
+// Server Component that runs RLS-protected queries against the same Supabase
+// schema mobile writes to. Accepts ?date=YYYY-MM-DD and ?range=today|week|month.
 // Renders an inline SVG hourly-gross histogram alongside the KPI tiles.
 
 import {
@@ -9,10 +9,12 @@ import {
   getPerBranchBreakdown,
   getPerCashierBreakdown,
   getRecentSales,
-  getTodaysSalesSummary,
+  getSalesSummaryForRange,
   getTopProductsBreakdown,
 } from '@/lib/queries/dashboard'
 import { formatMoney } from '@tdpos/shared'
+
+type DashboardRange = 'today' | 'week' | 'month'
 
 const PAYMENT_LABELS: Record<string, string> = {
   cash: 'Cash',
@@ -22,6 +24,11 @@ const PAYMENT_LABELS: Record<string, string> = {
 }
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
+const RANGE_LABELS: Record<DashboardRange, string> = {
+  today: 'Today',
+  week: 'Week',
+  month: 'Month',
+}
 
 function formatPaymentMethod(method: string, isUtang: boolean): string {
   const base = PAYMENT_LABELS[method] ?? method
@@ -48,8 +55,9 @@ function parseDateParam(raw: string | string[] | undefined): Date {
   return Number.isNaN(parsed.getTime()) ? new Date() : parsed
 }
 
-function formatLocalDateLong(d: Date): string {
-  return d.toLocaleDateString('en-PH', { weekday: 'long', month: 'short', day: 'numeric' })
+function parseRangeParam(raw: string | string[] | undefined): DashboardRange {
+  const value = Array.isArray(raw) ? raw[0] : raw
+  return value === 'week' || value === 'month' ? value : 'today'
 }
 
 function isoDate(d: Date): string {
@@ -57,6 +65,65 @@ function isoDate(d: Date): string {
   const m = String(d.getMonth() + 1).padStart(2, '0')
   const day = String(d.getDate()).padStart(2, '0')
   return `${y}-${m}-${day}`
+}
+
+function startOfLocalDay(d: Date): Date {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0)
+}
+
+function endOfLocalDay(d: Date): Date {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999)
+}
+
+function getDashboardDateRange(anchorDate: Date, range: DashboardRange): { from: Date; to: Date } {
+  if (range === 'month') {
+    return {
+      from: new Date(anchorDate.getFullYear(), anchorDate.getMonth(), 1, 0, 0, 0, 0),
+      to: new Date(anchorDate.getFullYear(), anchorDate.getMonth() + 1, 0, 23, 59, 59, 999),
+    }
+  }
+
+  if (range === 'week') {
+    const mondayOffset = (anchorDate.getDay() + 6) % 7
+    const monday = new Date(anchorDate)
+    monday.setDate(anchorDate.getDate() - mondayOffset)
+    const sunday = new Date(monday)
+    sunday.setDate(monday.getDate() + 6)
+    return {
+      from: startOfLocalDay(monday),
+      to: endOfLocalDay(sunday),
+    }
+  }
+
+  return {
+    from: startOfLocalDay(anchorDate),
+    to: endOfLocalDay(anchorDate),
+  }
+}
+
+function formatRangeLabel(range: DashboardRange, from: Date, to: Date): string {
+  if (range === 'month') {
+    return from.toLocaleDateString('en-PH', { month: 'long', year: 'numeric' })
+  }
+
+  if (range === 'week') {
+    return `${from.toLocaleDateString('en-PH', {
+      month: 'short',
+      day: 'numeric',
+    })} to ${to.toLocaleDateString('en-PH', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    })}`
+  }
+
+  return from.toLocaleDateString('en-PH', { weekday: 'long', month: 'short', day: 'numeric' })
+}
+
+function periodCopy(range: DashboardRange): string {
+  if (range === 'week') return 'this week'
+  if (range === 'month') return 'this month'
+  return 'today'
 }
 
 interface HourlyHistogramProps {
@@ -74,7 +141,7 @@ function HourlyHistogram({ buckets, peak }: HourlyHistogramProps) {
     <svg
       viewBox={`0 0 ${width} ${height}`}
       role="img"
-      aria-label="Hourly gross sales for the selected day"
+      aria-label="Hourly gross sales pattern for the selected reporting window"
       className="h-24 w-full"
     >
       <line
@@ -110,23 +177,28 @@ function HourlyHistogram({ buckets, peak }: HourlyHistogramProps) {
 export default async function DashboardHome({
   searchParams,
 }: {
-  searchParams: Promise<{ date?: string | string[] }>
+  searchParams: Promise<{ date?: string | string[]; range?: string | string[] }>
 }) {
   const params = await searchParams
   const forDate = parseDateParam(params.date)
-  const dateLabel = formatLocalDateLong(forDate)
+  const selectedRange = parseRangeParam(params.range)
+  const dateRange = getDashboardDateRange(forDate, selectedRange)
+  const dateLabel = formatRangeLabel(selectedRange, dateRange.from, dateRange.to)
+  const period = periodCopy(selectedRange)
   const dateIso = isoDate(forDate)
-  const exportHref = `/api/exports/sales?from=${dateIso}&to=${dateIso}`
-  const exportPdfHref = `/api/exports/sales/pdf?from=${dateIso}&to=${dateIso}`
+  const fromIso = isoDate(dateRange.from)
+  const toIso = isoDate(dateRange.to)
+  const exportHref = `/api/exports/sales?from=${fromIso}&to=${toIso}`
+  const exportPdfHref = `/api/exports/sales/pdf?from=${fromIso}&to=${toIso}`
 
   const [salesSummary, lowStock, recentSales, perBranch, perCashier, topProducts] =
     await Promise.all([
-      getTodaysSalesSummary(forDate),
+      getSalesSummaryForRange(dateRange),
       getLowStockProducts(),
       getRecentSales(),
-      getPerBranchBreakdown(forDate),
-      getPerCashierBreakdown(forDate),
-      getTopProductsBreakdown(forDate),
+      getPerBranchBreakdown(dateRange),
+      getPerCashierBreakdown(dateRange),
+      getTopProductsBreakdown(dateRange),
     ])
 
   const envUnconfigured = !salesSummary.ready && salesSummary.reason === 'supabase_unconfigured'
@@ -140,7 +212,7 @@ export default async function DashboardHome({
             {dateLabel} · live read-only view of sales, low-stock items, and recent receipts.
           </p>
         </div>
-        <form action="/dashboard" method="get" className="flex items-center gap-2">
+        <form action="/dashboard" method="get" className="flex flex-wrap items-center gap-2">
           <label htmlFor="dashboard-date" className="text-[12px] font-semibold text-ink-600">
             Date
           </label>
@@ -151,6 +223,26 @@ export default async function DashboardHome({
             defaultValue={dateIso}
             className="rounded-lg border border-ink-300 bg-white px-2 py-1.5 text-[13px] text-ink-800 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-100"
           />
+          <div
+            aria-label="Reporting range"
+            className="inline-flex overflow-hidden rounded-lg border border-ink-300 bg-white"
+            role="radiogroup"
+          >
+            {(['today', 'week', 'month'] as const).map((range) => (
+              <label key={range} className="cursor-pointer">
+                <input
+                  className="peer sr-only"
+                  defaultChecked={selectedRange === range}
+                  name="range"
+                  type="radio"
+                  value={range}
+                />
+                <span className="block px-3 py-1.5 text-[13px] font-semibold text-ink-600 transition-colors peer-checked:bg-teal-700 peer-checked:text-white">
+                  {RANGE_LABELS[range]}
+                </span>
+              </label>
+            ))}
+          </div>
           <button
             type="submit"
             className="rounded-lg border border-ink-300 bg-white px-3 py-1.5 text-[13px] font-semibold text-ink-700 transition-colors hover:bg-ink-50"
@@ -197,7 +289,7 @@ export default async function DashboardHome({
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <article className="rounded-xl border border-ink-200 bg-white p-4 shadow-sm">
           <p className="m-0 text-[11px] font-semibold uppercase tracking-[1px] text-ink-500">
-            Gross today
+            Gross {period}
           </p>
           {salesSummary.ready ? (
             <>
@@ -249,7 +341,7 @@ export default async function DashboardHome({
               })}
             </ul>
           ) : (
-            <p className="mt-2 text-sm text-ink-500">No sales yet today.</p>
+            <p className="mt-2 text-sm text-ink-500">No sales yet for {period}.</p>
           )}
         </article>
       </section>
@@ -258,7 +350,7 @@ export default async function DashboardHome({
       <section>
         <article className="rounded-xl border border-ink-200 bg-white p-4 shadow-sm">
           <header className="flex items-baseline justify-between">
-            <h2 className="m-0 text-base font-semibold text-teal-700">Hourly gross</h2>
+            <h2 className="m-0 text-base font-semibold text-teal-700">Hourly gross pattern</h2>
             {salesSummary.ready ? (
               <span className="text-[11px] uppercase tracking-[1px] text-ink-400">
                 Peak {formatMoney(salesSummary.hourlyPeak)}
@@ -281,7 +373,7 @@ export default async function DashboardHome({
                 </div>
               </div>
             ) : (
-              <p className="mt-2 text-sm text-ink-500">No sales recorded for this date.</p>
+              <p className="mt-2 text-sm text-ink-500">No sales recorded for {dateLabel}.</p>
             )
           ) : (
             <p className="mt-2 text-sm text-ink-500">—</p>
@@ -409,7 +501,7 @@ export default async function DashboardHome({
                 : 'Configure Supabase to see top products.'}
             </p>
           ) : topProducts.rows.length === 0 ? (
-            <p className="mt-2 text-sm text-ink-500">No items sold on {dateLabel}.</p>
+            <p className="mt-2 text-sm text-ink-500">No items sold for {dateLabel}.</p>
           ) : (
             <ul className="mt-3 flex flex-col divide-y divide-ink-100">
               {topProducts.rows.map((row) => (

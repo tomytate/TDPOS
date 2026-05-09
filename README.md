@@ -20,7 +20,7 @@ The full release pact and the Definition of Enterprise-Grade live in [docs/road-
 | Layer              | Technology                                                                    | Version |
 | ------------------ | ----------------------------------------------------------------------------- | ------- |
 | **Mobile**         | Expo SDK 55 (React Native 0.83.2, React 19.2)                                 | SDK 55  |
-| **Web Dashboard**  | Next.js 16 (App Router, `proxy.ts`)                                           | 16.2.4  |
+| **Web Dashboard**  | Next.js 16 (App Router, `proxy.ts`)                                           | 16.2.6  |
 | **Backend**        | Supabase (PostgreSQL 17, Auth, Realtime, Edge Functions)                      | PG 17   |
 | **Database**       | PostgreSQL 17 — `gen_random_uuid()` built-in, `JSON_TABLE`, `MERGE RETURNING` | 17      |
 | **State (client)** | Zustand 5 + MMKV (synchronous, no hydration flash)                            | 5.0.13  |

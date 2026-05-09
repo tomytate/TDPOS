@@ -128,11 +128,11 @@ const { data: claims } = await supabase.auth.getClaims()
 
 ## Sources
 
-- Packages: `next@^16.2.4`, `@supabase/ssr@^0.10.2` (target versions; `apps/web` is still a placeholder, see Phase W in the checklist)
+- Packages: `next@16.2.6`, `@supabase/ssr@^0.10.2`
 - Next.js docs: <https://nextjs.org/docs>
 - Next.js 16 release notes: <https://nextjs.org/blog/next-16> (proxy.ts replaces middleware.ts)
 - proxy reference: <https://nextjs.org/docs/app/api-reference/file-conventions/proxy>
 - Supabase SSR: <https://supabase.com/docs/guides/auth/server-side/nextjs>
 - `getClaims()` reference: <https://supabase.com/docs/reference/javascript/auth-getclaims>
-- Implementation: pending — `apps/web/proxy.ts`, `apps/web/src/lib/supabase/proxy.ts` (Phase W0.3)
+- Implementation: `apps/web/proxy.ts`, `apps/web/src/lib/supabase/proxy.ts`
 - Last verified: 2026-05-09
