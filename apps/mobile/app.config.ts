@@ -1,14 +1,15 @@
 import type { ConfigContext, ExpoConfig } from 'expo/config'
 
-import { APP_VERSION } from './src/constants/app'
+import mobilePackage from './package.json'
 
-const projectId = process.env.EAS_PROJECT_ID
+const projectId = process.env.EAS_PROJECT_ID ?? 'a9cf7f75-51ec-45f1-82c3-a73a1db75483'
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
+  owner: 'tatestudios',
   name: 'TD POS',
   slug: 'tdpos',
-  version: APP_VERSION,
+  version: mobilePackage.version,
   orientation: 'portrait',
   scheme: 'tdpos',
   userInterfaceStyle: 'automatic',

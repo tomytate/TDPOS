@@ -594,13 +594,13 @@ Acceptance:
 - [x] Add camera permission strings.
 - [x] Add iOS `UIBackgroundModes: ['processing']` and `BGTaskSchedulerPermittedIdentifiers`.
 - [x] Do not set removed `newArchEnabled` flag.
-- [x] Add `eas.projectId` placeholder or document how to set it.
+- [x] Add `eas.projectId` and Expo owner in dynamic `app.config.ts`. Project linked to EAS ID `a9cf7f75-51ec-45f1-82c3-a73a1db75483`.
 - [x] Add environment variable usage for Supabase URL/key.
 
 Acceptance:
 
-- [ ] `expo config` resolves without fatal errors.
-- [ ] Native capabilities needed for printer, camera, background task are declared.
+- [x] `expo config` resolves without fatal errors.
+- [x] Native capabilities needed for printer, camera, background task are declared.
 
 ### P1.3 Metro, Babel, TypeScript
 
@@ -1467,6 +1467,7 @@ Acceptance:
 - [x] Add preview profile.
 - [x] Add production profile.
 - [x] Configure iOS simulator dev build.
+- [x] Link mobile app to an EAS project. `npx eas-cli@latest init --id a9cf7f75-51ec-45f1-82c3-a73a1db75483` now exits successfully from `apps/mobile`.
 - [ ] Configure Android internal build.
 - [x] Configure production app bundle.
 - [ ] Separate local/staging/prod env vars.
@@ -2072,7 +2073,7 @@ Use this section as releases progress.
 - [x] Test count: 43 passing tests total — 13 shared + 30 mobile.
 - [x] Latest-doc spot check: Expo SDK 55 BackgroundTask, Clipboard, and SQLite docs; TanStack Query v5 migration docs; Supabase `@supabase/server` public beta announcement.
 - [x] Dependency posture: current mobile package versions stay aligned with the verified stack — Expo SDK 55, React 19.2, React Native 0.83.2, React Query 5.100.x, React Native Paper 5.15.x, and `expo-clipboard` SDK 55.
-- [!] Residual blockers: no hosted Supabase project, no EAS/dev-device run, and no Postgres container tests yet. These are tracked in Next 10 and must not be treated as shipped quality.
+- [!] Residual blockers: no hosted Supabase project, no EAS dev build/device run, and no Postgres container tests yet. EAS project linking is complete, but native build evidence is still pending.
 
 ### v0.2 Evidence
 
