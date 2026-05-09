@@ -6,13 +6,6 @@
     },
     "noEmit": true
   },
-  "include": [
-    "app/**/*.ts",
-    "app/**/*.tsx",
-    "src/**/*.ts",
-    "src/**/*.tsx",
-    "app.config.ts",
-    "expo-env.d.ts"
-  ],
+  "include": ["app/**/*.ts", "app/**/*.tsx", "src/**/*.ts", "src/**/*.tsx", "app.config.ts"],
   "exclude": ["node_modules", "dist", ".expo", "src/**/*.test.ts"]
 }
