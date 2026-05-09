@@ -1,14 +1,54 @@
 import { router } from 'expo-router'
+import { useState } from 'react'
 import { View } from 'react-native'
-import { Button, Surface, Text } from 'react-native-paper'
+import { Button, HelperText, Surface, Text, TextInput } from 'react-native-paper'
 
 import { useAppTheme } from '@/constants/theme'
+import { supabase } from '@/services/supabase'
 import { useAuthStore } from '@/stores/auth-store'
+import { isValidPhPhone, normalizePhPhone } from '@tdpos/shared'
 
 export default function SignInScreen() {
   const theme = useAppTheme()
   const setAuth = useAuthStore((state) => state.setAuth)
   const setDevice = useAuthStore((state) => state.setDevice)
+
+  const [phone, setPhone] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const sendOtp = async () => {
+    if (submitting) return
+    setError(null)
+
+    const normalized = normalizePhPhone(phone.trim())
+    if (!isValidPhPhone(normalized)) {
+      setError('Enter a valid PH mobile number, e.g. 09171234567.')
+      return
+    }
+    if (!supabase) {
+      setError('Supabase not configured. Check apps/mobile/.env.local.')
+      return
+    }
+
+    setSubmitting(true)
+    try {
+      const { error: otpError } = await supabase.auth.signInWithOtp({ phone: normalized })
+      if (otpError) {
+        setError(otpError.message)
+        setSubmitting(false)
+        return
+      }
+      router.push({
+        pathname: '/(auth)/verify-otp',
+        params: { phone: normalized },
+      })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not send OTP.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   const continueInDemoMode = () => {
     setAuth({
@@ -49,27 +89,73 @@ export default function SignInScreen() {
           }}
         >
           <Text variant="labelLarge" style={{ color: theme.tdpos.ink[900] }}>
-            DEMO MODE
+            DEMO MODE AVAILABLE
           </Text>
           <Text variant="bodySmall" style={{ color: theme.tdpos.ink[800] }}>
-            Local-only data. Do not use for real sales. Production builds replace this with phone
-            OTP — see roadmap P7.1.
+            Real OTP works against your Supabase project. Demo button below seeds local-only data
+            and is hidden in production builds.
           </Text>
         </Surface>
       ) : null}
 
-      <Text variant="headlineMedium">TD POS</Text>
-      <Text variant="bodyLarge">Tama ang stock mo. Lagi.</Text>
+      <View style={{ gap: 8 }}>
+        <Text variant="headlineMedium">TD POS</Text>
+        <Text variant="bodyLarge" style={{ color: theme.colors.onSurfaceVariant }}>
+          Sign in with your Philippine mobile number.
+        </Text>
+      </View>
+
+      <View style={{ gap: 4 }}>
+        <TextInput
+          mode="outlined"
+          label="Mobile number"
+          placeholder="09171234567"
+          autoComplete="tel"
+          inputMode="tel"
+          keyboardType="phone-pad"
+          value={phone}
+          onChangeText={setPhone}
+          disabled={submitting}
+          left={<TextInput.Icon icon="phone-outline" />}
+        />
+        {error ? (
+          <HelperText type="error" visible>
+            {error}
+          </HelperText>
+        ) : null}
+      </View>
+
+      <Button
+        mode="contained"
+        onPress={sendOtp}
+        loading={submitting}
+        disabled={submitting || phone.trim().length === 0}
+        buttonColor={theme.colors.primary}
+      >
+        {submitting ? 'Sending OTP…' : 'Send one-time code'}
+      </Button>
 
       {__DEV__ ? (
-        <Button mode="contained" onPress={continueInDemoMode}>
-          Continue in demo mode
+        <Button
+          mode="text"
+          onPress={continueInDemoMode}
+          disabled={submitting}
+          textColor={theme.tdpos.amber[700]}
+        >
+          Continue in demo mode (dev only)
         </Button>
-      ) : (
-        <Button mode="contained" disabled>
-          Sign in with phone (P7.1 — coming soon)
-        </Button>
-      )}
+      ) : null}
+
+      <Text
+        variant="bodySmall"
+        style={{
+          marginTop: 8,
+          textAlign: 'center',
+          color: theme.colors.onSurfaceVariant,
+        }}
+      >
+        BIR-ready provisional cashier. BIR accreditation pending.
+      </Text>
     </View>
   )
 }

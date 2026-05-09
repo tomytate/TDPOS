@@ -475,7 +475,10 @@ Run this review once any paid service is enabled.
 - [x] Sale-row + sync-queue payload Zod validators exist (`saleSchema`, `syncQueueEnvelopeSchema` discriminated union).
 - [x] SQLite seed helper for development products/categories exists (`db/seed-dev.ts`, gated on `__DEV__`).
 - [/] `app/(auth)/sign-in.tsx` still ships a demo-mode shortcut. Production builds now hide the button and a `DEMO MODE` banner is shown in dev. Real OTP flow lands under P7.1.
-- [ ] No git repository initialized in the working directory yet — `git status` is non-functional, so commit history and branch protection are not yet possible.
+- [x] Git repo initialized; first commit `f4bb457` on `main` with full v0.1 foundation. Pushed to `github.com/tomytate/TDPOS`. Subsequent commits land PDF export, reporting ranges, EAS link, and dep refresh (4 commits ahead of origin at audit time).
+- [x] Hosted Supabase project provisioned at `ukrftgwpaidsusxqrlnc.supabase.co`. Three migrations applied (initial schema + immutability triggers + `create_sale_atomic`). Phone-auth provider enabled with at least one test OTP for development.
+- [x] EAS project linked (`a9cf7f75-…` hardcoded in `apps/mobile/app.config.ts` with `EAS_PROJECT_ID` env override). EAS Build runs still gated on real device/credentials.
+- [!] **Security note — publishable-key exposure 2026-05-10.** The original publishable key was pasted in chat by the owner and is treated as compromised. Rotation pending; tracked at the top of P0.1. RLS protects data so blast radius is limited, but the project should not run with a known-leaked key beyond the immediate rotation window.
 
 ### v0.1 Exit Criteria
 
@@ -498,12 +501,14 @@ Purpose: make the repo controllable before building features.
 - [x] Decide whether to commit `UI/b_g4eU9LYiRKM/tsconfig.tsbuildinfo`; preferred: ignore/remove generated build info.
 - [x] Add `docs/spec-v5.md` if available.
 - [ ] Copy any external planning docs into `docs/` if they are required for implementation.
+- [ ] **Rotate the publishable Supabase key** (`sb_publishable_a8lkOLXp...`) — pasted in the project chat 2026-05-10 and considered compromised. Replace value in `apps/web/.env.local` and `apps/mobile/.env.local`; verify with `grep -r 'a8lkOLXp' apps/ docs/ packages/ supabase/ scripts/ 2>/dev/null` returning empty. Rotate via Supabase Dashboard → Settings → API → Roll publishable key. Tracked here because hygiene rules belong in source control.
 
 Acceptance:
 
 - [x] `git status` works.
 - [x] Generated artifacts are ignored.
 - [x] Project-critical docs live in the repo.
+- [ ] No known-leaked secret remains in any tracked or local environment file.
 
 ### P0.2 Local Toolchain
 
@@ -1274,19 +1279,21 @@ Purpose: stores can log in, identify branch/cashier, and operate offline after s
 
 ### P7.1 Phone OTP
 
-- [ ] Create sign-in route.
-- [ ] Validate Philippine phone numbers.
-- [ ] Normalize `09XX` to `+639XX`.
-- [ ] Send OTP with Supabase.
-- [ ] Create OTP verification route.
-- [ ] Verify OTP.
-- [ ] Persist session in MMKV.
-- [ ] Load user/business/branch metadata.
+- [x] Create sign-in route. (`apps/mobile/app/(auth)/sign-in.tsx` — real phone form with Paper TextInput, normalize → validate → `supabase.auth.signInWithOtp()`, `__DEV__`-only demo fallback button.)
+- [x] Validate Philippine phone numbers. (Uses `isValidPhPhone` from `@tdpos/shared` — same validator as web login screen.)
+- [x] Normalize `09XX` to `+639XX`. (`normalizePhPhone` from `@tdpos/shared`.)
+- [x] Send OTP with Supabase. (`supabase.auth.signInWithOtp({ phone })`.)
+- [x] Create OTP verification route. (`apps/mobile/app/(auth)/verify-otp.tsx` — 6-digit Paper TextInput, `keyboardType="number-pad"`, `autoComplete="one-time-code"`, max length 6.)
+- [x] Verify OTP. (`supabase.auth.verifyOtp({ phone, token, type: 'sms' })`.)
+- [x] Persist session in MMKV. (`mmkvSupabaseStorage` adapter in `services/supabase.ts`; `autoRefreshToken: true`, `persistSession: true`.)
+- [x] Load user/business/branch metadata. New `services/auth-bootstrap.ts` fetches `users` + first active `branches` + `businesses` rows after every `INITIAL_SESSION` / `SIGNED_IN` event and populates `auth-store`. Returns a discriminated union so the auth screen can render `account_not_provisioned` / `business_not_assigned` / `no_branches_configured` / `query_failed` errors. Branch code derived from name initials, cashier code from last 2 hex of user_id.
+- [x] Wire `useAuthStateListener()` in `_layout.tsx` so `onAuthStateChange` (which fires `INITIAL_SESSION` immediately on subscribe with the cached session) drives store hydration without a forbidden direct session-fetch call.
+- [x] Tests: 7 unit tests in `services/auth-bootstrap.test.ts` covering happy path, role fallback, missing user, missing business, missing branch, query error, and non-fatal business-metadata failure.
 
 Acceptance:
 
-- [ ] User can sign in with phone OTP.
-- [ ] App stays signed in after restart.
+- [ ] User can sign in with phone OTP. (Verifiable end-to-end against the staging Supabase project once the leaked publishable key is rotated.)
+- [ ] App stays signed in after restart. (Same gate.)
 
 ### P7.2 Device / Cashier Setup
 
@@ -2079,11 +2086,12 @@ Use this section as releases progress.
 
 ### v0.2 Evidence
 
-- [x] Date: 2026-05-09
-- [x] Commit: first foundation snapshot created under Git on `main`.
-- [x] Commands run: `npx bun@1.3.13 run check:foundation`, `node --check`, `npx esbuild` parse checks, `node scripts/check-local-sqlite-schema.mjs`, RLS SQL scan.
+- [x] Date: 2026-05-09 (foundation snapshot) → 2026-05-10 (git push to GitHub).
+- [x] Initial commit: `f4bb457` _"v0.1 foundation preview: mobile + web tracks, 15 ADRs, 20 skill docs, 8-stage foundation gate"_ on `main`. Subsequent commits on the same branch: `0e8917b feat(web): add sales PDF export`, `a623541 feat(web): add reporting ranges`, `c70a100 chore(mobile): link eas project`, `5e25fcc chore(deps): refresh package versions`.
+- [x] Remote: `https://github.com/tomytate/TDPOS.git` (private). CI workflow `.github/workflows/foundation.yml` runs the same 8-stage gate on every PR.
+- [x] Commands run: `bun run check:foundation` (8 stages green: format → SQLite drift → forbidden patterns → doc-link integrity → skill-doc gate → typecheck across 6 workspaces → lint across 6 workspaces → 30 mobile + 13 shared = 43 tests).
 - [ ] Device/simulator: not run on physical device yet — runtime acceptance criteria for P1.4/P1.5 still open.
-- [x] Notes: Mobile foundation scaffolded and the full foundation gate passes locally through `npx bun@1.3.13`. All providers, stores, services, theme, i18n, feature hooks, and route shells exist. Sale, checkout, receipt, inventory, and reports now render real local SQLite-backed flows; scanner, printer integration, real OTP, and device acceptance remain pending.
+- [x] Notes: Mobile foundation + web foundation both real. Sale → checkout → receipt → sync_queue write proven by `bun:sqlite` integration tests. Web dashboard renders 9 RLS-scoped Server Component queries (Overview, audit, sync health) plus CSV + PDF exports. Hosted Supabase project provisioned and three migrations applied; live signup-and-render smoke test still owed once the leaked publishable key is rotated. Scanner, printer integration, real OTP on mobile, and device acceptance remain pending.
 
 ### v0.4 Evidence
 

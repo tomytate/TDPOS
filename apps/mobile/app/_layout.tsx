@@ -12,6 +12,7 @@ import { PaperProvider } from 'react-native-paper'
 import { darkTheme, lightTheme } from '@/constants/theme'
 import { initializeDatabase } from '@/db/init'
 import { queryClient } from '@/services/query-client'
+import { useAuthStateListener } from '@/services/auth-listener'
 import { useBackgroundSyncRegistration } from '@/services/register-sync'
 import '@/services/storage'
 import { SyncTriggerEffect } from '@/services/sync-trigger'
@@ -22,6 +23,7 @@ export default function RootLayout() {
   const colorScheme = useColorScheme()
   const isSignedIn = useAuthStore((state) => !!state.userId)
   const themeMode = useSettingsStore((state) => state.themeMode)
+  useAuthStateListener()
   useBackgroundSyncRegistration()
 
   const useDarkTheme = themeMode === 'dark' || (themeMode === 'system' && colorScheme === 'dark')
