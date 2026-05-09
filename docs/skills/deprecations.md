@@ -22,7 +22,7 @@ When adding or changing an entry here:
 | ------------------------------------------ | ------------------------------------------------------------- | --- |
 | `expo-background-fetch`                    | `expo-background-task` (`defineTask` + `registerTaskAsync`)   | Removed from Expo SDK 53+; SDK 55 ships `expo-background-task`. |
 | Legacy Architecture (RN)                   | Fabric (mandatory SDK 55+; `newArchEnabled` flag removed)     | SDK 55 enables Fabric by default; the flag no longer exists. |
-| Node 18 / 19                               | Node 20+                                                      | Project pins Node 20 via `.nvmrc` and `.node-version`. |
+| Node 18 / 19 / 20                          | Node 24 LTS                                                   | Expo SDK 55 requires Node 20.19.x minimum, but Node 20 reached EOL on 2026-04-30; project pins Node 24 via `.nvmrc` and `.node-version`. |
 | `middleware.ts` (Next.js 15)               | `proxy.ts` with `export function proxy()` (Next.js 16)        | Next.js 16 renamed middleware to proxy. |
 | Zod 3 `message:` param                     | Zod 4 unified `error:` param                                  | `message:` is removed in Zod 4. |
 | `getSession()` (Supabase SSR)              | `getClaims()` (local JWT validation, faster)                  | `@supabase/ssr` 0.10+ recommends `getClaims()` for SSR. |
@@ -64,4 +64,4 @@ If the scanner flags a non-violation (false positive), discuss in the PR and adj
 
 ## Versions Referenced
 
-This table is anchored to the verified May 8, 2026 stack. The per-package "verified version" lives in each package's skill doc under "Sources" (DocGate-3). When you bump a package, update its skill doc first, then re-verify this table's "use instead" column still points at the right package.
+This table is anchored to the verified May 9, 2026 stack. The per-package "verified version" lives in each package's skill doc under "Sources" (DocGate-3). When you bump a package, update its skill doc first, then re-verify this table's "use instead" column still points at the right package.

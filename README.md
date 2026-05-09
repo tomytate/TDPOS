@@ -15,7 +15,7 @@ TD POS is a mobile-first, offline-capable SaaS POS and inventory management syst
 
 The full release pact and the Definition of Enterprise-Grade live in [docs/road-to-1.0-enterprise-checklist.md](docs/road-to-1.0-enterprise-checklist.md). The operative spec index is [docs/spec-v5.md](docs/spec-v5.md).
 
-## Tech Stack (Verified May 8, 2026)
+## Tech Stack (Verified May 9, 2026)
 
 | Layer              | Technology                                                                    | Version |
 | ------------------ | ----------------------------------------------------------------------------- | ------- |
@@ -39,7 +39,7 @@ The full release pact and the Definition of Enterprise-Grade live in [docs/road-
 See [Development Setup](docs/development-setup.md) for the full local toolchain and foundation gate.
 
 ```bash
-# Use Node 20, then install dependencies
+# Use Node 24, then install dependencies
 nvm use
 
 # Install dependencies

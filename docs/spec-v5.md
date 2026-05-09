@@ -49,7 +49,7 @@ The spec is composed of these documents. Read them in this order.
 
 ### 5. Development setup
 
-- [development-setup.md](development-setup.md) — required tools (Node 20, Bun 1.3.13, Supabase CLI), first-time setup, foundation gate.
+- [development-setup.md](development-setup.md) — required tools (Node 24, Bun 1.3.13, Supabase CLI), first-time setup, foundation gate.
 
 ### 6. Per-agent context layers
 

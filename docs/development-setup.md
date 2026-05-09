@@ -6,17 +6,17 @@ This project is mobile-first and foundation-gated. A clean checkout should be ab
 
 ## Required Tools
 
-| Tool         |            Version | Notes                                                               |
-| ------------ | -----------------: | ------------------------------------------------------------------- |
-| Node.js      |               20.x | Use `.node-version` or `.nvmrc`. Node 25 is not the project target. |
-| Bun          |             1.3.13 | Package manager, runtime, and test runner.                          |
-| Supabase CLI |  latest compatible | Needed for local PostgreSQL 17 and migrations.                      |
-| EAS CLI      | via `bunx eas-cli` | Preferred over hidden global installs.                              |
+| Tool         |            Version | Notes                                                                                                        |
+| ------------ | -----------------: | ------------------------------------------------------------------------------------------------------------ |
+| Node.js      |               24.x | Use `.node-version` or `.nvmrc`. Expo SDK 55 requires Node 20.19.x minimum; TD POS pins current LTS Node 24. |
+| Bun          |             1.3.13 | Package manager, runtime, and test runner.                                                                   |
+| Supabase CLI |  latest compatible | Needed for local PostgreSQL 17 and migrations.                                                               |
+| EAS CLI      | via `bunx eas-cli` | Preferred over hidden global installs.                                                                       |
 
 ## First-Time Setup
 
 ```bash
-# 1. Use Node 20
+# 1. Use Node 24
 nvm use
 
 # 2. Install Bun 1.3.13 if needed
@@ -35,6 +35,17 @@ bun run check:foundation
 ```
 
 Commit `bun.lock`. Do not commit `bun.lockb`.
+
+## Project Toolchain PATH
+
+If the host has another global Node before Node 24 in `PATH`, source the repo helper before running project commands:
+
+```bash
+source scripts/use-toolchain.sh
+bun run check:toolchain
+```
+
+On this workstation, Node 24 is installed through Homebrew at `/usr/local/opt/node@24/bin`, Bun 1.3.13 is installed at `~/.bun/bin`, and Supabase CLI is installed at `/usr/local/bin/supabase`. The helper prepends the Node 24 and Bun paths without force-linking over the root-owned global Node binary.
 
 ## Local Supabase
 
@@ -71,7 +82,7 @@ Before the foundation gate, run:
 bun run check:toolchain
 ```
 
-This intentionally fails when the shell is not using Node 20.x, Bun 1.3.13 is not installed as `bun`, Supabase CLI is missing, or EAS cannot be reached through either a direct `eas` command or the `bunx` runner.
+This intentionally fails when the shell is not using Node 24.x, Bun 1.3.13 is not installed as `bun`, Supabase CLI is missing, or EAS cannot be reached through either a direct `eas` command or the `bunx` runner.
 
 ```bash
 bun run check:foundation

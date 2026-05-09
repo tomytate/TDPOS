@@ -396,7 +396,7 @@ Run this review once any paid service is enabled.
 - [x] ESLint 9 flat config exists (`eslint.config.mjs` with TS-ESLint, react-hooks, prettier).
 - [x] Prettier config exists (`.prettierrc`, `.prettierignore`).
 - [x] `.gitignore` covers node_modules, build outputs, native folders, env files, OS files.
-- [x] `.nvmrc` and `.node-version` pin Node 20.
+- [x] `.nvmrc` and `.node-version` pin current LTS Node 24.
 - [x] `.env.example` uses publishable-key naming, no anon key.
 - [x] PR template (`.github/PULL_REQUEST_TEMPLATE.md`) lists the foundation gate and BIR/RLS rules.
 - [x] CI workflow (`.github/workflows/foundation.yml`) runs install, format check, SQLite drift, forbidden patterns, typecheck, lint, test on Bun 1.3.13.
@@ -505,21 +505,22 @@ Acceptance:
 
 ### P0.2 Local Toolchain
 
-- [ ] Install Bun matching `packageManager` as a direct shell command.
-- [x] Install or document Node version. Preferred: Node 20 LTS for Expo/Supabase compatibility.
+- [x] Install Bun matching `packageManager` as a direct shell command.
+- [x] Install or document Node version. Preferred: Node 24 LTS; Expo SDK 55 requires Node 20.19.x minimum.
 - [x] Add `.nvmrc` or `.node-version`.
-- [ ] Install Supabase CLI.
-- [ ] Install EAS CLI or document `bunx eas-cli`.
+- [x] Install Supabase CLI.
+- [x] Install EAS CLI or document `bunx eas-cli`.
 - [x] Add `bun run check:toolchain` doctor so local version drift is mechanical.
-- [!] Verify `bun --version` (current shell: missing; `npx bun@1.3.13` works as fallback only).
-- [!] Verify `node --version` (current shell: v25.9.0; project target remains Node 20.x).
-- [!] Verify `supabase --version` (current shell: missing).
-- [!] Verify `eas --version` or `bunx eas-cli --version` (current shell: missing until Bun/EAS is installed).
+- [x] Add `scripts/use-toolchain.sh` to prepend Homebrew Node 24 and user-space Bun paths without overwriting the host's global Node.
+- [x] Verify `bun --version` (`1.3.13` through `source scripts/use-toolchain.sh`; interactive zsh also sees Bun).
+- [x] Verify `node --version` (`v24.15.0` through `source scripts/use-toolchain.sh`; host `/usr/local/bin/node` remains v25.9.0 and is intentionally not force-linked over).
+- [x] Verify `supabase --version` (`2.98.2`).
+- [x] Verify `eas --version` or `bunx eas-cli --version` (`bunx` runner available through Bun 1.3.13).
 
 Acceptance:
 
-- [ ] New developer can install dependencies from a clean checkout.
-- [ ] Tooling versions are documented.
+- [x] New developer can install dependencies from a clean checkout.
+- [x] Tooling versions are documented.
 - [x] No task requires a hidden global install without docs.
 
 ### P0.3 Workspace Scripts
@@ -1995,7 +1996,7 @@ The web dashboard is no longer a Post-1.0 expansion. See **Phase W: Web Dashboar
 Updated 2026-05-09 after background sync wiring, manager diagnostics/support bundle, the auth-gated foreground trigger, and atomic remote sale creation landed. The remaining work to reach v0.4 → v0.6 → v1.0 is now mostly device-side, hosted Supabase wiring, Postgres test coverage, Tier A screen polish, and Phase W (web dashboard) bootstrap.
 
 - [x] 1. Initialize git and commit the current foundation (P0.1). Without a repo, no PR-based review and no branch protection (P10.1).
-- [/] 2. Install Bun + Supabase CLI directly. Document the toolchain in `docs/development-setup.md`.
+- [x] 2. Install Bun + Supabase CLI directly. Document the toolchain in `docs/development-setup.md`.
 - [ ] 3. Stand up a hosted Supabase Free project for staging. Apply the initial schema, immutability triggers, and `create_sale_atomic` migration. Configure publishable + secret keys in `eas.json` per profile.
 - [ ] 4. Add Postgres §14 tests for delta concurrency, remote negative-stock review, `create_sale_atomic` replay, and TOCTOU behavior.
 - [/] 5. Finish Tier A cashier polish: Inventory and Reports tabs (`P5.5`, `P5.6`) using the existing `useProducts()` and `useDailySales()` hooks.

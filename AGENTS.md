@@ -11,7 +11,7 @@ TD POS is the operating system for Philippine business — a mobile-first, offli
 - **Database:** PostgreSQL 17 (via Supabase)
 - **Build & Deploy:** EAS Build + EAS Submit (iOS App Store + Google Play)
 
-## Tech Stack (Verified May 8, 2026)
+## Tech Stack (Verified May 9, 2026)
 
 ### Mobile (apps/mobile)
 
@@ -47,6 +47,7 @@ TD POS is the operating system for Philippine business — a mobile-first, offli
 
 - Turborepo 2.9.9 (`tasks` key in turbo.json, NOT `pipeline` which is deprecated)
 - Bun (package manager + runtime, lockfile: `bun.lock` text format, NOT `bun.lockb`)
+- Node 24 LTS for local tooling (Expo SDK 55 minimum: Node 20.19.x; Node 20 is EOL)
 - ESLint 9 (flat config: eslint.config.mjs)
 - Prettier 3
 

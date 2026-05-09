@@ -6,8 +6,8 @@ const checks = [
   {
     name: 'Node.js',
     command: ['node', '--version'],
-    expected: '20.x',
-    validate: (version) => /^v20\./.test(version),
+    expected: '24.x LTS',
+    validate: (version) => /^v24\./.test(version),
   },
   {
     name: 'Bun',
