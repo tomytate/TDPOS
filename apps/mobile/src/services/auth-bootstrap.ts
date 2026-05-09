@@ -109,6 +109,26 @@ export type BootstrapOutcome =
       message?: string
     }
 
+/**
+ * Maps a bootstrap outcome to a human-readable error message for the (auth)
+ * screens. Returns null on success.
+ */
+export function describeBootstrapFailure(outcome: BootstrapOutcome): string | null {
+  if (outcome.ok) return null
+  switch (outcome.reason) {
+    case 'account_not_provisioned':
+      return 'Your account is not set up yet. Ask your manager to add you to a business.'
+    case 'business_not_assigned':
+      return 'No business is assigned to your account. Contact your manager.'
+    case 'no_branches_configured':
+      return 'No active branch found for your business. Ask your manager to add one.'
+    case 'query_failed':
+      return outcome.message
+        ? `Could not load your account: ${outcome.message}`
+        : 'Could not load your account. Check your connection and try again.'
+  }
+}
+
 const ROLE_FALLBACK: UserRole = 'cashier'
 const VALID_ROLES = new Set<UserRole>(['owner', 'manager', 'cashier', 'tindera'])
 

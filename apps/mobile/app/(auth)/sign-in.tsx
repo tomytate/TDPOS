@@ -4,6 +4,7 @@ import { View } from 'react-native'
 import { Button, HelperText, Surface, Text, TextInput } from 'react-native-paper'
 
 import { useAppTheme } from '@/constants/theme'
+import { describeBootstrapFailure } from '@/services/auth-bootstrap'
 import { supabase } from '@/services/supabase'
 import { useAuthStore } from '@/stores/auth-store'
 import { isValidPhPhone, normalizePhPhone } from '@tdpos/shared'
@@ -12,6 +13,9 @@ export default function SignInScreen() {
   const theme = useAppTheme()
   const setAuth = useAuthStore((state) => state.setAuth)
   const setDevice = useAuthStore((state) => state.setDevice)
+  const bootstrapStatus = useAuthStore((state) => state.bootstrapStatus)
+  const bootstrapError =
+    bootstrapStatus && !bootstrapStatus.ok ? describeBootstrapFailure(bootstrapStatus) : null
 
   const [phone, setPhone] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -104,6 +108,25 @@ export default function SignInScreen() {
           Sign in with your Philippine mobile number.
         </Text>
       </View>
+
+      {bootstrapError ? (
+        <Surface
+          mode="flat"
+          style={{
+            padding: 12,
+            backgroundColor: theme.colors.errorContainer,
+            borderRadius: 8,
+            gap: 4,
+          }}
+        >
+          <Text variant="labelLarge" style={{ color: theme.colors.onErrorContainer }}>
+            Account setup needed
+          </Text>
+          <Text variant="bodySmall" style={{ color: theme.colors.onErrorContainer }}>
+            {bootstrapError}
+          </Text>
+        </Surface>
+      ) : null}
 
       <View style={{ gap: 4 }}>
         <TextInput

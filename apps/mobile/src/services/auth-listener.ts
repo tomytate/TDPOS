@@ -13,26 +13,19 @@
  * still renders, but Stack.Protected gates remain in their last known state.
  */
 
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 
 import { supabase } from './supabase'
-import {
-  bootstrapAuthFromSession,
-  type BootstrapOutcome,
-  type SupabaseBootstrapClient,
-} from './auth-bootstrap'
+import { bootstrapAuthFromSession, type SupabaseBootstrapClient } from './auth-bootstrap'
 import { useAuthStore } from '@/stores/auth-store'
 
 export function useAuthStateListener() {
-  // Last bootstrap outcome — useful for the auth screen to show
-  // "account not provisioned" / "no branches configured" / etc.
-  const [lastOutcome, setLastOutcome] = useState<BootstrapOutcome | null>(null)
-
   useEffect(() => {
     if (!supabase) return
 
     const setAuth = useAuthStore.getState().setAuth
     const setDevice = useAuthStore.getState().setDevice
+    const setBootstrapStatus = useAuthStore.getState().setBootstrapStatus
     const clearAuth = useAuthStore.getState().clearAuth
 
     const handleSession = async (
@@ -41,7 +34,6 @@ export function useAuthStateListener() {
     ) => {
       if (event === 'SIGNED_OUT' || !session) {
         clearAuth()
-        setLastOutcome(null)
         return
       }
       if (event !== 'INITIAL_SESSION' && event !== 'SIGNED_IN' && event !== 'USER_UPDATED') {
@@ -59,12 +51,12 @@ export function useAuthStateListener() {
           session,
           store: { setAuth, setDevice },
         })
-        setLastOutcome(outcome)
+        setBootstrapStatus(outcome)
       } catch (err) {
         if (typeof console !== 'undefined') {
           console.warn('[AuthListener] bootstrap failed', err)
         }
-        setLastOutcome({
+        setBootstrapStatus({
           ok: false,
           reason: 'query_failed',
           message: err instanceof Error ? err.message : 'unknown error',
@@ -86,6 +78,4 @@ export function useAuthStateListener() {
       subscription.unsubscribe()
     }
   }, [])
-
-  return { lastOutcome }
 }
