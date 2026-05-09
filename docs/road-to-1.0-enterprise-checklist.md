@@ -1688,10 +1688,10 @@ Purpose: every row in this phase blocks v1.0. Per the Release Pact, "enterprise-
 
 ### P11.5.1 Local Database Versioning
 
-- [ ] Add a forward-migrator that reads `schema_version`, applies missing migrations in order, and writes one row per applied version.
+- [x] Add a forward-migrator that reads `schema_version`, applies missing migrations in order, and writes one row per applied version. `runLocalMigrations()` now owns mobile SQLite startup.
 - [ ] Migration files numbered `00X_*.sql` with a Bun script that runs them on a fresh DB.
 - [ ] Drift checker (`scripts/check-local-sqlite-schema.mjs`) extended to enforce migration ordering, not only the v1 string.
-- [ ] Test: open an old DB created from `001_initial_schema.sql`, run app, confirm `002_*` applies once and never again.
+- [x] Test: open an old DB created from `001_initial_schema.sql`, run app, confirm future migrations apply once and never again. Covered by `apps/mobile/src/db/migrations.test.ts`.
 - [ ] Document a downgrade rule: ship-only-forward; downgrades require export + reinstall.
 
 ### P11.5.2 Clock Skew And Receipt Date Safety
@@ -2077,7 +2077,7 @@ Use this section as releases progress.
 
 - [x] Date: 2026-05-09.
 - [x] Gate: `npx bun@1.3.13 run check:foundation` passes end-to-end after the README skill-doc count drift was corrected.
-- [x] Test count: 53 passing tests total — 13 shared + 40 mobile.
+- [x] Test count: 57 passing tests total — 13 shared + 44 mobile.
 - [x] Latest-doc spot check: Expo SDK 55 BackgroundTask, Clipboard, and SQLite docs; TanStack Query v5 migration docs; Supabase `@supabase/server` public beta announcement.
 - [x] Dependency posture: current mobile package versions stay aligned with the verified stack — Expo SDK 55, React 19.2, React Native 0.83.6, React Query 5.100.x, React Native Paper 5.15.x, and `expo-clipboard` SDK 55.
 - [x] Package refresh: root tooling is on ESLint 10.3.0, `@eslint/js` 10.0.1, Turbo 2.9.12; web React is on 19.2.6; mobile native packages were reconciled with `expo install --fix`; the shared TypeScript target is `esnext` so Expo's SDK-compatible TypeScript 5.9.3 and root/web/shared TypeScript 6.0.3 both pass.
