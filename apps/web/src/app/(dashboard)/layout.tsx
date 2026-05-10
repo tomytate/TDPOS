@@ -75,6 +75,12 @@ export default async function DashboardLayout({ children }: { children: ReactNod
           >
             Audit log
           </Link>
+          <Link
+            href="/hq"
+            className="rounded-md px-2.5 py-1 text-white transition-colors hover:bg-white/10"
+          >
+            HQ
+          </Link>
         </nav>
         <div className="flex items-center gap-3 text-[13px]">
           {tierShortLabel ? (
