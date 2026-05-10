@@ -13,7 +13,20 @@ export type InventoryLogType = 'stock_in' | 'sale' | 'adjustment' | 'transfer'
 
 export type UserRole = 'owner' | 'manager' | 'cashier' | 'tindera'
 
-export type SubscriptionTier = 'free' | 'starter' | 'growth' | 'pro' | 'business' | 'enterprise'
+export type SubscriptionTier =
+  | 'tier_a_free'
+  | 'tier_b_pro'
+  | 'tier_c_plus'
+  | 'tier_d_premium'
+  | 'tier_e_enterprise'
+
+export type LegacySubscriptionTier =
+  | 'free'
+  | 'starter'
+  | 'growth'
+  | 'pro'
+  | 'business'
+  | 'enterprise'
 
 export type ModuleName =
   | 'utang'
@@ -25,5 +38,31 @@ export type ModuleName =
   | 'payroll'
   | 'accounting_integration'
   | 'public_api'
+
+export type TierSurface =
+  | 'mobile.tier_a_cashier'
+  | 'mobile.tablet_pos'
+  | 'mobile.owner_lanes'
+  | 'mobile.shift_login'
+  | 'mobile.shift_handoff'
+  | 'mobile.convenience_counter'
+  | 'mobile.manager_phone'
+  | 'mobile.supermarket_counter'
+  | 'mobile.customer_display'
+  | 'mobile.backoffice_audit'
+  | 'mobile.weighted_plu'
+  | 'mobile.hq_rollup'
+  | 'mobile.self_service_kiosk'
+  | 'mobile.returns_warranty'
+  | 'web.overview'
+  | 'web.products'
+  | 'web.branches'
+  | 'web.users'
+  | 'web.modules'
+  | 'web.sync'
+  | 'web.audit'
+  | 'web.exports'
+  | 'web.hq'
+  | 'marketing.pricing'
 
 export type AppliedOperationStatus = 'in_progress' | 'completed' | 'failed'
