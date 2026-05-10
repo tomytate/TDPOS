@@ -29,6 +29,9 @@ coverage/
 .idea/
 *.swp
 *.swo
+.claude/
+.claude-flow/
+.mcp.json
 
 # OS
 .DS_Store

@@ -41,6 +41,30 @@ export default async function DashboardLayout({ children }: { children: ReactNod
             Sync health
           </Link>
           <Link
+            href="/products"
+            className="rounded-md px-2.5 py-1 text-white transition-colors hover:bg-white/10"
+          >
+            Products
+          </Link>
+          <Link
+            href="/branches"
+            className="rounded-md px-2.5 py-1 text-white transition-colors hover:bg-white/10"
+          >
+            Branches
+          </Link>
+          <Link
+            href="/users"
+            className="rounded-md px-2.5 py-1 text-white transition-colors hover:bg-white/10"
+          >
+            Users
+          </Link>
+          <Link
+            href="/modules"
+            className="rounded-md px-2.5 py-1 text-white transition-colors hover:bg-white/10"
+          >
+            Modules
+          </Link>
+          <Link
             href="/audit"
             className="rounded-md px-2.5 py-1 text-white transition-colors hover:bg-white/10"
           >

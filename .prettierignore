@@ -4,6 +4,9 @@ dist
 .next
 .expo
 coverage
+.claude/
+.claude-flow/
+.mcp.json
 
 # Reference/imported material. Keep formatting stable unless deliberately migrated.
 UI/

@@ -11,6 +11,8 @@ import { fileURLToPath } from 'node:url'
 const repoRoot = dirname(dirname(fileURLToPath(import.meta.url)))
 
 const ignoredDirs = new Set([
+  '.claude',
+  '.claude-flow',
   '.expo',
   '.git',
   '.next',
