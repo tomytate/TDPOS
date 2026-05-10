@@ -1,25 +1,20 @@
 {
-  "name": "@tdpos/web",
+  "name": "@tdpos/marketing",
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --port 3001",
     "build": "next build",
-    "start": "next start",
+    "start": "next start --port 3001",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf .next dist .turbo"
   },
   "dependencies": {
-    "@react-pdf/renderer": "4.5.1",
-    "@supabase/ssr": "^0.10.2",
-    "@supabase/supabase-js": "^2.105.3",
-    "@tdpos/db": "workspace:*",
     "@tdpos/shared": "workspace:*",
     "next": "16.2.6",
     "react": "19.2.0",
-    "react-dom": "19.2.0",
-    "server-only": "^0.0.1"
+    "react-dom": "19.2.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.2.4",
