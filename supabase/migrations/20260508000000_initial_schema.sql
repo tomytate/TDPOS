@@ -30,8 +30,20 @@ CREATE TABLE IF NOT EXISTS businesses (
   tin TEXT,
   bir_rdo TEXT,
   address TEXT,
-  subscription_tier TEXT NOT NULL DEFAULT 'free',
-  max_branches INTEGER NOT NULL DEFAULT 1,
+  subscription_tier TEXT NOT NULL DEFAULT 'tier_a_free',
+  CONSTRAINT businesses_subscription_tier_check CHECK (subscription_tier IN (
+    'tier_a_free',
+    'tier_b_pro',
+    'tier_c_plus',
+    'tier_d_premium',
+    'tier_e_enterprise'
+  )),
+  module_state JSONB NOT NULL DEFAULT '{}'::JSONB,
+  entitlements_valid_until TIMESTAMPTZ,
+  max_branches INTEGER DEFAULT 1,
+  max_products INTEGER DEFAULT 50,
+  max_devices INTEGER DEFAULT 1,
+  max_users INTEGER DEFAULT 1,
   eopt_accredited BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );

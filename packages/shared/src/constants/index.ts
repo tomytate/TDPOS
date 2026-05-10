@@ -98,7 +98,18 @@ export interface TierDefinition {
   tier: SubscriptionTier
   label: string
   shortLabel: string
+  publicName: string
+  segment: string
   description: string
+  billing: 'free' | 'paid' | 'enterprise'
+  uiMode:
+    | 'phone_cashier'
+    | 'tablet_pos'
+    | 'convenience_counter'
+    | 'supermarket_counter'
+    | 'enterprise_hq'
+  uiSource: string
+  upgradeTarget: SubscriptionTier | null
   // Monthly price in PHP. `0` = free; `null` = published price pending
   // (owner has not committed a number yet). Pricing UIs render a sentinel
   // ("Free" / "Pricing coming soon") for these values rather than special-
@@ -121,8 +132,14 @@ export const TIER_DEFINITIONS: Record<SubscriptionTier, TierDefinition> = {
     tier: 'tier_a_free',
     label: 'Tier A — Free',
     shortLabel: 'Free',
+    publicName: 'Tier A Free',
+    segment: 'Sari-sari / micro-stall',
     description:
       'Solo cashier on a single phone. Inventory + sales + sync. Owner monitoring on web; no paid modules.',
+    billing: 'free',
+    uiMode: 'phone_cashier',
+    uiSource: 'UI/b_g4eU9LYiRKM/components/pos/tier-a-lite.tsx',
+    upgradeTarget: 'tier_b_pro',
     pricePhpMonthly: 0,
     maxProducts: 50,
     maxBranches: 1,
@@ -135,8 +152,14 @@ export const TIER_DEFINITIONS: Record<SubscriptionTier, TierDefinition> = {
     tier: 'tier_b_pro',
     label: 'Tier B — Pro',
     shortLabel: 'Pro',
+    publicName: 'Tier B Pro',
+    segment: 'Mini-mart / Alfamart-scale',
     description:
       'Tablet POS with shift handoff and owner lanes. Utang and customer SMS unlocked. One branch, multiple cashiers.',
+    billing: 'paid',
+    uiMode: 'tablet_pos',
+    uiSource: 'UI/b_g4eU9LYiRKM/components/pos/tier-b-pro.tsx',
+    upgradeTarget: 'tier_c_plus',
     pricePhpMonthly: null,
     maxProducts: 500,
     maxBranches: 1,
@@ -155,6 +178,7 @@ export const TIER_DEFINITIONS: Record<SubscriptionTier, TierDefinition> = {
       'web.overview',
       'web.products',
       'web.users',
+      'web.devices',
       'web.modules',
       'web.audit',
     ],
@@ -163,8 +187,14 @@ export const TIER_DEFINITIONS: Record<SubscriptionTier, TierDefinition> = {
     tier: 'tier_c_plus',
     label: 'Tier C — Plus',
     shortLabel: 'Plus',
+    publicName: 'Tier C Plus',
+    segment: 'Convenience / 7-11-scale',
     description:
       'Convenience-store layout with manager-phone overrides. Multi-branch, supplier management, loyalty.',
+    billing: 'paid',
+    uiMode: 'convenience_counter',
+    uiSource: 'UI/b_g4eU9LYiRKM/components/pos/tier-c-plus.tsx',
+    upgradeTarget: 'tier_d_premium',
     pricePhpMonthly: null,
     maxProducts: 5000,
     maxBranches: 3,
@@ -189,6 +219,7 @@ export const TIER_DEFINITIONS: Record<SubscriptionTier, TierDefinition> = {
       'web.products',
       'web.branches',
       'web.users',
+      'web.devices',
       'web.modules',
       'web.sync',
       'web.audit',
@@ -199,8 +230,14 @@ export const TIER_DEFINITIONS: Record<SubscriptionTier, TierDefinition> = {
     tier: 'tier_d_premium',
     label: 'Tier D — Premium',
     shortLabel: 'Premium',
+    publicName: 'Tier D Premium',
+    segment: 'Supermarket',
     description:
       'Supermarket-grade: scanner counters, customer display, weighted PLUs, back-office audit. Payroll + accounting integration unlocked.',
+    billing: 'paid',
+    uiMode: 'supermarket_counter',
+    uiSource: 'UI/b_g4eU9LYiRKM/components/pos/tier-d-premium.tsx',
+    upgradeTarget: 'tier_e_enterprise',
     pricePhpMonthly: null,
     maxProducts: 50000,
     maxBranches: 10,
@@ -231,6 +268,7 @@ export const TIER_DEFINITIONS: Record<SubscriptionTier, TierDefinition> = {
       'web.products',
       'web.branches',
       'web.users',
+      'web.devices',
       'web.modules',
       'web.sync',
       'web.audit',
@@ -241,8 +279,14 @@ export const TIER_DEFINITIONS: Record<SubscriptionTier, TierDefinition> = {
     tier: 'tier_e_enterprise',
     label: 'Tier E — Enterprise',
     shortLabel: 'Enterprise',
+    publicName: 'Tier E Enterprise',
+    segment: 'Mall / department-store chain',
     description:
       'Franchise + HQ rollup, returns/warranty, self-service kiosk, public API. Unlimited products / branches / devices / users.',
+    billing: 'enterprise',
+    uiMode: 'enterprise_hq',
+    uiSource: 'UI/b_g4eU9LYiRKM/components/pos/tier-e-enterprise.tsx',
+    upgradeTarget: null,
     pricePhpMonthly: null,
     maxProducts: null,
     maxBranches: null,
@@ -278,6 +322,7 @@ export const TIER_DEFINITIONS: Record<SubscriptionTier, TierDefinition> = {
       'web.products',
       'web.branches',
       'web.users',
+      'web.devices',
       'web.modules',
       'web.sync',
       'web.audit',
@@ -327,6 +372,25 @@ export function getTierModuleState(tier: SubscriptionTier): Record<ModuleName, b
     accounting_integration: tierModules.accounting_integration ?? false,
     public_api: tierModules.public_api ?? false,
   }
+}
+
+export function resolveTierModuleState(
+  tier: SubscriptionTier,
+  overrides?: Record<string, boolean> | Partial<Record<ModuleName, boolean>> | null,
+): Record<ModuleName, boolean> {
+  const tierModules = getTierModuleState(tier)
+  const dbModules = overrides ?? {}
+
+  return (Object.keys(tierModules) as ModuleName[]).reduce(
+    (acc, key) => {
+      const dbValue = dbModules[key]
+      // DB false wins so an owner can disable an unlocked module. DB true
+      // is ignored when the tier itself does not unlock that module.
+      acc[key] = typeof dbValue === 'boolean' ? dbValue && tierModules[key] : tierModules[key]
+      return acc
+    },
+    {} as Record<ModuleName, boolean>,
+  )
 }
 
 export function isTierSurfaceEnabled(tier: SubscriptionTier, surface: TierSurface): boolean {
@@ -443,6 +507,11 @@ export const SURFACE_LABELS: Record<TierSurface, TierSurfaceMeta> = {
     description: 'Cashier / manager / owner access management.',
     group: 'web',
   },
+  'web.devices': {
+    label: 'Devices',
+    description: 'Registered device lanes, install ids, last seen, and queue depth.',
+    group: 'web',
+  },
   'web.modules': {
     label: 'Modules',
     description: 'Subscription tier + optional capability toggles.',
@@ -485,4 +554,24 @@ export function getMinimumTierForSurface(surface: TierSurface): SubscriptionTier
   // Surface allowlists are exhaustive across the 5 tiers; this fallback only
   // fires if the type system has been bypassed (e.g. cast-from-string).
   return TIER_A_FREE
+}
+
+export function getTierSurfaces(group?: TierSurfaceMeta['group']): TierSurface[] {
+  return (Object.keys(SURFACE_LABELS) as TierSurface[]).filter(
+    (surface) => !group || SURFACE_LABELS[surface].group === group,
+  )
+}
+
+export function getUnlockedTierSurfaces(
+  tier: SubscriptionTier,
+  group?: TierSurfaceMeta['group'],
+): TierSurface[] {
+  return getTierSurfaces(group).filter((surface) => isTierSurfaceEnabled(tier, surface))
+}
+
+export function getLockedTierSurfaces(
+  tier: SubscriptionTier,
+  group?: TierSurfaceMeta['group'],
+): TierSurface[] {
+  return getTierSurfaces(group).filter((surface) => !isTierSurfaceEnabled(tier, surface))
 }

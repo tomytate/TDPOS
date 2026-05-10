@@ -2,6 +2,8 @@
 // Source of truth: docs/database-schema.md, supabase/migrations/, and
 // apps/mobile/src/db/migrations/ for local-only SQLite tables.
 
+import type { ModuleName, SubscriptionTier, TierSurface } from '@tdpos/shared'
+
 export type DbBoolean = boolean | 0 | 1
 export type DbTimestamp = string | number
 
@@ -25,12 +27,12 @@ export interface DbBusiness {
   // starter, pro, growth, business, enterprise) are normalized at the
   // migration boundary; runtime code routes through
   // `normalizeSubscriptionTier` from `@tdpos/shared`.
-  subscription_tier: string
+  subscription_tier: SubscriptionTier
   // Per-tenant module overrides. Defaults to {} on insert; the tier's
   // module unlocks (`getTierModuleState(tier)`) are merged at read-time
   // with this row taking precedence so owners can disable an unlocked
   // module without dropping a tier.
-  module_state: Record<string, boolean>
+  module_state: Partial<Record<ModuleName, boolean>>
   // Hard limits — null means unlimited. Backfilled from tier defaults
   // when missing; per-tenant adjustments live here.
   max_branches: number | null
@@ -163,4 +165,92 @@ export interface DbAuditLog {
   before: Record<string, unknown> | null
   after: Record<string, unknown> | null
   created_at: DbTimestamp
+}
+
+export interface DbBusinessDevice {
+  id: string
+  business_id: string
+  branch_id: string | null
+  install_id: string
+  device_name: string | null
+  surface: TierSurface
+  status: 'active' | 'inactive' | 'lost'
+  last_seen_at: DbTimestamp | null
+  entitlement_snapshot: Record<string, unknown>
+  sync_snapshot: Record<string, unknown>
+  created_at: DbTimestamp
+}
+
+export interface DbShiftSession {
+  id: string
+  business_id: string
+  branch_id: string
+  user_id: string | null
+  device_id: string | null
+  status: 'open' | 'closed' | 'voided'
+  opened_at: DbTimestamp
+  closed_at: DbTimestamp | null
+  opening_cash: number
+  expected_cash: number | null
+  counted_cash: number | null
+  variance: number | null
+  handoff_note: string | null
+  created_at: DbTimestamp
+}
+
+export interface DbManagerApprovalRequest {
+  id: string
+  business_id: string
+  branch_id: string | null
+  requested_by: string | null
+  reviewed_by: string | null
+  surface: TierSurface
+  action: string
+  status: 'pending' | 'approved' | 'declined' | 'expired'
+  payload: Record<string, unknown>
+  decision_note: string | null
+  created_at: DbTimestamp
+  reviewed_at: DbTimestamp | null
+}
+
+export interface DbWeightedPluProfile {
+  id: string
+  business_id: string
+  product_id: string
+  plu_code: string
+  unit_label: string
+  price_basis: 'per_kg' | 'per_gram'
+  tare_grams: number
+  rounding_mode: 'nearest_centavo' | 'up_centavo' | 'down_centavo'
+  is_active: DbBoolean
+  created_at: DbTimestamp
+}
+
+export interface DbKioskOrder {
+  id: string
+  business_id: string
+  branch_id: string
+  device_id: string | null
+  status: 'draft' | 'awaiting_staff' | 'confirmed' | 'cancelled'
+  customer_label: string | null
+  payload: Record<string, unknown>
+  total_amount: number
+  created_at: DbTimestamp
+  confirmed_at: DbTimestamp | null
+}
+
+export interface DbReturnRequest {
+  id: string
+  business_id: string
+  branch_id: string
+  original_sale_id: string | null
+  compensating_sale_id: string | null
+  requested_by: string | null
+  approved_by: string | null
+  status: 'pending' | 'approved' | 'declined' | 'completed'
+  reason_code: string
+  reason_note: string | null
+  payload: Record<string, unknown>
+  created_at: DbTimestamp
+  resolved_at: DbTimestamp | null
 }

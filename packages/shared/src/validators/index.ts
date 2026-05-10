@@ -4,6 +4,37 @@
 
 import { z } from 'zod'
 
+import { DEFAULT_MODULE_STATE, LEGACY_TIER_MAP, SUBSCRIPTION_TIERS } from '../constants/index'
+import type { LegacySubscriptionTier, ModuleName } from '../types/index'
+
+const LEGACY_SUBSCRIPTION_TIERS = Object.keys(LEGACY_TIER_MAP) as [
+  LegacySubscriptionTier,
+  ...LegacySubscriptionTier[],
+]
+const MODULE_NAMES = Object.keys(DEFAULT_MODULE_STATE) as [ModuleName, ...ModuleName[]]
+
+export const subscriptionTierSchema = z.enum(SUBSCRIPTION_TIERS)
+export const legacySubscriptionTierSchema = z.enum(LEGACY_SUBSCRIPTION_TIERS)
+export const moduleNameSchema = z.enum(MODULE_NAMES)
+export const moduleStateSchema = z.partialRecord(moduleNameSchema, z.boolean())
+// PH phone number validator (E.164 format: +639XXXXXXXXX)
+export const phPhoneSchema = z.e164({ error: 'Phone must be E.164 format (+639XX...)' })
+const optionalTextSchema = z
+  .string()
+  .trim()
+  .transform((value) => (value.length === 0 ? undefined : value))
+  .optional()
+
+export const businessEntitlementsSchema = z.object({
+  subscription_tier: subscriptionTierSchema,
+  module_state: moduleStateSchema.default({}),
+  entitlements_valid_until: z.string().datetime().nullable().optional(),
+  max_products: z.int().nonnegative().nullable().optional(),
+  max_branches: z.int().nonnegative().nullable().optional(),
+  max_devices: z.int().nonnegative().nullable().optional(),
+  max_users: z.int().nonnegative().nullable().optional(),
+})
+
 export const productSchema = z.object({
   id: z.uuid(),
   business_id: z.uuid(),
@@ -18,6 +49,49 @@ export const productSchema = z.object({
   reorder_point_pieces: z.int().nonnegative().optional(),
   unit_label: z.string().optional(),
   is_tingi: z.boolean().default(false),
+})
+
+export const productManagementDraftSchema = z.object({
+  sku: optionalTextSchema,
+  name: z.string().trim().min(1, 'Product name is required'),
+  price_per_piece: z.coerce.number().nonnegative({ error: 'Price must be non-negative' }),
+  price_per_pack: z.coerce.number().nonnegative().optional(),
+  stock_pieces: z.coerce.number().int().nonnegative({ error: 'Stock cannot be negative' }),
+  pieces_per_pack: z.coerce
+    .number()
+    .int()
+    .positive({ error: 'Pieces per pack must be at least 1' }),
+  unit_label: z.string().trim().min(1, 'Unit label is required').default('pc'),
+  is_tingi: z.boolean().default(false),
+})
+
+export const branchManagementDraftSchema = z.object({
+  name: z.string().trim().min(1, 'Branch name is required'),
+  address: optionalTextSchema,
+  region: optionalTextSchema,
+})
+
+export const categoryManagementDraftSchema = z.object({
+  name: z.string().trim().min(1, 'Category name is required'),
+  color: z
+    .string()
+    .trim()
+    .regex(/^#[0-9A-Fa-f]{6}$/, { error: 'Use a hex color like #0f766e' })
+    .optional(),
+})
+
+export const userInviteDraftSchema = z.object({
+  phone: phPhoneSchema,
+  role: z.enum(['owner', 'manager', 'cashier', 'tindera']),
+})
+
+export const moduleManagementDraftSchema = z.object({
+  modules: moduleStateSchema,
+})
+
+export const deviceManagementDraftSchema = z.object({
+  device_id: z.uuid({ error: 'Choose a registered device' }),
+  status: z.enum(['active', 'inactive', 'lost']),
 })
 
 export const saleItemSchema = z.object({
@@ -38,9 +112,6 @@ export const inventoryDeltaSchema = z.object({
   delta: z.int({ error: 'Delta must be an integer' }),
   reason: z.string().default('sale'),
 })
-
-// PH phone number validator (E.164 format: +639XXXXXXXXX)
-export const phPhoneSchema = z.e164({ error: 'Phone must be E.164 format (+639XX...)' })
 
 // Receipt number format BRANCH-CASHIER-DATE-SEQUENCE
 const RECEIPT_NUMBER_PATTERN = /^[A-Z0-9]{3,5}-[A-Z0-9]{2,5}-\d{8}-\d{6}$/
@@ -114,9 +185,16 @@ export const syncQueueEnvelopeSchema = z.discriminatedUnion('operation', [
 ])
 
 export type Product = z.infer<typeof productSchema>
+export type ProductManagementDraft = z.infer<typeof productManagementDraftSchema>
+export type BranchManagementDraft = z.infer<typeof branchManagementDraftSchema>
+export type CategoryManagementDraft = z.infer<typeof categoryManagementDraftSchema>
+export type UserInviteDraft = z.infer<typeof userInviteDraftSchema>
+export type ModuleManagementDraft = z.infer<typeof moduleManagementDraftSchema>
+export type DeviceManagementDraft = z.infer<typeof deviceManagementDraftSchema>
 export type SaleItem = z.infer<typeof saleItemSchema>
 export type InventoryDelta = z.infer<typeof inventoryDeltaSchema>
 export type Sale = z.infer<typeof saleSchema>
+export type BusinessEntitlements = z.infer<typeof businessEntitlementsSchema>
 export type SyncSalePayload = z.infer<typeof syncSalePayloadSchema>
 export type SyncInventoryDeltaPayload = z.infer<typeof syncInventoryDeltaPayloadSchema>
 export type SyncQueueEnvelope = z.infer<typeof syncQueueEnvelopeSchema>

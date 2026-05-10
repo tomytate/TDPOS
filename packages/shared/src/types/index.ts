@@ -58,6 +58,7 @@ export type TierSurface =
   | 'web.products'
   | 'web.branches'
   | 'web.users'
+  | 'web.devices'
   | 'web.modules'
   | 'web.sync'
   | 'web.audit'
