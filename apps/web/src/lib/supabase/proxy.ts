@@ -9,10 +9,26 @@ import type { NextRequest } from 'next/server'
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
 const SUPABASE_PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 
-const PUBLIC_ROUTES = ['/login', '/verify-otp']
+// Auth-entry routes: signed-out users land here; signed-in users get bounced
+// back to the dashboard so they don't re-authenticate accidentally.
+const AUTH_ENTRY_ROUTES = ['/login', '/verify-otp']
+
+// Marketing routes: everyone sees these regardless of auth state. The pricing
+// page is the canonical example; it sources tier copy from `TIER_DEFINITIONS`
+// in `@tdpos/shared` so signed-in users can preview upgrade tiers without
+// being redirected away.
+const MARKETING_ROUTES = ['/pricing']
+
+function matchesAny(pathname: string, routes: readonly string[]): boolean {
+  return routes.some((route) => pathname === route || pathname.startsWith(`${route}/`))
+}
+
+function isAuthEntryRoute(pathname: string): boolean {
+  return matchesAny(pathname, AUTH_ENTRY_ROUTES)
+}
 
 function isPublicRoute(pathname: string): boolean {
-  return PUBLIC_ROUTES.some((route) => pathname === route || pathname.startsWith(`${route}/`))
+  return isAuthEntryRoute(pathname) || matchesAny(pathname, MARKETING_ROUTES)
 }
 
 export async function updateSession(request: NextRequest) {
@@ -52,7 +68,10 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  if (isAuthenticated && isPublicRoute(pathname)) {
+  // Only auth-entry routes (login, verify-otp) bounce signed-in users back to
+  // the dashboard. Marketing routes (e.g. /pricing) stay accessible so an
+  // owner can compare tiers from inside the app.
+  if (isAuthenticated && isAuthEntryRoute(pathname)) {
     const url = request.nextUrl.clone()
     url.pathname = '/'
     url.search = ''

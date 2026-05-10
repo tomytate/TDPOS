@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import type { ReactNode } from 'react'
 
+import { getBusinessEntitlements } from '@/lib/queries/management'
 import { getCurrentClaims } from '@/lib/supabase/server'
 
 import { signOutAction } from './actions'
@@ -19,6 +20,10 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   if (!claims) redirect('/login')
 
   const phone = typeof claims.phone === 'string' ? claims.phone : '—'
+  const entitlementsResult = await getBusinessEntitlements()
+  const tierShortLabel = entitlementsResult.ready
+    ? entitlementsResult.entitlements.tierShortLabel
+    : null
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -72,6 +77,15 @@ export default async function DashboardLayout({ children }: { children: ReactNod
           </Link>
         </nav>
         <div className="flex items-center gap-3 text-[13px]">
+          {tierShortLabel ? (
+            <Link
+              href="/pricing"
+              className="rounded-full bg-white/15 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-white transition-colors hover:bg-white/25"
+              title="Compare tiers"
+            >
+              Tier · {tierShortLabel}
+            </Link>
+          ) : null}
           <span className="opacity-85">{phone}</span>
           <form action={signOutAction}>
             <button
