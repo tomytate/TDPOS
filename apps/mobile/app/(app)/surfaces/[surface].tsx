@@ -9,7 +9,7 @@ import { Appbar, Button, Card, Chip, Text } from 'react-native-paper'
 
 import { LockedSurfaceCard } from '@/components/ui/locked-surface-card'
 import { useAppTheme } from '@/constants/theme'
-import { ShiftSurfaceControls } from '@/features/shifts/shift-surface-controls'
+import { TierBSurfaceControls } from '@/features/tier-surfaces/tier-b-surface-controls'
 import {
   getMobileSurfaceScaffold,
   type MobileTierSurface,
@@ -201,10 +201,7 @@ export default function TierSurfaceScreen() {
 
             <SurfacePreview surface={surface} />
 
-            {unlocked &&
-            (surface === 'mobile.shift_login' || surface === 'mobile.shift_handoff') ? (
-              <ShiftSurfaceControls surface={surface} />
-            ) : null}
+            {unlocked ? <TierBSurfaceControls surface={surface} /> : null}
 
             <Card mode="contained">
               <Card.Content style={{ gap: 10 }}>
