@@ -72,6 +72,22 @@ export default function DiagnosticsScreen() {
         </View>
       ) : data ? (
         <ScrollView contentContainerStyle={{ gap: 12, padding: 16, paddingBottom: 32 }}>
+          <Card mode="contained">
+            <Card.Content style={{ gap: 8 }}>
+              <Text variant="labelLarge" style={{ color: theme.colors.onSurfaceVariant }}>
+                Subscription
+              </Text>
+              <Text variant="bodyMedium">Tier identity, limits, and module entitlements.</Text>
+              <Button
+                mode="contained-tonal"
+                icon="card-account-details-outline"
+                onPress={() => router.push('/(app)/subscription')}
+              >
+                Open subscription
+              </Button>
+            </Card.Content>
+          </Card>
+
           {metadata ? (
             <Card mode="contained">
               <Card.Content style={{ gap: 12 }}>
