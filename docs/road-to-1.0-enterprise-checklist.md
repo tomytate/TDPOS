@@ -2061,8 +2061,8 @@ The web dashboard is no longer a Post-1.0 expansion. See **Phase W: Web Dashboar
 - [/] Tier B owner dashboard.
 - [/] Tier C shift handoff.
 - [/] Tier C convenience workflows.
-- [/] Tier D supermarket workflows.
-- [/] Tier D scale/weighted PLU.
+- [x] Tier D supermarket workflows.
+- [x] Tier D scale/weighted PLU.
 - [/] Tier E chain/HQ rollup.
 - [/] Tier E returns/warranty desk.
 - [/] Tier E self-service kiosk.
@@ -2074,7 +2074,7 @@ Updated 2026-05-11 after the five-tier scaffold landed and Tier B shift controls
 - [x] 1. Commit the five-tier scaffold checkpoint once the documentation checkpoint and foundation gate are green. Completed as six logical commits ending at `706f8ff`.
 - [x] 2. Fill Tier B Pro mobile shells: tablet POS, owner lanes, shift login, shift handoff. Product-specific surface contracts and native preview panels exist; tablet POS writes through the existing cart/checkout path, owner lanes read local shift/sync health, and shift login/handoff manage local SQLite shifts.
 - [x] 3. Fill Tier C Plus mobile shells: convenience counter and manager-phone override flow. Product-specific surface contracts and native preview panels exist; convenience counter can add fast-repeat products and queue a local manager approval, while manager phone can approve/decline pending local approval requests.
-- [/] 4. Fill Tier D Premium mobile shells: supermarket counter, customer display, back-office audit, weighted PLU placeholders. Product-specific surface contracts and native preview panels exist; production controls pending.
+- [x] 4. Fill Tier D Premium mobile shells: supermarket counter, customer display, back-office audit, weighted PLU placeholders. Product-specific surface contracts and native preview panels exist; supermarket counter writes through the existing cart/checkout path, customer display mirrors local cart state, back-office audit reads local sales/inventory/sync health for manager roles, and weighted PLU provides PLU lookup and weight-entry workflow.
 - [/] 5. Fill Tier E Enterprise mobile shells: HQ rollup, self-service kiosk, returns/warranty placeholders. Product-specific surface contracts and native preview panels exist; production controls pending.
 - [x] 6. Convert web management scaffold buttons into guarded Server Actions for products, categories, branches, users, devices, and modules; every mutation must use Zod, RLS, audit logging, and entitlement guard helpers. The six management actions now validate drafts with Zod, check tier surface access, enforce limits, write through Supabase, log audit entries, and revalidate the source page plus `/audit`.
 - [/] 7. Add tier/pricing management content to the web pricing and future marketing track using `TIER_DEFINITIONS` as the only product source of truth. The web `/pricing` route and `apps/marketing/pricing` scaffold are wired; final launch copy/domain remain open.
@@ -2130,6 +2130,7 @@ Use this section as releases progress.
 - [x] Tier B mobile scaffold evidence: `mobile.tablet_pos` adds a wide product grid that writes only through the existing cart/checkout path; `mobile.owner_lanes` reads open local shifts and sanitized sync health; local mobile migration v2 creates `shift_sessions`; `mobile.shift_login` can open a local shift with opening cash and live lane totals, while `mobile.shift_handoff` can count cash, capture a handoff note, and close the shift locally. Remote shift sync is intentionally deferred until the sync contract grows beyond sales and inventory deltas.
 - [x] Tier C mobile scaffold evidence: local mobile migration v3 creates `manager_approval_requests`; `mobile.convenience_counter` adds fast-repeat product controls and queues a local price-override approval request; `mobile.manager_phone` lists pending local approvals and resolves them as approved or declined for owner/manager roles. Remote approval sync is intentionally deferred with the same sync-envelope boundary as shifts.
 - [x] Marketing scaffold evidence: `apps/marketing` exists as a Next.js 16 app with home, pricing, privacy, and terms scaffold pages; pricing imports `TIER_DEFINITIONS` from `@tdpos/shared`.
+- [x] Tier D mobile scaffold evidence: `mobile.supermarket_counter` adds a scanner-driven belt-mode product list that writes only through the existing cart/checkout path; `mobile.customer_display` mirrors the local cart in a dark customer-facing preview card; `mobile.backoffice_audit` reads local sales, inventory logs, and sync health for owner/manager roles; `mobile.weighted_plu` provides PLU code/name search and weight-entry workflow that converts weights to canonical pieces. No new local migrations needed — all four surfaces read from existing local products, sales, inventory_logs, and sync_queue tables.
 - [x] Latest-doc spot check: Expo SDK 55, Next.js 16 `proxy.ts`, Supabase SSR `getClaims()`, TanStack Query v5 `gcTime`, FlashList v2 migration, and Node 24 LTS lifecycle.
 - [x] Sources checked: `docs.expo.dev/versions/v55.0.0`, `nextjs.org/blog/next-16`, `supabase.com/docs/guides/auth/server-side/nextjs`, `tanstack.com/query/latest/docs/framework/react/guides/migrating-to-v5`, `shopify.github.io/flash-list/docs/v2-migration`, `nodejs.org/en/about/previous-releases`.
 - [x] Dependency posture: `bun outdated --recursive` was reviewed. Mobile React/RN/native package holds are intentional because Expo SDK 55 controls compatibility; do not chase npm latest when it breaks `expo-doctor`.
