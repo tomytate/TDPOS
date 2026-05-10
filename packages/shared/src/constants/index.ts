@@ -322,3 +322,157 @@ export function getTierModuleState(tier: SubscriptionTier): Record<ModuleName, b
 export function isTierSurfaceEnabled(tier: SubscriptionTier, surface: TierSurface): boolean {
   return TIER_DEFINITIONS[tier].surfaces.includes(surface)
 }
+
+// ----- Surface registry ------------------------------------------------------
+// Human-readable label + one-line positioning for every TierSurface. Pages
+// and upgrade explorers read from this; adding a new surface ID means adding
+// an entry here so TypeScript exhaustiveness keeps the lists in sync.
+
+export interface TierSurfaceMeta {
+  label: string
+  description: string
+  // 'mobile' | 'web' | 'marketing' — derived from the surface namespace but
+  // pre-baked here to avoid string-splitting at every call site.
+  group: 'mobile' | 'web' | 'marketing'
+}
+
+export const SURFACE_LABELS: Record<TierSurface, TierSurfaceMeta> = {
+  // Tier A — included in every tier above too.
+  'mobile.tier_a_cashier': {
+    label: 'Solo cashier',
+    description: 'Single-phone cashier flow with offline sales + sync.',
+    group: 'mobile',
+  },
+  // Tier B — Pro additions
+  'mobile.tablet_pos': {
+    label: 'Tablet POS',
+    description: 'Larger landscape layout with split product grid + cart drawer.',
+    group: 'mobile',
+  },
+  'mobile.owner_lanes': {
+    label: 'Owner lanes',
+    description: 'Manager-monitored cashier lanes with live sales feed.',
+    group: 'mobile',
+  },
+  'mobile.shift_login': {
+    label: 'Shift login',
+    description: 'Cashier shift PIN with handoff metadata + open-shift guards.',
+    group: 'mobile',
+  },
+  'mobile.shift_handoff': {
+    label: 'Shift handoff',
+    description: 'End-of-shift cash count + variance log + signed handoff.',
+    group: 'mobile',
+  },
+  // Tier C — Plus additions
+  'mobile.convenience_counter': {
+    label: 'Convenience counter',
+    description: 'Drink-cooler / shelf-aware product layout for convenience stores.',
+    group: 'mobile',
+  },
+  'mobile.manager_phone': {
+    label: 'Manager override',
+    description: 'On-device manager approvals (refunds, voids) via biometric / PIN.',
+    group: 'mobile',
+  },
+  // Tier D — Premium additions
+  'mobile.supermarket_counter': {
+    label: 'Supermarket counter',
+    description: 'Scanner-driven counter UI with belt mode, loyalty lookup, returns.',
+    group: 'mobile',
+  },
+  'mobile.customer_display': {
+    label: 'Customer display',
+    description: 'Second-screen / paired tablet showing live cart + total to customer.',
+    group: 'mobile',
+  },
+  'mobile.backoffice_audit': {
+    label: 'Back-office audit',
+    description: 'Owner audit trail with sale, void, and price-change history.',
+    group: 'mobile',
+  },
+  'mobile.weighted_plu': {
+    label: 'Weighted PLUs',
+    description: 'Scale-integrated produce + deli items with PLU code lookup.',
+    group: 'mobile',
+  },
+  // Tier E — Enterprise additions
+  'mobile.hq_rollup': {
+    label: 'HQ rollup',
+    description: 'Multi-store consolidated dashboard for franchise / chain HQ.',
+    group: 'mobile',
+  },
+  'mobile.self_service_kiosk': {
+    label: 'Self-service kiosk',
+    description: 'Customer-facing kiosk mode with locked-down checkout flow.',
+    group: 'mobile',
+  },
+  'mobile.returns_warranty': {
+    label: 'Returns + warranty',
+    description: 'Receipt lookup, return reason codes, warranty claim metadata.',
+    group: 'mobile',
+  },
+  // Web surfaces
+  'web.overview': {
+    label: 'Overview',
+    description: 'Today’s sales, low-stock alerts, sync health summary.',
+    group: 'web',
+  },
+  'web.products': {
+    label: 'Products',
+    description: 'Catalog management — stock, tingi units, prices.',
+    group: 'web',
+  },
+  'web.branches': {
+    label: 'Branches',
+    description: 'Branch directory + activation status.',
+    group: 'web',
+  },
+  'web.users': {
+    label: 'Users',
+    description: 'Cashier / manager / owner access management.',
+    group: 'web',
+  },
+  'web.modules': {
+    label: 'Modules',
+    description: 'Subscription tier + optional capability toggles.',
+    group: 'web',
+  },
+  'web.sync': {
+    label: 'Sync health',
+    description: 'Per-device sync queue depth, last sync, error stream.',
+    group: 'web',
+  },
+  'web.audit': {
+    label: 'Audit log',
+    description: 'Immutable audit trail of mutations, keyed-only by default.',
+    group: 'web',
+  },
+  'web.exports': {
+    label: 'Exports',
+    description: 'CSV + PDF sales exports with date-range filters.',
+    group: 'web',
+  },
+  'web.hq': {
+    label: 'HQ rollup',
+    description: 'Cross-business dashboards for franchise / chain operators.',
+    group: 'web',
+  },
+  // Marketing
+  'marketing.pricing': {
+    label: 'Pricing',
+    description: 'Public tier comparison page.',
+    group: 'marketing',
+  },
+}
+
+// Returns the minimum SubscriptionTier that unlocks `surface`. Used by upgrade
+// explorers to label "unlocks at <tier>" for currently-locked surfaces.
+export function getMinimumTierForSurface(surface: TierSurface): SubscriptionTier {
+  for (const tier of SUBSCRIPTION_TIERS) {
+    if (isTierSurfaceEnabled(tier, surface)) return tier
+  }
+  // Surface allowlists are exhaustive across the 5 tiers; this fallback only
+  // fires if the type system has been bypassed (e.g. cast-from-string).
+  return TIER_A_FREE
+}
