@@ -11,7 +11,12 @@ import { Appbar, Button, Card, Chip, Text } from 'react-native-paper'
 
 import { useAppTheme } from '@/constants/theme'
 import { useAuthStore } from '@/stores/auth-store'
-import { getTierDefinition, type ModuleName, type SubscriptionTier } from '@tdpos/shared'
+import {
+  formatTierPrice,
+  getTierDefinition,
+  type ModuleName,
+  type SubscriptionTier,
+} from '@tdpos/shared'
 
 const MODULE_LABELS: Record<ModuleName, string> = {
   utang: 'Utang ledger',
@@ -72,6 +77,9 @@ export default function SubscriptionScreen() {
                 {definition.label}
               </Chip>
             </View>
+            <Text variant="titleMedium" style={{ color: theme.colors.primary }}>
+              {formatTierPrice(definition.pricePhpMonthly)}
+            </Text>
             <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
               {definition.description}
             </Text>

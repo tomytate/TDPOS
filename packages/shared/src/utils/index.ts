@@ -7,6 +7,15 @@ export const formatMoney = (value: number) =>
     maximumFractionDigits: 2,
   })}`
 
+// Tier-price renderer with three states: published price, free, and pending.
+// Centralized so pricing copy stays consistent across the marketing page,
+// dashboard tier pill, and mobile /subscription screen.
+export const formatTierPrice = (pricePhpMonthly: number | null) => {
+  if (pricePhpMonthly === null) return 'Pricing coming soon'
+  if (pricePhpMonthly === 0) return 'Free forever'
+  return `₱${pricePhpMonthly.toLocaleString('en-PH')}/month`
+}
+
 interface CryptoLike {
   randomUUID?: () => string
   getRandomValues?: (array: Uint8Array) => Uint8Array

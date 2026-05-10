@@ -5,7 +5,12 @@
 
 import Link from 'next/link'
 
-import { SUBSCRIPTION_TIERS, getTierDefinition, type ModuleName } from '@tdpos/shared'
+import {
+  SUBSCRIPTION_TIERS,
+  formatTierPrice,
+  getTierDefinition,
+  type ModuleName,
+} from '@tdpos/shared'
 
 import { getBusinessEntitlements } from '@/lib/queries/management'
 
@@ -93,6 +98,10 @@ export default async function PricingPage() {
                     </span>
                   ) : null}
                 </header>
+
+                <p className="m-0 text-base font-semibold text-ink-900">
+                  {formatTierPrice(definition.pricePhpMonthly)}
+                </p>
 
                 <p className="m-0 text-sm text-ink-600">{definition.description}</p>
 

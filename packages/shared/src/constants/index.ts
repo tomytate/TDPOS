@@ -99,6 +99,11 @@ export interface TierDefinition {
   label: string
   shortLabel: string
   description: string
+  // Monthly price in PHP. `0` = free; `null` = published price pending
+  // (owner has not committed a number yet). Pricing UIs render a sentinel
+  // ("Free" / "Pricing coming soon") for these values rather than special-
+  // casing in every consumer.
+  pricePhpMonthly: number | null
   // Hard limits — null means unlimited (kept JSON-friendly; no Infinity).
   maxProducts: number | null
   maxBranches: number | null
@@ -118,6 +123,7 @@ export const TIER_DEFINITIONS: Record<SubscriptionTier, TierDefinition> = {
     shortLabel: 'Free',
     description:
       'Solo cashier on a single phone. Inventory + sales + sync. Owner monitoring on web; no paid modules.',
+    pricePhpMonthly: 0,
     maxProducts: 50,
     maxBranches: 1,
     maxDevices: 1,
@@ -131,6 +137,7 @@ export const TIER_DEFINITIONS: Record<SubscriptionTier, TierDefinition> = {
     shortLabel: 'Pro',
     description:
       'Tablet POS with shift handoff and owner lanes. Utang and customer SMS unlocked. One branch, multiple cashiers.',
+    pricePhpMonthly: null,
     maxProducts: 500,
     maxBranches: 1,
     maxDevices: 3,
@@ -158,6 +165,7 @@ export const TIER_DEFINITIONS: Record<SubscriptionTier, TierDefinition> = {
     shortLabel: 'Plus',
     description:
       'Convenience-store layout with manager-phone overrides. Multi-branch, supplier management, loyalty.',
+    pricePhpMonthly: null,
     maxProducts: 5000,
     maxBranches: 3,
     maxDevices: 10,
@@ -193,6 +201,7 @@ export const TIER_DEFINITIONS: Record<SubscriptionTier, TierDefinition> = {
     shortLabel: 'Premium',
     description:
       'Supermarket-grade: scanner counters, customer display, weighted PLUs, back-office audit. Payroll + accounting integration unlocked.',
+    pricePhpMonthly: null,
     maxProducts: 50000,
     maxBranches: 10,
     maxDevices: 50,
@@ -234,6 +243,7 @@ export const TIER_DEFINITIONS: Record<SubscriptionTier, TierDefinition> = {
     shortLabel: 'Enterprise',
     description:
       'Franchise + HQ rollup, returns/warranty, self-service kiosk, public API. Unlimited products / branches / devices / users.',
+    pricePhpMonthly: null,
     maxProducts: null,
     maxBranches: null,
     maxDevices: null,
