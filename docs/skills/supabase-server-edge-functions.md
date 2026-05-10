@@ -175,7 +175,7 @@ The new auth key system uses **plural-form** env vars:
 |---|---|---|---|
 | `apply-inventory-delta` | `user` | Validates payload with `syncInventoryDeltaPayloadSchema`, calls the existing race-safe `apply_inventory_delta` Postgres RPC | shell exists, deploy pending P7 staging Supabase |
 | `create-sale` | `user` | Validates payload with `syncSalePayloadSchema`, idempotent on `sales.id`, inserts sale + sale_items; per-item deltas handled via the apply-inventory-delta queue path | shell exists, deploy pending P7 staging Supabase |
-| `eod-report` | `['user', 'secret']` | End-of-day report (cashier-triggered or scheduled via cron) | folder exists, implementation pending P11.5.8 |
+| `eod-report` | `['user', 'secret']` | End-of-day report (cashier-triggered or scheduled via cron) | report scaffold exists; SMS delivery pending P11.5.8 |
 
 ## ❌ DO NOT USE
 
@@ -212,5 +212,5 @@ export default {
 - Edge Functions docs: <https://supabase.com/docs/guides/functions>
 - API key naming: <https://supabase.com/docs/guides/api/api-keys>
 - Edge Function quickstart: <https://supabase.com/docs/guides/functions/quickstart>
-- Implementation in this repo: `supabase/functions/apply-inventory-delta/index.ts`, `supabase/functions/create-sale/index.ts`. End-to-end deployment is gated on a real Supabase project (P7 / Phase W staging).
+- Implementation in this repo: `supabase/functions/apply-inventory-delta/index.ts`, `supabase/functions/create-sale/index.ts`, `supabase/functions/eod-report/index.ts`. End-to-end deployment is gated on a real Supabase project (P7 / Phase W staging).
 - Last verified: 2026-05-09 against the official announcement.

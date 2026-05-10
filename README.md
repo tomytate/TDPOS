@@ -8,14 +8,29 @@ TD POS is a mobile-first, offline-capable SaaS POS and inventory management syst
 
 ## Release Posture
 
-- **Current baseline:** v0.1 Foundation Preview.
+- **Current baseline:** v0.1 Scaffold Checkpoint.
+- **Next real milestone:** v0.1alpha — first pilot store after 0.9 testing and polish gates.
 - **Target:** v1.0 Public Launch — mobile + web dashboard + marketing site simultaneously.
 - **No release date.** v1.0 is a quality bar; time to v1.0 is determined by readiness.
 - **No partial release.** If any of the three surfaces is below the bar, v1.0 does not ship.
 
 The full release pact and the Definition of Enterprise-Grade live in [docs/road-to-1.0-enterprise-checklist.md](docs/road-to-1.0-enterprise-checklist.md). The operative spec index is [docs/spec-v5.md](docs/spec-v5.md).
 
-## Tech Stack (Verified May 9, 2026)
+## Product Tiers
+
+TD POS now uses five canonical product tiers, single-sourced in `@tdpos/shared`:
+
+| Canonical Tier      | Public Name       | Segment                       | Billing    | UI Reference                                            |
+| ------------------- | ----------------- | ----------------------------- | ---------- | ------------------------------------------------------- |
+| `tier_a_free`       | Tier A Free       | Sari-sari / micro-stall       | Free       | `UI/b_g4eU9LYiRKM/components/pos/tier-a-lite.tsx`       |
+| `tier_b_pro`        | Tier B Pro        | Mini-mart / Alfamart-scale    | Paid       | `UI/b_g4eU9LYiRKM/components/pos/tier-b-pro.tsx`        |
+| `tier_c_plus`       | Tier C Plus       | Convenience / 7-11-scale      | Paid       | `UI/b_g4eU9LYiRKM/components/pos/tier-c-plus.tsx`       |
+| `tier_d_premium`    | Tier D Premium    | Supermarket                   | Paid       | `UI/b_g4eU9LYiRKM/components/pos/tier-d-premium.tsx`    |
+| `tier_e_enterprise` | Tier E Enterprise | Mall / department-store chain | Enterprise | `UI/b_g4eU9LYiRKM/components/pos/tier-e-enterprise.tsx` |
+
+The root `UI/` folder is a reference canvas only. Production implementation uses Expo and Next components, with `scripts/check-tier-ui-sources.mjs` verifying that every tier definition points at an existing source file. Legacy values (`free`, `starter`, `growth`, `pro`, `business`, `enterprise`) are migration inputs only and normalize into the A-E model.
+
+## Tech Stack (Verified May 11, 2026)
 
 | Layer              | Technology                                                                    | Version |
 | ------------------ | ----------------------------------------------------------------------------- | ------- |
@@ -51,6 +66,9 @@ bun run dev:mobile
 # Start web dashboard
 bun run dev:web
 
+# Start marketing site scaffold
+bun run dev:marketing
+
 # Start everything
 bun run dev
 
@@ -82,14 +100,15 @@ eas update --branch production --message "fix: receipt alignment"
 ```
 TDPOS/
 ├── apps/mobile/             # Expo SDK 55 (iOS + Android + Tablet)
-├── apps/web/                # Next.js 16 owner dashboard (mainline per ADR-010 — auth + 6 owner views)
+├── apps/web/                # Next.js 16 owner dashboard (auth, reporting, exports, guarded management scaffolds)
+├── apps/marketing/          # Next.js 16 public site scaffold (pricing, privacy, terms)
 ├── packages/shared/         # Shared types, validators, constants, BIR copy
 ├── packages/db/             # Database schema types + re-exported Zod validators
 ├── packages/typescript-config/
 ├── packages/eslint-config/
-├── supabase/                # PG17 migrations (3), Edge Functions (2), seed
-├── docs/                    # Spec, architecture (15 ADRs), schema reference
-│   └── skills/              # 20 anti-hallucination skill docs (DocGate-3 enforced)
+├── supabase/                # PG17 migrations (6), Edge Functions (2), seed
+├── docs/                    # Spec, architecture (17 ADRs), schema reference
+│   └── skills/              # 22 anti-hallucination skill docs (DocGate-3 enforced)
 └── UI/                      # Suki POS design canvas (reference only)
 ```
 
@@ -100,8 +119,9 @@ TDPOS/
 3. **Delta-based sync** — send `-1` not "stock = 99". No data loss from concurrent offline sales. Idempotent via `client_operation_id`.
 4. **BIR-ready** — designed to Philippine tax specification. Never say "BIR-compliant" until accredited.
 5. **Modules are opt-in** — utang, loyalty, SMS — all default OFF. UI hidden when disabled.
-6. **PostgreSQL 17** — `gen_random_uuid()` built-in (no extensions), `JSON_TABLE` for batch sync, `MERGE RETURNING` for upserts.
-7. **EAS Build only** — development builds required (not Expo Go). EAS Submit for App Store + Google Play.
+6. **Tier definitions are shared** — UI surfaces, modules, limits, and upgrade paths come from `TIER_DEFINITIONS`.
+7. **PostgreSQL 17** — `gen_random_uuid()` built-in (no extensions), `JSON_TABLE` for batch sync, `MERGE RETURNING` for upserts.
+8. **EAS Build only** — development builds required (not Expo Go). EAS Submit for App Store + Google Play.
 
 ## AI Agent Documentation
 
@@ -141,6 +161,7 @@ This project includes comprehensive anti-hallucination documentation for AI codi
 
 ```bash
 bun run check:foundation # Full foundation gate
+bun run check:tier-ui-sources # Verify every tier points at an existing UI reference
 bun run check:expo-doctor # Expo native dependency health check
 bun run check:mobile-bundle # Android Metro bundle/export check
 bun run lint        # ESLint 10 (flat config)

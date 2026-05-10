@@ -11,7 +11,21 @@ TD POS is the operating system for Philippine business — a mobile-first, offli
 - **Database:** PostgreSQL 17 (via Supabase)
 - **Build & Deploy:** EAS Build + EAS Submit (iOS App Store + Google Play)
 
-## Tech Stack (Verified May 10, 2026)
+## Product Tier Model
+
+TD POS uses five canonical product tiers. New code must use these values only:
+
+| Tier                | Public name       | Segment                       | Billing    |
+| ------------------- | ----------------- | ----------------------------- | ---------- |
+| `tier_a_free`       | Tier A Free       | Sari-sari / micro-stall       | Free       |
+| `tier_b_pro`        | Tier B Pro        | Mini-mart / Alfamart-scale    | Paid       |
+| `tier_c_plus`       | Tier C Plus       | Convenience / 7-11-scale      | Paid       |
+| `tier_d_premium`    | Tier D Premium    | Supermarket                   | Paid       |
+| `tier_e_enterprise` | Tier E Enterprise | Mall / department-store chain | Enterprise |
+
+`packages/shared/src/constants/index.ts` owns `TIER_DEFINITIONS`, module unlocks, limits, UI reference paths, and upgrade targets. The old six-name subscription values are migration-only through `LEGACY_TIER_MAP`; do not add new features against them. Root `UI/` is visual/product reference only, not production code.
+
+## Tech Stack (Verified May 11, 2026)
 
 ### Mobile (apps/mobile)
 
@@ -65,9 +79,11 @@ bun install                    # Install all workspace deps
 bun run dev                    # Start all apps in parallel (via turbo)
 bun run dev:mobile             # Expo dev server only
 bun run dev:web                # Next.js dev server only
+bun run dev:marketing          # Marketing site scaffold only
 bun run build                  # Build all
 bun run check:expo-doctor      # Expo native dependency health check
 bun run check:mobile-bundle    # Android Metro bundle/export check
+bun run check:tier-ui-sources  # Verify five tier UI references exist
 bun run lint                   # ESLint 10 across workspace
 bun run typecheck              # TypeScript strict check
 bun run test                   # Run all tests
@@ -90,6 +106,7 @@ eas submit --profile production --platform all # Submit to stores
 6. **Sales are immutable.** No UPDATE (except `synced_at`), no DELETE. Corrections use void/compensating entries.
 7. **Receipt numbers use `BRANCH-CASHIER-DATE-SEQUENCE` format.** Per-device namespace partitioning. Physically uncollidable offline.
 8. **Modules are opt-in, default OFF.** Utang, loyalty, customer SMS, etc. UI for disabled modules must be completely hidden.
+9. **Tier source of truth is shared.** Mobile, web, Supabase, and marketing must read from `TIER_DEFINITIONS`; do not fork tier labels, limits, module unlocks, or route gates.
 
 ## Coding Conventions
 
@@ -167,7 +184,8 @@ Six required Phase 1 tests (§14 of spec):
 ```
 TDPOS/
 ├── apps/mobile/          # Expo SDK 55 (iOS + Android + Tablet)
-├── apps/web/             # Next.js 16 dashboard (Phase 3)
+├── apps/web/             # Next.js 16 dashboard + guarded management scaffolds
+├── apps/marketing/       # Next.js 16 public site scaffold
 ├── packages/shared/      # Shared types, validators, constants
 ├── packages/db/          # Database schema types
 ├── packages/typescript-config/

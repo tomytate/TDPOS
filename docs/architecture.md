@@ -221,3 +221,39 @@
 - CI uses `actions/setup-node@v6` with `node-version-file: .node-version`, so the runner version follows the pin automatically.
 - Bun is independent of the Node pin (Bun is a separate runtime). The Bun `1.3.13` pin is enforced by `packageManager` in `package.json` and the `oven-sh/setup-bun` step in CI.
 - This ADR will be revisited when Node 26 enters Active LTS (October 2027) or when an Expo SDK requires a newer minimum.
+
+---
+
+## ADR-016: Five Canonical Product Tiers
+
+**Decision:** TD POS uses five canonical subscription tiers: `tier_a_free`, `tier_b_pro`, `tier_c_plus`, `tier_d_premium`, and `tier_e_enterprise`. Tier A is the only free tier. Legacy names (`free`, `starter`, `growth`, `pro`, `business`, `enterprise`) are accepted only by migration/normalization code and are not active product tiers.
+
+**Why:**
+- The root `UI/` design canvas is organized around five materially different product experiences, not one generic dashboard with feature flags.
+- Tier A must stay free and phone-first for sari-sari stores; higher tiers progressively introduce tablet lanes, shift workflows, convenience-store management, supermarket counters, and enterprise HQ surfaces.
+- A single shared tier source of truth avoids web/mobile/backend drift in pricing, module unlocks, route access, and future marketing copy.
+- Preserving legacy values only in a mapper lets the database migrate safely without carrying an old six-name product model forever.
+
+**Consequences:**
+- `packages/shared/src/constants/index.ts` owns `TIER_DEFINITIONS`, `LEGACY_TIER_MAP`, tier limits, module defaults, surface unlocks, and UI reference paths.
+- `scripts/check-tier-ui-sources.mjs` is part of the foundation gate and fails when a tier points at a missing `UI/` reference file.
+- `businesses.subscription_tier` defaults to `tier_a_free` and is constrained to the five canonical values by Supabase migrations.
+- Mobile caches subscription tier, module state, entitlement expiry, and limits in `auth-store` for offline gating.
+- Web management and export surfaces gate against the shared definitions; locked surfaces render upgrade scaffolds instead of disappearing into undocumented behavior.
+
+---
+
+## ADR-017: Scaffold-First From 0.1 Through 0.9, Then Pilot
+
+**Decision:** From 0.1 through 0.9, the project prioritizes scaffolding the full product surface across mobile, web, backend, and tiering. The concentrated testing, polish, visual QA, accessibility pass, performance pass, and tier-by-tier acceptance happen at 0.9. The first pilot store is `v0.1alpha` and happens only after the 0.9 gates are satisfied.
+
+**Why:**
+- TD POS is a five-tier product. Building and validating only Tier A too deeply before laying B-E routes risks architectural rework once paid tiers are introduced.
+- The owner explicitly wants scaffolding first and polish later; the checklist should reflect that operating mode rather than accidentally treating Tier A polish as the pilot trigger.
+- Existing foundation checks still protect basic correctness while scaffold work continues: format, schema drift, forbidden patterns, tier UI sources, doc links, skill docs, Expo Doctor, Android bundle export, typecheck, lint, and existing tests.
+
+**Consequences:**
+- New surfaces may land as gated shells before they are feature-complete.
+- New broad tier test suites are intentionally deferred to 0.9; existing tests must keep passing after scaffold commits.
+- v0.1alpha is not a shortcut around 0.9. It is the first real store after 0.9 proves the scaffold is safe enough to pilot.
+- Documentation must distinguish "scaffold exists" from "production/pilot acceptance complete."

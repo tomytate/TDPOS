@@ -7,7 +7,8 @@
 
 ## Release Posture
 
-- **Current baseline:** v0.1 Foundation Preview.
+- **Current baseline:** v0.1 Scaffold Checkpoint.
+- **Current build posture:** 0.1 through 0.9 lays the full mobile/web/backend scaffold. 0.9 is the concentrated testing, polish, visual QA, accessibility, and performance pass. v0.1alpha is the first pilot store after those gates, not before them.
 - **Target:** v1.0 Public Launch — mobile + web dashboard + marketing site simultaneously.
 - **No release date.** v1.0 is a quality bar; time to v1.0 is determined by readiness.
 - **No partial release.** If any of the three surfaces is below the bar, v1.0 does not ship.
@@ -19,6 +20,20 @@ The full release philosophy, the Release Pact, and the Definition of Enterprise-
 TD POS is an offline-first, mobile-first SaaS POS and inventory management system built specifically for Philippine commerce — from sari-sari stores to enterprise franchise chains. The technical wedge is the tingi / canonical-pieces inventory model: every product stores stock as `stock_pieces` (an integer of the smallest sellable unit) and pack counts are derived via `divmod(stock_pieces, pieces_per_pack)`.
 
 The product pitch is **"Tama ang stock mo. Lagi."** — your stock is correct, always.
+
+## Canonical Product Tiers
+
+The product has five canonical tiers. These are the only active subscription values in new code and database rows:
+
+| Canonical Tier      | Public Name       | Segment                       | UI Source                                               | Billing    |
+| ------------------- | ----------------- | ----------------------------- | ------------------------------------------------------- | ---------- |
+| `tier_a_free`       | Tier A Free       | Sari-sari / micro-stall       | `UI/b_g4eU9LYiRKM/components/pos/tier-a-lite.tsx`       | Free       |
+| `tier_b_pro`        | Tier B Pro        | Mini-mart / Alfamart-scale    | `UI/b_g4eU9LYiRKM/components/pos/tier-b-pro.tsx`        | Paid       |
+| `tier_c_plus`       | Tier C Plus       | Convenience / 7-11-scale      | `UI/b_g4eU9LYiRKM/components/pos/tier-c-plus.tsx`       | Paid       |
+| `tier_d_premium`    | Tier D Premium    | Supermarket                   | `UI/b_g4eU9LYiRKM/components/pos/tier-d-premium.tsx`    | Paid       |
+| `tier_e_enterprise` | Tier E Enterprise | Mall / department-store chain | `UI/b_g4eU9LYiRKM/components/pos/tier-e-enterprise.tsx` | Enterprise |
+
+`packages/shared/src/constants/index.ts` is the source of truth for `TIER_DEFINITIONS`, module unlocks, limits, surface unlocks, and upgrade paths. The legacy six-name model (`free`, `starter`, `growth`, `pro`, `business`, `enterprise`) exists only as migration input through `LEGACY_TIER_MAP`. The root `UI/` folder remains reference-only; implementation uses native Expo and Next components.
 
 ## Operative Spec Surfaces
 
@@ -37,6 +52,7 @@ The spec is composed of these documents. Read them in this order.
 - [database-schema.md](database-schema.md) — entity relationship diagram + table-by-table reference. Source of truth: `supabase/migrations/*.sql` and `apps/mobile/src/db/migrations/*.sql`.
 - TypeScript row types: `packages/db/src/schema.ts`.
 - Zod runtime validators: `packages/shared/src/validators/index.ts`.
+- Tier and entitlement source of truth: `packages/shared/src/constants/index.ts`.
 
 ### 4. Procedural skill docs (one per package or domain)
 
@@ -71,7 +87,7 @@ If any of these drift from the spec, they are wrong, not the spec. The Documenta
 ## Anti-Goals (What This Spec Does Not Cover)
 
 - Calendar dates. The spec deliberately contains no "ship by" dates. v1.0 is a quality bar.
-- Marketing copy. The marketing site has its own track (Phase M) but its content lives in the marketing repo, not here.
+- Final marketing copy. The Phase M scaffold now lives in `apps/marketing`, but launch copy, domain, analytics consent, and legal review remain separate acceptance work.
 - Implementation details that change every release. Those live in code and skill docs.
 - Speculative future features beyond Phase 11.5 (Enterprise Hardening) and the Post-1.0 expansion list.
 

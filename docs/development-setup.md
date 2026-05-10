@@ -1,6 +1,6 @@
 # Development Setup
 
-Last verified: May 9, 2026.
+Last verified: May 11, 2026.
 
 This project is mobile-first and foundation-gated. A clean checkout should be able to install, check formatting, verify local SQLite schema drift, scan for forbidden patterns, typecheck, lint, and test through one command.
 
@@ -80,6 +80,17 @@ bun run mobile:android
 
 Use development builds for real device testing. Expo Go is not a production test target for this app because the native dependency set includes SQLite, MMKV, background tasks, camera, haptics, audio, and printer support.
 
+## Web And Marketing
+
+```bash
+bun run dev:web
+bun run dev:marketing
+bun --filter @tdpos/web build
+bun --filter @tdpos/marketing build
+```
+
+The dashboard and marketing site are separate Next.js apps. Both use Next.js 16, React 19.2.0, Tailwind 4 tokens, and shared tier definitions from `@tdpos/shared`. Keep React aligned with the mobile app's Expo SDK 55-compatible version so Expo Doctor does not see duplicate native-module dependencies.
+
 ## Foundation Gate
 
 Before the foundation gate, run:
@@ -99,6 +110,7 @@ This runs:
 - `prettier --check .`
 - local SQLite schema drift check
 - forbidden/deprecated pattern scan
+- tier UI source reference check
 - markdown link integrity check
 - skill-doc source metadata check
 - Expo Doctor native dependency check

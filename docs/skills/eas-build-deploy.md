@@ -212,4 +212,4 @@ eas submit --profile production --platform all
 - Apple App Store Privacy Manifests (2025+): <https://developer.apple.com/documentation/bundleresources/privacy_manifest_files>
 - Google Play target SDK requirement (2025): <https://developer.android.com/google/play/requirements/target-sdk>
 - Implementation: `eas.json`, `apps/mobile/app.config.ts`
-- Last verified: 2026-05-10
+- Last verified: 2026-05-11

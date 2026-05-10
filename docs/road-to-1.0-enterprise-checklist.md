@@ -1,6 +1,6 @@
 # TD POS Road to 1.0 / Enterprise-Grade Checklist
 
-> Current baseline: **v0.1 Foundation Preview**.
+> Current baseline: **v0.1 Scaffold Checkpoint**.
 > Target: **v1.0 Public Launch** — enterprise-grade from day one, mobile + web dashboard + marketing site simultaneously.
 > No release date. v1.0 is a quality bar; time to v1.0 is determined by readiness.
 
@@ -45,6 +45,40 @@ This is the explicit commitment between owner and team. Every contributor (human
 - [ ] No mutating RPC without a `client_operation_id` parameter.
 - [ ] No table without RLS.
 - [ ] No BIR-compliant/certified/approved language anywhere except in docs explicitly warning against it.
+
+## Checkpoint: 2026-05-10 Five-Tier Scaffold
+
+Current operating direction from the owner:
+
+- [x] Stop polishing individual surfaces early. From `0.1` through `0.9`, prioritize laying the full mobile/web/backend scaffold.
+- [x] Concentrate full testing, polish, visual QA, accessibility, performance, and tier-by-tier acceptance at `0.9`.
+- [x] Treat `v0.1alpha` as the first real pilot store **after** `0.9`, not as the next tag after a single Tier A flow.
+- [x] Model the product as five canonical tiers, driven by the root `UI/` reference canvas but implemented with native Expo and Next components.
+
+Five canonical tiers:
+
+| Tier                | Public name       | Segment                       | Billing    | UI reference                                            |
+| ------------------- | ----------------- | ----------------------------- | ---------- | ------------------------------------------------------- |
+| `tier_a_free`       | Tier A Free       | Sari-sari / micro-stall       | Free       | `UI/b_g4eU9LYiRKM/components/pos/tier-a-lite.tsx`       |
+| `tier_b_pro`        | Tier B Pro        | Mini-mart / Alfamart-scale    | Paid       | `UI/b_g4eU9LYiRKM/components/pos/tier-b-pro.tsx`        |
+| `tier_c_plus`       | Tier C Plus       | Convenience / 7-11-scale      | Paid       | `UI/b_g4eU9LYiRKM/components/pos/tier-c-plus.tsx`       |
+| `tier_d_premium`    | Tier D Premium    | Supermarket                   | Paid       | `UI/b_g4eU9LYiRKM/components/pos/tier-d-premium.tsx`    |
+| `tier_e_enterprise` | Tier E Enterprise | Mall / department-store chain | Enterprise | `UI/b_g4eU9LYiRKM/components/pos/tier-e-enterprise.tsx` |
+
+What is now scaffolded:
+
+- [x] `@tdpos/shared` owns `SubscriptionTier`, `LegacySubscriptionTier`, `TierSurface`, `TIER_DEFINITIONS`, `LEGACY_TIER_MAP`, module defaults, tier limits, and surface unlocks.
+- [x] Supabase migrations normalize old tier strings into A-E canonical values and add entitlement guard helpers.
+- [x] Mobile auth/bootstrap caches tier, module state, entitlement expiry, and limits locally for offline gating.
+- [x] Mobile has tier-aware subscription/upgrade/surface shell routes, plus Tier A cashier flow remains the always-available free path.
+- [x] Web management surfaces render tier-aware locked scaffolds and use shared entitlement helpers for export gating.
+- [x] `scripts/check-tier-ui-sources.mjs` is part of `check:foundation`, so every `uiSource` in `TIER_DEFINITIONS` must point at an existing root `UI/` file.
+
+Fact-check notes from this checkpoint:
+
+- [x] Official docs still align with the architecture: Expo SDK 55, Next.js 16 `proxy.ts`, Supabase SSR `getClaims()`, TanStack Query v5 `gcTime`, and FlashList v2 no item-size estimate prop.
+- [x] `bun outdated --recursive` shows newer npm versions for several React Native packages, but those are intentionally held to Expo SDK 55-compatible versions. This is not classified as tech debt while `expo-doctor` and the Android bundle export pass.
+- [!] Local shell drift observed during this checkpoint: `node --version` returned `v25.9.0`, while the project baseline is Node 24 LTS. Run `nvm use` before release checks or CI-parity work.
 
 ## Definition of Enterprise-Grade
 
@@ -115,7 +149,7 @@ A surface (mobile, web, backend) meets the bar when **every** row below is `[x]`
 - [x] Diagnostics screen in the mobile app (manager+ only): sync queue health, app version, schema version, device identity, free disk, MMKV size, and support bundle copy exist.
 - [x] "Bundle support package" action copies diagnostics + recent sync errors for support email.
 - [x] Public runbook covers: sync stuck, printer offline, lost device, change branch/cashier code, restore on new phone. (`docs/operations/support-runbook.md`.)
-- [ ] Web dashboard has a sync health view (per-device queue depth, last seen).
+- [/] Web dashboard has a sync health view (per-device queue depth, last seen). Last-seen device rows and sanitized queue-count snapshots are scaffolded; production heartbeat cadence and device-management UX remain pending.
 - [x] On-call rotation defined or single-owner explicit (small team is fine; ambiguity is not). (`docs/operations/support-runbook.md` declares the pilot single-owner model.)
 - [x] Incident response template ready in `.github/`. (`.github/ISSUE_TEMPLATE/incident.md`.)
 
@@ -155,8 +189,8 @@ A surface (mobile, web, backend) meets the bar when **every** row below is `[x]`
 
 - [ ] Marketing site live on a stable domain.
 - [ ] Marketing site uses approved BIR language only.
-- [ ] Pricing page reflects current tier model.
-- [ ] Privacy policy + terms of service published before launch.
+- [/] Pricing page reflects current tier model. The public dashboard `/pricing` route and `apps/marketing/pricing` scaffold render the five canonical tiers from `TIER_DEFINITIONS`; stable-domain launch remains open.
+- [/] Privacy policy + terms of service published before launch. Draft scaffold pages exist in `apps/marketing`; legal review remains open.
 - [ ] Support contact path documented and reachable.
 - [ ] App Store + Play Store listings approved with screenshots from real builds.
 
@@ -174,17 +208,18 @@ TD POS releases on three parallel tracks. v1.0 ships only when every track meets
 
 ### Mobile Track (apps/mobile)
 
-| Version | Name                   | Meaning                                                                            |
-| ------- | ---------------------- | ---------------------------------------------------------------------------------- |
-| `0.1`   | Foundation Preview     | Repo, docs, schema, design reference, early shared packages. Not usable by stores. |
-| `0.2`   | App Bootstrap          | Expo app boots locally with providers, routing, DB init, theme, and tooling.       |
-| `0.3`   | Data Contract Hardened | Database/RLS/schema/helpers are safe enough to build features against.             |
-| `0.4`   | Offline Sale MVP       | Cashier can complete a sale offline with stock, receipt, and sync queue writes.    |
-| `0.5`   | Tier A Cashier UX      | Sari-sari Tier A screens are usable and match the design direction.                |
-| `0.6`   | Sync Beta              | Foreground/background sync processes queued operations idempotently.               |
-| `0.7`   | Receipt + Printer Beta | BIR-ready receipt formatting and printer path work on device.                      |
-| `0.8`   | Correctness Test Gate  | Required inventory, sync, receipt, and race tests pass.                            |
-| `0.9`   | Production Candidate   | Pilot-ready build with CI, observability, runbooks, and release process.           |
+| Version    | Name                   | Meaning                                                                                |
+| ---------- | ---------------------- | -------------------------------------------------------------------------------------- |
+| `0.1`      | Scaffold Foundation    | Repo, docs, schema, five-tier source of truth, design references, shared packages.     |
+| `0.2`      | App Bootstrap          | Expo app boots locally with providers, routing, DB init, theme, and tooling.           |
+| `0.3`      | Data Contract Hardened | Database/RLS/schema/helpers are safe enough to build features against.                 |
+| `0.4`      | Offline Sale MVP       | Cashier can complete a Tier A sale offline with stock, receipt, and sync queue writes. |
+| `0.5`      | Tier A Free UX         | Tier A Free cashier flow reaches parity with the design direction.                     |
+| `0.6`      | Entitlement Sync       | Tier/module state syncs and gates surfaces offline using cached entitlements.          |
+| `0.7`      | Tier B/C Shells        | Tier B Pro and Tier C Plus routes/screen shells exist and are gated.                   |
+| `0.8`      | Tier D/E Shells        | Tier D Premium and Tier E Enterprise shells plus web tier/pricing management exist.    |
+| `0.9`      | Test + Polish Gate     | Full test coverage, visual QA, accessibility, performance, and tier acceptance.        |
+| `0.1alpha` | First Pilot Store      | A real store starts only after the `0.9` gates are satisfied and evidence is recorded. |
 
 ### Web Dashboard Track (apps/web)
 
@@ -326,18 +361,18 @@ Early product stability matters, but paid observability should follow actual ris
 
 ### Paid Upgrade Milestones
 
-| Milestone                   | Maximum Spend Target | Allowed Paid Products                                               |
-| --------------------------- | -------------------- | ------------------------------------------------------------------- |
-| `v0.1` Foundation Preview   | `$0/mo`              | None. Local only.                                                   |
-| `v0.2` App Bootstrap        | `$0/mo`              | None unless build tooling is blocked.                               |
-| `v0.3` Data Contract        | `$0/mo`              | None. Use local Supabase.                                           |
-| `v0.4` Offline Sale MVP     | `$0/mo`              | None required.                                                      |
-| `v0.5` Tier A UX            | `$0/mo` preferred    | EAS paid only if native build limits block progress.                |
-| `v0.6` Sync Beta            | `$0-$25/mo` target   | Supabase Pro only if hosted sync is needed for pilot.               |
-| `v0.7` Printer Beta         | `$0-$25/mo` target   | Same as above; printer hardware may be the main cost.               |
-| `v0.8` Correctness Gate     | `$0-$50/mo` target   | Supabase/EAS only if CI/build/pilot requires it.                    |
-| `v0.9` Production Candidate | Revenue-backed       | Supabase Pro, EAS paid, Sentry/PostHog only with pilot need.        |
-| `1.0` Production            | Revenue-backed       | Paid services allowed when tied to paying stores and support needs. |
+| Milestone                  | Maximum Spend Target | Allowed Paid Products                                               |
+| -------------------------- | -------------------- | ------------------------------------------------------------------- |
+| `v0.1` Scaffold Foundation | `$0/mo`              | None. Local only.                                                   |
+| `v0.2` App Bootstrap       | `$0/mo`              | None unless build tooling is blocked.                               |
+| `v0.3` Data Contract       | `$0/mo`              | None. Use local Supabase.                                           |
+| `v0.4` Offline Sale MVP    | `$0/mo`              | None required.                                                      |
+| `v0.5` Tier A UX           | `$0/mo` preferred    | EAS paid only if native build limits block progress.                |
+| `v0.6` Sync Beta           | `$0-$25/mo` target   | Supabase Pro only if hosted sync is needed for pilot.               |
+| `v0.7` Printer Beta        | `$0-$25/mo` target   | Same as above; printer hardware may be the main cost.               |
+| `v0.8` Tier D/E Shells     | `$0-$50/mo` target   | Supabase/EAS only if CI/build/pilot requires it.                    |
+| `v0.9` Test + Polish Gate  | Revenue-backed       | Supabase Pro, EAS paid, Sentry/PostHog only with pilot need.        |
+| `1.0` Production           | Revenue-backed       | Paid services allowed when tied to paying stores and support needs. |
 
 ### Revenue-Backed Upgrade Rule
 
@@ -383,14 +418,14 @@ Run this review once any paid service is enabled.
 - [ ] BIR language uses “BIR-ready,” “provisional receipt,” and similar safe wording only.
 - [ ] No deprecated stack choices: no Expo Go for production testing, no `expo-background-fetch`, no legacy `SQLite.openDatabase()`, no Next.js `middleware.ts`, no Zod `message:` param.
 
-## Current State: v0.1 Foundation Preview
+## Current State: v0.1 Scaffold Checkpoint
 
 ### What Exists
 
 #### Root + tooling
 
 - [x] Root monorepo scaffold exists.
-- [x] Root `package.json` has Turborepo scripts (`dev`, `build`, `lint`, `typecheck`, `test`, `format`, `db:*`, `mobile:*`, `check:expo-doctor`, `check:mobile-bundle`, `check:foundation`).
+- [x] Root `package.json` has Turborepo scripts (`dev`, `build`, `lint`, `typecheck`, `test`, `format`, `db:*`, `mobile:*`, `check:tier-ui-sources`, `check:expo-doctor`, `check:mobile-bundle`, `check:foundation`).
 - [x] `turbo.json` uses `tasks`, not deprecated `pipeline`. Schema URL is `https://turborepo.dev/schema.json`.
 - [x] TypeScript base config exists (`packages/typescript-config/base.json`, `target: esnext`, `strict`, `noUncheckedIndexedAccess`).
 - [x] ESLint 10 flat config exists (`eslint.config.mjs` with TS-ESLint, react-hooks, prettier).
@@ -399,17 +434,17 @@ Run this review once any paid service is enabled.
 - [x] `.nvmrc` and `.node-version` pin current LTS Node 24.
 - [x] `.env.example` uses publishable-key naming, no anon key.
 - [x] PR template (`.github/PULL_REQUEST_TEMPLATE.md`) lists the foundation gate and BIR/RLS rules.
-- [x] CI workflow (`.github/workflows/foundation.yml`) runs install, format check, SQLite drift, forbidden patterns, typecheck, lint, test on Bun 1.3.13.
-- [x] Foundation gate scripts: `scripts/check-forbidden-patterns.mjs` (17 banned patterns), `scripts/check-local-sqlite-schema.mjs` (drift between SQL file and embedded string).
+- [x] CI workflow (`.github/workflows/foundation.yml`) runs the same foundation gate on Bun 1.3.13.
+- [x] Foundation gate scripts: forbidden patterns, local SQLite schema drift, tier UI source existence, markdown links, and skill-doc structure.
 
 #### Workspace packages
 
-- [x] `packages/shared` exists with types, constants, Zod 4 validators (product/saleItem/inventoryDelta/PH phone), and tested utilities (formatMoney, splitStock, displayStock, piecesForSaleUnit, generateReceiptNumber, isValidReceiptNumber, normalizePhPhone, isValidPhPhone).
+- [x] `packages/shared` exists with types, constants, five-tier definitions, Zod 4 validators (product/saleItem/inventoryDelta/PH phone/tier entitlement), and tested utilities (formatMoney, splitStock, displayStock, piecesForSaleUnit, generateReceiptNumber, isValidReceiptNumber, normalizePhPhone, isValidPhPhone).
 - [x] `packages/db` exists with `DbProduct`, `DbSale`, `DbSaleItem`, `DbCategory`, `DbInventoryLog`, `DbCustomer`, `DbSyncQueueRow`, `DbAppliedOperation`, `DbAuditLog`, `DbBranch`, `DbBusiness`, `DbUser`.
 - [x] `packages/typescript-config` exposes `base`, `react-native`, `nextjs` configs.
 - [x] `packages/eslint-config` package shell exists.
 
-#### Mobile app (placeholders, but every shell exists)
+#### Mobile app
 
 - [x] `apps/mobile/package.json` with Expo SDK 55 dependency set (printer, MMKV, sqlite, audio, haptics, camera, FlashList v2, Reanimated 4, gesture-handler, SVG, vector icons).
 - [x] `app.config.ts` with iOS/Android bundles, BLE/camera permissions, `UIBackgroundModes`, `BGTaskSchedulerPermittedIdentifiers`, Bluetooth strings, `expo-build-properties` setting min/compile/target SDK.
@@ -418,21 +453,25 @@ Run this review once any paid service is enabled.
 - [x] Root provider stack: `GestureHandlerRootView` → `SQLiteProvider` → `QueryClientProvider` → `PaperProvider` → `Stack` with dual `Stack.Protected` guards.
 - [x] Route shells: `(auth)/sign-in.tsx`, `(auth)/verify-otp.tsx`, `(app)/(tabs)/index.tsx` (sale), `(app)/(tabs)/inventory.tsx`, `(app)/(tabs)/reports.tsx`, `(app)/checkout.tsx`, `(app)/receipt.tsx`, `(app)/scanner.tsx`, root `index.tsx` redirect.
 - [x] Services: `services/storage.ts` (single MMKV + Zustand adapter), `services/query-client.ts` (5min stale, 30min gc, retry 2, no refetchOnFocus), `services/supabase.ts` (publishable-key, MMKV auth storage, `autoRefreshToken`, `persistSession`, no URL detection).
-- [x] Zustand stores with MMKV persist: `stores/auth-store.ts` (user/business/role/branch/cashier/store/TIN), `stores/cart-store.ts` (CartItem with line totals, partialize items only), `stores/settings-store.ts` (modules, language, themeMode, all modules default OFF).
+- [x] Zustand stores with MMKV persist: `stores/auth-store.ts` (user/business/role/branch/cashier/store/TIN + cached tier entitlements), `stores/cart-store.ts` (CartItem with line totals, partialize items only), `stores/settings-store.ts` (modules, language, themeMode, all modules default OFF).
 - [x] Local DB: `db/init.ts`, `db/schema.ts` (LOCAL_SCHEMA_SQL), `db/migrations/001_initial_schema.sql` (products, categories, sales, sale_items, sync_queue, receipt_sequence, customers, inventory_logs, settings, schema_version with PRAGMA WAL + foreign_keys ON, idempotent CREATE IF NOT EXISTS).
 - [x] Theme + design tokens: `constants/colors.ts` (teal/amber/ink/semantic/categoryBg) with passing test, `constants/theme.ts` (MD3 light + dark + `useAppTheme`).
 - [x] i18n: `i18n/translations.ts` (29 EN + 29 TL keys, `useT()` reads from settings store).
 - [x] Feature hooks: `features/products/hooks/use-products.ts` (filter by `category_id`, sort by name), `features/products/hooks/use-categories.ts` (with product counts), `features/reports/hooks/use-daily-sales.ts` (hourly bucket, payment mix, totals).
 - [x] Hooks: `hooks/use-haptics.ts` (`tapLight`, `tapMedium`, `selection`, `success`, `error`).
+- [x] Tier scaffold: subscription/upgrade screens, tier-aware surface shells, locked-surface card, and entitlement refresh after sync.
 
 #### Web app
 
-- [x] `apps/web/package.json` exists as a deferred placeholder (no Next.js install yet).
+- [x] Next.js 16 app exists with phone OTP auth, protected dashboard layout, read-only overview, reporting ranges, CSV/PDF exports, sync/audit views, pricing page, and guarded management scaffolds.
+- [x] Web tier gating uses shared entitlement definitions for Products, Branches, Users, Modules, Sync, Audit, and Exports.
 
 #### Supabase
 
 - [x] `supabase/config.toml` (PG17, port 54321/54322, phone auth enabled).
-- [x] `supabase/migrations/20260508000000_initial_schema.sql` covers users, businesses, branches, categories, products, customers, sales (UNIQUE business_id+receipt_number), sale_items, receipts, inventory_logs, payments, utang_payments, audit_logs (with immutability trigger), applied_operations.
+- [x] `supabase/migrations/20260508000000_initial_schema.sql` covers users, businesses, branches, categories, products, customers, sales (UNIQUE business_id+receipt_number), sale_items, receipts, inventory_logs, payments, utang_payments, audit_logs (with immutability trigger), applied_operations, and tier entitlement columns.
+- [x] `supabase/migrations/20260510000000_tier_normalization.sql` normalizes legacy subscription strings into the five canonical tiers.
+- [x] `supabase/migrations/20260510000001_entitlement_guards.sql` adds server-side entitlement helper functions.
 - [x] RLS enabled on every Supabase table. SELECT/INSERT/UPDATE policies follow `auth.uid()` pattern; child tables (sale_items, receipts, payments, utang_payments) isolate via parent.
 - [x] `apply_inventory_delta` SECURITY DEFINER RPC with race-safe `INSERT...ON CONFLICT DO NOTHING RETURNING`, tenant guard, `in_progress`/`completed`/`failed` lifecycle, negative-stock fallback, `replayed: true` on cached result.
 - [x] `supabase/seed.sql` with sample sari-sari business + 6 tingi products (shampoo, yosi, kape, noodles, kendi, drinks).
@@ -440,14 +479,14 @@ Run this review once any paid service is enabled.
 #### Reference
 
 - [x] `docs/skills/` contains the 22 procedural docs (domain, framework, infra, cross-cutting).
-- [x] Suki POS UI reference exists under `UI/` (CSS-only — used as design source, not migrated to RN code).
+- [x] Suki POS UI reference exists under `UI/` (reference-only — used as design/product source, not copied into RN/Next code). `check:tier-ui-sources` verifies the five tier files exist.
 
 ### Resolved And Remaining Gaps
 
 #### Resolved
 
 - [x] `apps/mobile/package.json` now exists.
-- [x] `apps/web/package.json` now exists as a deferred web-dashboard placeholder.
+- [x] `apps/web` now exists as a real Next.js 16 dashboard with reporting/export and guarded management scaffolds.
 - [x] Mobile app runtime entry point now exists through Expo Router.
 - [x] `apps/mobile/app/_layout.tsx` now exists with the full provider stack.
 - [x] Expo config (`app.config.ts`) and EAS config (`eas.json`) now exist.
@@ -458,6 +497,7 @@ Run this review once any paid service is enabled.
 - [x] Foundation forbidden-pattern scanner and SQLite-drift checker exist.
 - [x] All Zustand stores, services, theme tokens, and i18n exist.
 - [x] All Tier A route shells exist (auth, app/tabs, checkout, receipt, scanner) and compile.
+- [x] Five-tier scaffold exists across shared constants, Supabase migrations, mobile entitlement cache, mobile surface shells, and web surface guards.
 
 #### Remaining
 
@@ -467,7 +507,7 @@ Run this review once any paid service is enabled.
 - [!] Docker is not installed/running in this shell, so local Supabase containers cannot start yet.
 - [!] Supabase local phone login warns when no SMS provider is configured; hosted staging needs a provider/test-number strategy before real OTP closes.
 - [x] `docs/spec-v5.md` exists as the project spec meta-index.
-- [/] Supabase Edge Function folders exist. `apply-inventory-delta` and `create-sale` are implemented; `eod-report` is still planned.
+- [/] Supabase Edge Function folders exist. `apply-inventory-delta`, `create-sale`, and `eod-report` report scaffold are implemented; deployment evidence and SMS delivery remain planned.
 - [/] Tier A vertical: sale → checkout → receipt now writes a real `db.withTransactionAsync` transaction with sync-queue rows. Inventory and reports tabs now render local SQLite data; scanner is still intentionally disabled.
 - [/] Sync processor exists with foreground AppState trigger, background-task registration, auth guard, shared executor, and a local sync-health query. Real Supabase staging verification is still pending.
 - [ ] No printer integration exists.
@@ -1301,7 +1341,7 @@ Acceptance:
 - [ ] Assign or fetch `cashierCode`.
 - [/] Store device identity locally. Branch/cashier live in `auth-store`; install ID persists in MMKV via `getOrCreateInstallId()`. Real server-issued device registration still pending.
 - [ ] Prevent checkout without branch/cashier code.
-- [ ] Document how new devices get a code.
+- [/] Document how new devices get a code. Install id is generated locally and heartbeats into `business_devices`; human pairing/code UX remains pending.
 
 Acceptance:
 
@@ -1593,7 +1633,7 @@ Purpose: decide whether TD POS is safe to call v1.0. Per the Release Pact, v1.0 
 - [ ] Read-only dashboard reflects latest synced state for the tenant.
 - [ ] Reports (daily/weekly/monthly) work and export CSV + PDF.
 - [ ] Product, branch, user, module management all work.
-- [ ] Sync health view shows per-device queue depth and last seen.
+- [/] Sync health view shows per-device queue depth and last seen. Web `/sync` reads `business_devices` for status, last-seen timestamps, and sanitized queue counts from mobile foreground heartbeat. Production heartbeat cadence and stale-device rules remain pending.
 - [ ] Audit log view is accessible to owner/manager.
 - [ ] Tenant A cannot see tenant B at any layer (RLS verified).
 - [ ] WCAG 2.2 AA equivalent across every screen.
@@ -1721,10 +1761,10 @@ Purpose: every row in this phase blocks v1.0. Per the Release Pact, "enterprise-
 
 ### P11.5.5 Subscription / Module Validation Offline
 
-- [ ] On every successful sync, cache `subscription_tier`, `module_state`, `entitlements_valid_until` locally.
-- [ ] Sale path remains fully available offline regardless of subscription status (cashier flow must not block).
-- [ ] Manager/owner gates (utang ledger, multi-branch, exports) check the cached entitlement and fail closed once `entitlements_valid_until` is more than 7 days old without a successful sync.
-- [ ] Free tier limits (`FREE_MAX_PRODUCTS`, `FREE_MAX_DEVICES`, `FREE_MAX_USERS`) enforced both client-side (UI) and server-side (RPC reject).
+- [x] On successful auth/bootstrap and sync refresh, cache `subscription_tier`, `module_state`, `entitlements_valid_until`, and limits locally.
+- [x] Sale path remains fully available offline regardless of subscription status (cashier flow must not block).
+- [/] Manager/owner gates (utang ledger, multi-branch, exports) check cached entitlements. Web export gating, mobile locked-surface shells, and a 7-day stale-entitlement fail-closed helper exist; the full `0.9` test pass still needs to prove every surface uses it.
+- [/] Free tier limits have shared defaults, DB columns, server helper functions, and guarded web Server Action scaffolds for product/branch/user creation. Real mutation RPCs and the `0.9` test pass still need to prove enforcement end to end.
 
 ### P11.5.6 Data Privacy (Philippine DPA / RA 10173)
 
@@ -1743,13 +1783,13 @@ Purpose: every row in this phase blocks v1.0. Per the Release Pact, "enterprise-
 - [/] Lost-device runbook: device deactivation, sync-queue replay, receipt sequence reservation transfer to a new device. Process is documented in `docs/operations/support-runbook.md`; device-management implementation remains pending.
 - [x] EAS Update rollback plan: every release has a known-good prior update channel pinned for fast revert. `docs/operations/pilot-readiness.md` documents rollback to previous update, rollback to embedded update, and the rule that pilot builds do not use OTA until the update channel plan is explicit.
 
-### P11.5.8 EOD SMS Automation (Free → Starter Conversion Trigger)
+### P11.5.8 EOD SMS Automation (Tier A → Tier B Conversion Trigger)
 
-- [ ] Edge Function `eod-report` runs nightly via Supabase Cron and computes per-business EOD totals.
+- [/] Edge Function `eod-report` computes tenant-scoped EOD totals for authenticated preview or future secret-mode cron. Nightly Supabase Cron wiring and SMS delivery remain pending.
 - [ ] When SMS module is enabled, sends an EOD summary to the owner's phone via the chosen SMS provider.
 - [ ] Failure path: send-once-per-night with a 3-retry budget; daily diagnostics surface failures.
 - [ ] Cost guard: SMS spend cap configured per business (per the Cost Principles in this doc).
-- [ ] Conversion metric: track Free businesses that opt into SMS and become Starter within 30 days.
+- [ ] Conversion metric: track Tier A Free businesses that opt into SMS and become Tier B Pro within 30 days.
 
 ### P11.5.9 Support Diagnostics And Runbook
 
@@ -1826,7 +1866,7 @@ Acceptance:
 - [/] Products view: low-stock list lands on the dashboard home (`getLowStockProducts`); standalone `/products` page deferred to W0.8.
 - [/] Sales view: recent-receipts list lands on the dashboard home (`getRecentSales`); paginated `/sales` view deferred to W0.7 with reporting.
 - [/] Inventory view: low-stock-only slice on the dashboard home; full per-product view deferred to W0.8.
-- [ ] Sync health view: per-device queue depth, last seen, failures. (Pending — sync_queue is mobile-only; needs a server-side mirror table or a per-device heartbeat. Tracked in W0.7.)
+- [/] Sync health view: per-device queue depth, last seen, failures. Web `/sync` includes `business_devices` rows for device status, last seen, and queue-count snapshots. Mobile foreground sync upserts those counts from local SQLite without payloads.
 - [x] Empty/loading/error states on every read-only card. The dashboard renders a friendly "Supabase env unconfigured" notice instead of crashing when keys are missing.
 - [ ] EN + TL strings via the same source as mobile (deferred — web copy stays English-only until W0.7 when the report PDF needs both languages).
 - [x] RLS-protected Server Component query module in `apps/web/src/lib/queries/dashboard.ts`: sales summary, low stock, recent receipts, branch breakdown, cashier breakdown, and top sellers. `import 'server-only'` hard-stops accidental client imports.
@@ -1849,7 +1889,7 @@ Acceptance:
 - [x] PDF export using `@react-pdf/renderer` with the BIR-ready receipt format applied. Route Handler: `GET /api/exports/sales/pdf?from=YYYY-MM-DD&to=YYYY-MM-DD`, Node runtime, defense-in-depth `getCurrentClaims()` check, RLS-scoped `getSalesForExport()`, `renderToBuffer`, `application/pdf`, `Cache-Control: private, no-store`.
 - [x] Audit log view (read-only, filtered by tenant). Server Component at `/audit`, query at `apps/web/src/lib/queries/audit-log.ts`. Surfaces field _names_ of changed columns only (`beforeKeys`, `afterKeys` derived from `Object.keys`); never values — preserves the ADR-014 privacy posture. RLS scopes per-tenant; the `prevent_audit_mutation` trigger from the initial migration enforces immutability at the database, so the page is read-only by construction.
 - [ ] Stock Accuracy Score view (system vs last cycle count).
-- [/] Sync health view. Server Component at `/sync`, query at `apps/web/src/lib/queries/sync-health.ts`. Reads `applied_operations` (RLS-scoped) and surfaces: completed (24h), in_progress (any age), stuck (`status='in_progress' AND applied_at < now()-60s`), failed (24h), last `applied_at`, and last 10 failure rows with their `reason` label only. Single `Promise.all` of six tenant-scoped queries. Tone-coded banner: green/healthy, amber/review, red/action-needed. Per-device queue depth still pending — needs an agent-pings table or a derived view; tracked separately under P11.5.9 Support Diagnostics.
+- [/] Sync health view. Server Component at `/sync`, query at `apps/web/src/lib/queries/sync-health.ts`. Reads `applied_operations` (RLS-scoped) and surfaces: completed (24h), in_progress (any age), stuck (`status='in_progress' AND applied_at < now()-60s`), failed (24h), last `applied_at`, last 10 failure rows with their `reason` label only, and latest `business_devices` rows with status, last seen, and sanitized local queue counts. Tone-coded banner: green/healthy, amber/review, red/action-needed. Production heartbeat cadence and stale-device rules remain pending.
 
 Acceptance:
 
@@ -1859,15 +1899,16 @@ Acceptance:
 
 ### W0.8 Management
 
-> Status: deliberately not started. W0.8 is mutating CRUD against tenant data — every screen needs a Server Action with auth + Zod + audit-log emission. Pattern is well-established (see W0.7 Server Actions for OTP and sign-out), but each item is a real screen + form + action + audit entry. Do not start until W0.7 PDF and the staging Supabase project are wired so end-to-end testing is possible.
+> Status: scaffolded, not complete. Read-only management pages, tier-aware locked actions, Zod-validated Server Action payload shapes, and server-side limit guard calls exist. The actions intentionally stop before mutation; database writes and audit-log emission land when W0.8 turns from scaffold into production workflow.
 
-- [ ] Product CRUD with bulk import CSV.
-- [ ] Category CRUD.
-- [ ] Branch CRUD with branch-code uniqueness checked across tenant.
-- [ ] User CRUD (cashier, manager, owner) with role assignment.
-- [ ] Module toggles (utang, customer SMS, loyalty, multi-branch, etc.) — with confirmation step.
+- [/] Product CRUD with bulk import CSV. Page scaffold and product-draft validation exist; mutating action pending.
+- [/] Category CRUD. Product/catalog management scaffold, RLS-scoped category list, and guarded category-draft validation exist; mutating action pending.
+- [/] Branch CRUD with branch-code uniqueness checked across tenant. Page scaffold and branch-draft validation exist; mutating action pending.
+- [/] User CRUD (cashier, manager, owner) with role assignment. Page scaffold and invite-draft validation exist; mutating action pending.
+- [/] Device management. `/devices` route, `web.devices` tier surface, registered-device table, max-device limit display, sanitized queue counts, and guarded status-action validation exist; mark-lost/deactivate mutations pending.
+- [/] Module toggles (utang, customer SMS, loyalty, multi-branch, etc.) — with confirmation step. Page scaffold, module-state validation, and tier display exist; persistent toggle action pending.
 - [ ] EOD SMS configuration (provider, schedule, opt-in customers).
-- [ ] Subscription tier display + upgrade path (no in-app payment yet).
+- [x] Subscription tier display + upgrade path scaffold (no in-app payment yet).
 
 Acceptance:
 
@@ -1895,7 +1936,7 @@ Acceptance:
 - W0.3 Auth Shell — ✅ done.
 - W0.5 Read-Only Dashboard — ✅ done; date-range support added in W0.7.
 - W0.7 Reporting & Exports — ✅ daily/weekly/monthly report (incl. hourly pattern), CSV/PDF export, audit log, sync health. Open: Stock Accuracy Score (needs cycle-count schema).
-- W0.8 Management — deliberately deferred until staging Supabase exists; design pattern established.
+- W0.8 Management — scaffolded with tier-aware locked actions; mutating CRUD actions pending.
 - W0.9 Web Production Candidate — gated on hosted deploy + pilot user.
 
 Code-side, the web track has matched the substrate quality of the mobile track: same `@tdpos/shared` formatters, same brand palette, same defense-in-depth auth, same discriminated-union query pattern. What's left is either (a) more screens following the same pattern (W0.8) or (b) infrastructure work the code can't do alone (W0.9).
@@ -1907,14 +1948,14 @@ Purpose: the public-facing brand site that ships the same day as mobile + web. M
 ### M0.1 Marketing Foundation
 
 - [ ] Domain decided and reserved.
-- [ ] Site stack picked (Next.js or static; reuse the monorepo if it makes sense).
-- [ ] Approved BIR language only (lint the marketing copy with the same `check:patterns` script).
-- [ ] Privacy policy + Terms of Service drafts ready for legal review.
+- [x] Site stack picked: `apps/marketing` uses Next.js 16 inside the monorepo.
+- [x] Approved BIR language only (lint the marketing copy with the same `check:patterns` script).
+- [/] Privacy policy + Terms of Service drafts ready for legal review. Scaffold pages exist; legal copy is not final.
 
 ### M0.5 Pricing And Pitch
 
-- [ ] Pricing page reflects the current tier model (Free, Starter, Growth, Pro, Business, Enterprise).
-- [ ] Pitch copy aligned with "Tama ang stock mo. Lagi."
+- [/] Pricing page reflects the current A-E tier model through the web `/pricing` scaffold and `apps/marketing/pricing`, both sourced from `TIER_DEFINITIONS`.
+- [x] Pitch copy aligned with "Tama ang stock mo. Lagi."
 - [ ] No "BIR-compliant/certified/approved" wording. Only "BIR-ready" / "Provisional receipts."
 - [ ] Demo screenshots from a real build, not mockups.
 
@@ -1924,7 +1965,7 @@ Purpose: the public-facing brand site that ships the same day as mobile + web. M
 - [ ] Analytics with consent (PostHog or equivalent, free tier first).
 - [ ] App Store + Play Store badges (placeholders until the apps are listed).
 - [ ] Support contact path live and reachable.
-- [ ] 404 + 500 pages designed.
+- [/] 404 + 500 pages designed. Marketing `not-found` and error-boundary scaffolds exist; final launch visual QA remains in M0.9.
 - [ ] OG image + Twitter card set.
 
 Acceptance:
@@ -2016,30 +2057,30 @@ The web dashboard is no longer a Post-1.0 expansion. See **Phase W: Web Dashboar
 
 ### E6 Tier B-E Product Expansion
 
-- [ ] Tier B tablet POS.
-- [ ] Tier B owner dashboard.
-- [ ] Tier C shift handoff.
-- [ ] Tier C convenience workflows.
-- [ ] Tier D supermarket workflows.
-- [ ] Tier D scale/weighted PLU.
-- [ ] Tier E chain/HQ rollup.
-- [ ] Tier E returns/warranty desk.
-- [ ] Tier E self-service kiosk.
+- [/] Tier B tablet POS.
+- [/] Tier B owner dashboard.
+- [/] Tier C shift handoff.
+- [/] Tier C convenience workflows.
+- [/] Tier D supermarket workflows.
+- [/] Tier D scale/weighted PLU.
+- [/] Tier E chain/HQ rollup.
+- [/] Tier E returns/warranty desk.
+- [/] Tier E self-service kiosk.
 
 ## Next 10 Implementation Tasks
 
-Updated 2026-05-09 after background sync wiring, manager diagnostics/support bundle, the auth-gated foreground trigger, and atomic remote sale creation landed. The remaining work to reach v0.4 → v0.6 → v1.0 is now mostly device-side, hosted Supabase wiring, Postgres test coverage, Tier A screen polish, and Phase W (web dashboard) bootstrap.
+Updated 2026-05-10 after the five-tier scaffold landed. The project is now in scaffold-first mode: build the full tier surface through `0.8`, then concentrate testing/polish/visual QA at `0.9`, then pilot at `v0.1alpha`.
 
-- [x] 1. Initialize git and commit the current foundation (P0.1). Without a repo, no PR-based review and no branch protection (P10.1).
-- [x] 2. Install Bun + Supabase CLI directly. Document the toolchain in `docs/development-setup.md`.
-- [ ] 3. Stand up a hosted Supabase Free project for staging. Apply the initial schema, immutability triggers, and `create_sale_atomic` migration. Configure publishable + secret keys in `eas.json` per profile.
-- [ ] 4. Add Postgres §14 tests for delta concurrency, remote negative-stock review, `create_sale_atomic` replay, and TOCTOU behavior.
-- [/] 5. Finish Tier A cashier polish: Inventory and Reports tabs (`P5.5`, `P5.6`) using the existing `useProducts()` and `useDailySales()` hooks.
-- [ ] 6. Land P7.1 phone OTP flow on `app/(auth)/sign-in.tsx` + `app/(auth)/verify-otp.tsx` and keep the demo shortcut behind `__DEV__`.
-- [ ] 7. Build `apps/web` Next.js 16 foundation (Phase W0.1): `proxy.ts`, `getClaims()`, App Router skeleton, `@supabase/ssr` wired to the same staging project.
-- [ ] 8. EAS dev build (iOS simulator + Android internal) and run the offline-sale gate test (P4.6) on a real device. Tag `v0.4` once the airplane-mode round-trip is recorded in the Evidence Log.
-- [ ] 9. In the dev build, verify `triggerBackgroundSyncForTesting()` and an OS-scheduled background task against the staging Supabase project.
-- [x] 10. Add free-disk/storage metadata to diagnostics when the package choice is verified. Implemented with the Expo SDK 55 `expo-file-system` `Paths.availableDiskSpace` / `Paths.totalDiskSpace` API, not the deprecated legacy async methods.
+- [ ] 1. Commit the five-tier scaffold checkpoint once the documentation checkpoint and foundation gate are green.
+- [/] 2. Fill Tier B Pro mobile shells: tablet POS, owner lanes, shift login, shift handoff. Product-specific surface contracts and native preview panels exist; production controls pending.
+- [/] 3. Fill Tier C Plus mobile shells: convenience counter and manager-phone override flow. Product-specific surface contracts and native preview panels exist; production controls pending.
+- [/] 4. Fill Tier D Premium mobile shells: supermarket counter, customer display, back-office audit, weighted PLU placeholders. Product-specific surface contracts and native preview panels exist; production controls pending.
+- [/] 5. Fill Tier E Enterprise mobile shells: HQ rollup, self-service kiosk, returns/warranty placeholders. Product-specific surface contracts and native preview panels exist; production controls pending.
+- [/] 6. Convert web management scaffold buttons into guarded Server Actions for products, categories, branches, users, devices, and modules; every mutation must use Zod, RLS, audit logging, and entitlement guard helpers. Guarded + Zod-validated payload scaffolds exist for product/category/branch/user/module/device forms; real mutations/audit writes pending.
+- [/] 7. Add tier/pricing management content to the web pricing and future marketing track using `TIER_DEFINITIONS` as the only product source of truth. The web `/pricing` route and `apps/marketing/pricing` scaffold are wired; final launch copy/domain remain open.
+- [/] 8. Add stale-entitlement fail-closed behavior for manager/owner surfaces while preserving offline cashier sales. Mobile surface route now fails closed after the 7-day cache grace; full coverage across every future manager flow lands at `0.9`.
+- [ ] 9. Keep hosted Supabase/EAS/device work moving in parallel: staging migrations, EAS dev build, physical-device airplane-mode sale, and sync drain evidence.
+- [ ] 10. At `0.9`, add the full tier test suite: visibility, legacy migration mapping, offline entitlement cache, web route guards, screenshot parity against the five `UI/` references, accessibility, and performance.
 
 Original "First 10" (kept for history) — every item except 2 and the device runs is `[x]`.
 
@@ -2073,6 +2114,25 @@ Original First 10 (kept for history):
 
 Use this section as releases progress.
 
+### Five-Tier Scaffold Checkpoint — Latest-Docs Audit
+
+- [x] Date: 2026-05-10.
+- [x] Scope: five canonical tiers, entitlement scaffolding, mobile/web surface gates, Supabase tier migrations, docs reconciliation.
+- [x] Code evidence: `packages/shared/src/constants/index.ts` owns `TIER_DEFINITIONS`; `scripts/check-tier-ui-sources.mjs` validates all five UI reference paths; Supabase migrations `20260510000000_tier_normalization.sql` and `20260510000001_entitlement_guards.sql` exist.
+- [x] Foundation gate shape: format → SQLite drift → forbidden patterns → tier UI source check → doc links → skill docs → Expo Doctor → Android bundle export → typecheck → lint → existing tests.
+- [x] Verification: `source scripts/use-toolchain.sh && bun run check:toolchain` passes with Node 24.15.0, Bun 1.3.13, Supabase CLI 2.98.2, and EAS CLI runner available.
+- [x] Verification: `source scripts/use-toolchain.sh && bun run check:foundation` passes end-to-end.
+- [x] Current existing test count before the 0.9 tier suite: 57 passing tests total — 13 shared + 44 mobile.
+- [x] Mobile scaffold evidence: every registered `mobile.*` TierSurface now renders a native preview panel under `apps/mobile/src/features/tier-surfaces/surface-preview.tsx`; this keeps B-E routes visible without starting 0.9 polish.
+- [x] Backend scaffold evidence: `20260511000000_tier_surface_scaffold.sql` adds tenant-scoped RLS tables for devices, shifts, manager approvals, PLUs, kiosks, and returns; `/sync` reads device status from the new scaffold.
+- [x] Device heartbeat evidence: mobile foreground sync calls `upsertDeviceHeartbeat()` after entitlement refresh; the database trigger allows same-install refreshes while blocking a second active install over `max_devices`; heartbeat includes sanitized local sync-count snapshots only.
+- [x] Web device management evidence: `web.devices` is in the shared tier surface registry, `/devices` is linked from the dashboard shell, `getDeviceManagementRows()` renders registered devices from `business_devices`, and `updateDeviceStatusScaffoldAction()` validates status-action payloads behind the same tier guard.
+- [x] Marketing scaffold evidence: `apps/marketing` exists as a Next.js 16 app with home, pricing, privacy, and terms scaffold pages; pricing imports `TIER_DEFINITIONS` from `@tdpos/shared`.
+- [x] Latest-doc spot check: Expo SDK 55, Next.js 16 `proxy.ts`, Supabase SSR `getClaims()`, TanStack Query v5 `gcTime`, FlashList v2 migration, and Node 24 LTS lifecycle.
+- [x] Sources checked: `docs.expo.dev/versions/v55.0.0`, `nextjs.org/blog/next-16`, `supabase.com/docs/guides/auth/server-side/nextjs`, `tanstack.com/query/latest/docs/framework/react/guides/migrating-to-v5`, `shopify.github.io/flash-list/docs/v2-migration`, `nodejs.org/en/about/previous-releases`.
+- [x] Dependency posture: `bun outdated --recursive` was reviewed. Mobile React/RN/native package holds are intentional because Expo SDK 55 controls compatibility; do not chase npm latest when it breaks `expo-doctor`.
+- [!] Local machine posture: the default shell reported Node 25.9.0 before sourcing `scripts/use-toolchain.sh`. Source the helper, or otherwise use Node 24, before CI-parity verification.
+
 ### Foundation Checkpoint — Latest-Docs Audit
 
 - [x] Date: 2026-05-09.
@@ -2089,8 +2149,8 @@ Use this section as releases progress.
 
 - [x] Date: 2026-05-09 (foundation snapshot) → 2026-05-10 (git push to GitHub).
 - [x] Initial commit: `f4bb457` _"v0.1 foundation preview: mobile + web tracks, 15 ADRs, 20 skill docs, 8-stage foundation gate"_ on `main`. Subsequent commits on the same branch: `0e8917b feat(web): add sales PDF export`, `a623541 feat(web): add reporting ranges`, `c70a100 chore(mobile): link eas project`, `5e25fcc chore(deps): refresh package versions`.
-- [x] Remote: `https://github.com/tomytate/TDPOS.git` (private). CI workflow `.github/workflows/foundation.yml` runs the same 10-stage gate on every PR.
-- [x] Commands run: `bun run check:foundation` (now 10 stages green: format → SQLite drift → forbidden patterns → doc-link integrity → skill-doc gate → Expo Doctor → Android bundle export → typecheck across 6 workspaces → lint across 6 workspaces → tests).
+- [x] Remote: `https://github.com/tomytate/TDPOS.git` (private). CI workflow `.github/workflows/foundation.yml` runs the same foundation gate on every PR.
+- [x] Commands run: `bun run check:foundation` (format → SQLite drift → forbidden patterns → tier UI source check → doc-link integrity → skill-doc gate → Expo Doctor → Android bundle export → typecheck across 6 workspaces → lint across 6 workspaces → tests).
 - [ ] Device/simulator: not run on physical device yet — runtime acceptance criteria for P1.4/P1.5 still open.
 - [x] Notes: Mobile foundation + web foundation both real. Sale → checkout → receipt → sync_queue write proven by `bun:sqlite` integration tests. Web dashboard renders 9 RLS-scoped Server Component queries (Overview, audit, sync health) plus CSV + PDF exports. Hosted Supabase project provisioned and three migrations applied; live signup-and-render smoke test still owed once the leaked publishable key is rotated. Scanner, printer integration, real OTP on mobile, and device acceptance remain pending.
 

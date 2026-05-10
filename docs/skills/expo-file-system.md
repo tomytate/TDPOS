@@ -30,4 +30,4 @@ const totalDiskBytes = Paths.totalDiskSpace
 - Package: `expo-file-system@~55.0.19` in `apps/mobile/package.json`
 - Official docs: <https://docs.expo.dev/versions/v55.0.0/sdk/filesystem/>
 - Implementation: `apps/mobile/src/features/diagnostics/hooks/use-diagnostics-metadata.ts`, `apps/mobile/src/features/diagnostics/lib/diagnostics-metadata.ts`
-- Last verified: 2026-05-10
+- Last verified: 2026-05-11

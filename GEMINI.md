@@ -9,6 +9,8 @@ Monorepo: Turborepo 2.9 + Bun. Mobile: Expo SDK 55. Web: Next.js 16. Backend: Su
 Build: EAS Build for iOS + Android. Deploy: EAS Submit to App Store + Google Play.
 Full spec: `docs/spec-v5.md`
 
+Five canonical tiers: `tier_a_free`, `tier_b_pro`, `tier_c_plus`, `tier_d_premium`, `tier_e_enterprise`. Use `TIER_DEFINITIONS` from `@tdpos/shared` for labels, modules, limits, UI references, and route gates. The older six subscription names are migration-only.
+
 ## Key Architectural Decisions
 
 - **Offline-first:** SQLite is the local source of truth (`SQLiteProvider` + `useSQLiteContext`). Network is async side-effect via `expo-background-task`.
@@ -20,6 +22,7 @@ Full spec: `docs/spec-v5.md`
 - **PostgreSQL 17:** `gen_random_uuid()` built-in (no `uuid-ossp`), `JSON_TABLE` for batch processing, `MERGE RETURNING` for upserts.
 - **Phone OTP only:** Supabase Auth with MMKV storage adapter. E.164 format (+639XX). No email/password.
 - **EAS Build:** Development builds required (not Expo Go). `eas.json` defines profiles for dev/preview/production.
+- **Five-tier scaffold:** Root `UI/` files are reference-only; implementation must use Expo/Next components and shared tier gates.
 
 ## Coding Standards
 
@@ -45,8 +48,10 @@ bun install          # Install all
 bun run dev          # Dev all (turbo)
 bun run dev:mobile   # Expo only
 bun run dev:web      # Next.js only
+bun run dev:marketing # Marketing site only
 bun run check:expo-doctor # Expo native dependency health check
 bun run check:mobile-bundle # Android Metro bundle/export check
+bun run check:tier-ui-sources # Verify five tier UI references exist
 bun run lint         # ESLint 10
 bun run typecheck    # TS strict
 bun run test         # All tests

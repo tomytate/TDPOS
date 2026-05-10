@@ -3,9 +3,12 @@
 > **Version:** 2.0 (fact-checked) · **Updated:** 2026-05-08T20:52 PHT · **Phase:** 1 (Tier A Lite)
 > **Agents:** Claude (C), Gemini (G), Codex (X) · **Status Legend:** `[ ]` todo · `[/]` in progress · `[x]` done · `[!]` blocked
 
+> [!IMPORTANT]
+> **Checkpoint status (2026-05-10):** this file is now a historical Tier A work-package reference, not the active product plan. The active plan is the five-tier scaffold in [spec-v5.md](spec-v5.md), [architecture.md](architecture.md), and [road-to-1.0-enterprise-checklist.md](road-to-1.0-enterprise-checklist.md). Keep this document for provenance when comparing Tier A against `UI/b_g4eU9LYiRKM/components/pos/tier-a-lite.tsx`, but do not add new global product decisions here.
+
 > [!CAUTION]
 > **Fact-Check Errata (v2.0):** Three critical corrections from v1.0:
-> 1. **`@shopify/flash-list` is v2.0.2 for Expo SDK 55 compatibility** — `estimatedItemSize` is **DEPRECATED and removed** in v2. Remove ALL size estimation props.
+> 1. **`@shopify/flash-list` is pinned at v2.0.2 for the current Expo SDK 55 scaffold** even though newer v2.x releases exist. FlashList v2 removed size-estimation props; do not add `estimatedItemSize`.
 > 2. **`moti/skeleton` has Reanimated v4 compatibility issues** — community reports instability. Replaced with custom `Animated.View` + opacity pulse (zero-dep, Reanimated 4 native).
 > 3. **`expo-image` placeholder** uses object syntax: `placeholder={{ blurhash: '...' }}`, NOT `placeholder={blurhash}`.
 

@@ -8,6 +8,8 @@ TD POS v5.0 — offline-first, mobile-first SaaS POS for Philippine commerce.
 Primary pitch: "Tama ang stock mo. Lagi." (Your stock is correct. Always.)
 Full spec: `docs/spec-v5.md`
 
+Canonical tiers: `tier_a_free`, `tier_b_pro`, `tier_c_plus`, `tier_d_premium`, `tier_e_enterprise`. Use `TIER_DEFINITIONS` from `@tdpos/shared` for labels, modules, limits, UI reference paths, and route gates. Legacy subscription values are migration-only.
+
 ## Progressive Disclosure
 
 Do NOT load these until the task requires them:
@@ -64,6 +66,7 @@ The full deprecations table lives in [`docs/skills/deprecations.md`](docs/skills
 - Stock is always `stock_pieces` (INTEGER) — never fractional, never in packs.
 - Pack display is derived: `divmod(stock_pieces, pieces_per_pack)` → "X packs + Y pieces".
 - Sales rows are immutable — no UPDATE (except `synced_at`), no DELETE, ever.
+- Product tiering is A-E only. Do not create a parallel six-name subscription model.
 
 ### Domain Knowledge
 
@@ -71,8 +74,9 @@ The full deprecations table lives in [`docs/skills/deprecations.md`](docs/skills
 - **Utang** is an opt-in module (default OFF). Most businesses never enable it. Never show utang UI when module is disabled.
 - **DAR-30** is the north star metric: one sari-sari store completes ≥5 sales/day on ≥25 of 30 consecutive days.
 - **SAS (Stock Accuracy Score)** is the marketing weapon: measures system vs physical stock match rate.
-- **End-of-Day Report** is the Free→Starter conversion trigger (automated SMS delivery).
+- **End-of-Day Report** is the Tier A Free→Tier B Pro conversion trigger (automated SMS delivery).
 - **BIR language:** NEVER use "BIR-compliant/certified/approved" — only "BIR-ready" until accredited.
+- **Five-tier UI:** `UI/` is reference-only. Tier A is free; B-E progressively unlock paid/enterprise surfaces through shared tier gates.
 
 ### Sync Architecture
 
@@ -90,7 +94,7 @@ After any code change, run:
 bun run check:foundation
 ```
 
-## Tech Stack Quick Reference (Verified May 10, 2026)
+## Tech Stack Quick Reference (Verified May 11, 2026)
 
 | Layer          | Package                                  | Version       |
 | -------------- | ---------------------------------------- | ------------- |

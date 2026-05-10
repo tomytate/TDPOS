@@ -8,6 +8,8 @@ TD POS — offline-first, mobile-first SaaS POS for Philippine business.
 Monorepo: Turborepo 2.9 + Bun. Mobile: Expo SDK 55. Web: Next.js 16. Backend: Supabase (PostgreSQL 17).
 Build: EAS Build for iOS + Android. Deploy: EAS Submit to App Store + Google Play.
 
+Product tiers: `tier_a_free`, `tier_b_pro`, `tier_c_plus`, `tier_d_premium`, `tier_e_enterprise`. `TIER_DEFINITIONS` in `@tdpos/shared` is the source of truth; legacy values are migration-only.
+
 ## Architecture Notes
 
 - **Offline-first:** All writes go to local SQLite first (`SQLiteProvider` + `useSQLiteContext`). Sync is background via `expo-background-task`. UI never blocks on network.
@@ -20,6 +22,7 @@ Build: EAS Build for iOS + Android. Deploy: EAS Submit to App Store + Google Pla
 - **UI:** React Native Paper v5 (MD3, NOT MD2). `MD3LightTheme`, NOT `DefaultTheme`.
 - **Routing:** Expo Router file-based routing. `Stack.Protected` for auth guards. NOT React Navigation.
 - **State:** Zustand 5 + MMKV (client). TanStack React Query v5 (server). NOT Redux.
+- **Tiering:** A-E tier surfaces, limits, modules, and upgrade targets come from `TIER_DEFINITIONS`. Root `UI/` is reference-only.
 
 ## Style Guide
 
@@ -38,8 +41,10 @@ bun install                    # Install deps
 bun run dev                    # Start all (turbo)
 bun run dev:mobile             # Expo only
 bun run dev:web                # Next.js only
+bun run dev:marketing          # Marketing site only
 bun run check:expo-doctor      # Expo native dependency health check
 bun run check:mobile-bundle    # Android Metro bundle/export check
+bun run check:tier-ui-sources  # Tier reference source check
 bun run lint                   # ESLint 10
 bun run typecheck              # TS strict
 bun run test                   # All tests
