@@ -13,7 +13,11 @@ import { useAppTheme } from '@/constants/theme'
 import { useAuthStore } from '@/stores/auth-store'
 import {
   formatTierPrice,
+  getMinimumTierForSurface,
   getTierDefinition,
+  getTierSurfaces,
+  isTierSurfaceEnabled,
+  SURFACE_LABELS,
   type ModuleName,
   type SubscriptionTier,
 } from '@tdpos/shared'
@@ -31,6 +35,7 @@ const MODULE_LABELS: Record<ModuleName, string> = {
 }
 
 const PRICING_URL = 'https://tdpos.app/pricing'
+const MOBILE_SURFACES = getTierSurfaces('mobile')
 
 function formatLimit(limit: number | null, suffix: string): string {
   return limit === null ? `Unlimited ${suffix}` : `${limit.toLocaleString('en-PH')} ${suffix}`
@@ -72,9 +77,9 @@ export default function SubscriptionScreen() {
               {storeName ?? 'Your business'}
             </Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <Text variant="headlineSmall">{definition.shortLabel}</Text>
+              <Text variant="headlineSmall">{definition.publicName}</Text>
               <Chip mode="flat" compact>
-                {definition.label}
+                {definition.segment}
               </Chip>
             </View>
             <Text variant="titleMedium" style={{ color: theme.colors.primary }}>
@@ -94,8 +99,11 @@ export default function SubscriptionScreen() {
         <Card mode="contained">
           <Card.Content style={{ gap: 8 }}>
             <Text variant="labelLarge" style={{ color: theme.colors.onSurfaceVariant }}>
-              Limits
+              Tier contract
             </Text>
+            <LimitRow label="Billing" value={definition.billing} />
+            <LimitRow label="UI mode" value={definition.uiMode.replace(/_/g, ' ')} />
+            <LimitRow label="UI source" value={definition.uiSource} />
             <LimitRow label="Products" value={formatLimit(definition.maxProducts, '')} />
             <LimitRow label="Branches" value={formatLimit(definition.maxBranches, '')} />
             <LimitRow label="Devices" value={formatLimit(definition.maxDevices, '')} />
@@ -121,6 +129,38 @@ export default function SubscriptionScreen() {
                 ))}
               </View>
             )}
+          </Card.Content>
+        </Card>
+
+        <Card mode="contained">
+          <Card.Content style={{ gap: 8 }}>
+            <Text variant="labelLarge" style={{ color: theme.colors.onSurfaceVariant }}>
+              Mobile tier surfaces
+            </Text>
+            <View style={{ gap: 8 }}>
+              {MOBILE_SURFACES.map((surface) => {
+                const meta = SURFACE_LABELS[surface]
+                const unlocked = isTierSurfaceEnabled(tier, surface)
+                const required = getTierDefinition(getMinimumTierForSurface(surface))
+
+                return (
+                  <Button
+                    key={surface}
+                    mode={unlocked ? 'contained-tonal' : 'outlined'}
+                    icon={unlocked ? 'check-circle-outline' : 'lock-outline'}
+                    contentStyle={{ justifyContent: 'flex-start' }}
+                    onPress={() =>
+                      router.push({
+                        pathname: '/(app)/surfaces/[surface]',
+                        params: { surface },
+                      })
+                    }
+                  >
+                    {meta.label} · {unlocked ? 'Available' : required.shortLabel}
+                  </Button>
+                )
+              })}
+            </View>
           </Card.Content>
         </Card>
 

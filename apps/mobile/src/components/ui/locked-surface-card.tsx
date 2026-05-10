@@ -3,7 +3,7 @@
 // Consumed by the /upgrade explorer and (eventually) by per-surface stub
 // routes so the locked state is consistent across the app.
 
-import { Card, Chip, Text } from 'react-native-paper'
+import { Button, Card, Chip, Text } from 'react-native-paper'
 
 import { useAppTheme } from '@/constants/theme'
 import { SURFACE_LABELS, type TierDefinition, type TierSurface } from '@tdpos/shared'
@@ -14,9 +14,16 @@ interface LockedSurfaceCardProps {
   // caller via `getMinimumTierForSurface(surface)` so `/upgrade` can group
   // cards by unlocking tier without re-deriving on every render.
   unlocksAt: TierDefinition
+  actionLabel?: string
+  onAction?: () => void
 }
 
-export function LockedSurfaceCard({ surface, unlocksAt }: LockedSurfaceCardProps) {
+export function LockedSurfaceCard({
+  surface,
+  unlocksAt,
+  actionLabel,
+  onAction,
+}: LockedSurfaceCardProps) {
   const theme = useAppTheme()
   const meta = SURFACE_LABELS[surface]
 
@@ -37,6 +44,11 @@ export function LockedSurfaceCard({ surface, unlocksAt }: LockedSurfaceCardProps
         >
           Unlocks at {unlocksAt.shortLabel}
         </Chip>
+        {actionLabel && onAction ? (
+          <Button mode="text" compact onPress={onAction} style={{ alignSelf: 'flex-start' }}>
+            {actionLabel}
+          </Button>
+        ) : null}
       </Card.Content>
     </Card>
   )

@@ -17,6 +17,11 @@ import { useEffect } from 'react'
 
 import { supabase } from './supabase'
 import { bootstrapAuthFromSession, type SupabaseBootstrapClient } from './auth-bootstrap'
+import { upsertDeviceHeartbeat, type SupabaseDeviceHeartbeatClient } from './device-heartbeat'
+import {
+  refreshEntitlementsFromSupabase,
+  type SupabaseEntitlementsClient,
+} from './entitlements-refresh'
 import { useAuthStore } from '@/stores/auth-store'
 
 export function useAuthStateListener() {
@@ -50,6 +55,27 @@ export function useAuthStateListener() {
           store: { setAuth, setDevice },
         })
         setBootstrapStatus(outcome)
+
+        // After bootstrap populates the store, refresh the entitlement
+        // cache and register the device heartbeat in parallel. Both are
+        // best-effort: a failure here doesn't block the user (Tier A
+        // cashier sales remain available) and surfaces in the next
+        // diagnostics support bundle.
+        if (outcome.ok && supabase) {
+          await Promise.all([
+            refreshEntitlementsFromSupabase({
+              supabase: supabase as unknown as SupabaseEntitlementsClient,
+              businessId: outcome.auth.businessId,
+            }).catch((err) => {
+              console.warn('[AuthListener] entitlements refresh failed', err)
+            }),
+            upsertDeviceHeartbeat({
+              supabase: supabase as unknown as SupabaseDeviceHeartbeatClient,
+            }).catch((err) => {
+              console.warn('[AuthListener] device heartbeat failed', err)
+            }),
+          ])
+        }
       } catch (err) {
         console.warn('[AuthListener] bootstrap failed', err)
         setBootstrapStatus({

@@ -46,7 +46,10 @@ interface ResponseMap {
   businesses?: MockResponse
 }
 
-function makeClient(responses: ResponseMap): SupabaseBootstrapClient {
+function makeClient(
+  responses: ResponseMap,
+  rpcResponses: Record<string, MockResponse> = {},
+): SupabaseBootstrapClient {
   return {
     from(table: string) {
       const response: MockResponse = responses[table as keyof ResponseMap] ?? {
@@ -75,6 +78,9 @@ function makeClient(responses: ResponseMap): SupabaseBootstrapClient {
           }
         },
       }
+    },
+    async rpc(name: string) {
+      return rpcResponses[name] ?? { data: null, error: null }
     },
   }
 }

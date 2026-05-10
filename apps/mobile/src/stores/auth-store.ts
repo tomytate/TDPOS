@@ -23,6 +23,12 @@ interface AuthUserInput {
   entitlementsValidUntil?: string | null
 }
 
+interface EntitlementsInput {
+  subscriptionTier: SubscriptionTier
+  modules: ModuleState
+  entitlementsValidUntil?: string | null
+}
+
 interface DeviceInput {
   branchId: string
   branchCode: string
@@ -58,6 +64,7 @@ interface AuthState {
   // Excluded from MMKV persist via partialize — re-evaluated each session.
   bootstrapStatus: BootstrapOutcome | null
   setAuth: (user: AuthUserInput) => void
+  setEntitlements: (entitlements: EntitlementsInput) => void
   setDevice: (device: DeviceInput) => void
   setBootstrapStatus: (status: BootstrapOutcome | null) => void
   clearAuth: () => void
@@ -97,6 +104,12 @@ export const useAuthStore = create<AuthState>()(
           businessId,
           role,
           phone,
+          subscriptionTier,
+          modules,
+          entitlementsValidUntil,
+        }),
+      setEntitlements: ({ subscriptionTier, modules, entitlementsValidUntil = null }) =>
+        set({
           subscriptionTier,
           modules,
           entitlementsValidUntil,

@@ -67,6 +67,12 @@ export default function SaleScreen() {
           color={theme.colors.onPrimary}
         />
         <Appbar.Action
+          icon="card-account-details-outline"
+          color={theme.colors.onPrimary}
+          accessibilityLabel="Open subscription"
+          onPress={() => router.push('/(app)/subscription')}
+        />
+        <Appbar.Action
           icon="barcode-scan"
           color={theme.colors.onPrimary}
           accessibilityLabel="Open scanner"

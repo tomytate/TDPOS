@@ -10,6 +10,7 @@ import {
   TIER_A_FREE,
   getTierModuleState,
   normalizeSubscriptionTier,
+  resolveTierModuleState,
   type ModuleName,
   type SubscriptionTier,
   type UserRole,
@@ -87,12 +88,18 @@ interface OrderableQuery extends MaybeSingleResult {
   order(column: string, options: { ascending: boolean }): { limit(n: number): MaybeSingleResult }
 }
 
+interface RpcResult {
+  data: unknown
+  error: { message: string } | null
+}
+
 export interface SupabaseBootstrapClient {
   from(table: string): {
     select(columns: string): {
       eq(column: string, value: string): OrderableQuery
     }
   }
+  rpc(name: string, params: Record<string, unknown>): PromiseLike<RpcResult>
 }
 
 export type BootstrapOutcome =
@@ -169,7 +176,7 @@ export async function bootstrapAuthFromSession(params: {
   const userId = session.user.id
 
   // 1. Fetch users row.
-  const userRes = await supabase
+  let userRes = await supabase
     .from('users')
     .select('id, business_id, role, phone')
     .eq('id', userId)
@@ -178,7 +185,34 @@ export async function bootstrapAuthFromSession(params: {
   if (userRes.error) {
     return { ok: false, reason: 'query_failed', message: userRes.error.message }
   }
-  const userRow = userRes.data as SupabaseUserRow | null
+  let userRow = userRes.data as SupabaseUserRow | null
+
+  // 1b. No users row yet — try consuming a pending invite for the session
+  // phone. The RPC creates the users row + marks the invite consumed in one
+  // transaction; on success we re-fetch users so the rest of bootstrap can
+  // proceed unchanged. Best-effort: any RPC failure (incl. limit_exceeded)
+  // falls through to the original `account_not_provisioned` result.
+  if (!userRow && session.user.phone) {
+    try {
+      const consumeRes = await supabase.rpc('consume_pending_invite', {
+        p_phone: session.user.phone,
+      })
+      if (!consumeRes.error && consumeRes.data) {
+        userRes = await supabase
+          .from('users')
+          .select('id, business_id, role, phone')
+          .eq('id', userId)
+          .maybeSingle()
+        if (userRes.error) {
+          return { ok: false, reason: 'query_failed', message: userRes.error.message }
+        }
+        userRow = userRes.data as SupabaseUserRow | null
+      }
+    } catch (err) {
+      console.warn('[Bootstrap] consume_pending_invite failed', err)
+    }
+  }
+
   if (!userRow) {
     return { ok: false, reason: 'account_not_provisioned' }
   }
@@ -227,22 +261,7 @@ export async function bootstrapAuthFromSession(params: {
     storeAddress = businessRow.address
     tin = businessRow.tin
     subscriptionTier = normalizeSubscriptionTier(businessRow.subscription_tier)
-    // Tier defaults are the floor; per-tenant DB overrides win when present.
-    // Owners can disable an unlocked module without dropping a tier; they
-    // cannot enable a module that isn't unlocked at their tier (the merge
-    // keeps the DB value `false` overriding the tier `true` is fine, but
-    // module_state's truthy values for locked modules are silently ignored
-    // by clamping to the tier floor's `true` set on the consumer side).
-    const tierModules = getTierModuleState(subscriptionTier)
-    const dbModules = businessRow.module_state ?? {}
-    modules = (Object.keys(tierModules) as ModuleName[]).reduce(
-      (acc, key) => {
-        const dbValue = dbModules[key]
-        acc[key] = typeof dbValue === 'boolean' ? dbValue && tierModules[key] : tierModules[key]
-        return acc
-      },
-      {} as Record<ModuleName, boolean>,
-    )
+    modules = resolveTierModuleState(subscriptionTier, businessRow.module_state)
     entitlementsValidUntil = businessRow.entitlements_valid_until ?? null
   }
 

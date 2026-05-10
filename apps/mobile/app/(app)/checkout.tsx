@@ -37,9 +37,11 @@ export default function CheckoutScreen() {
   const cashierCode = useAuthStore((s) => s.cashierCode)
   const userId = useAuthStore((s) => s.userId)
   const businessId = useAuthStore((s) => s.businessId)
+  const modules = useAuthStore((s) => s.modules)
 
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isUtangPayment, setIsUtangPayment] = useState(false)
 
   const total = items.reduce((sum, item) => sum + item.lineTotal, 0)
   const change = paymentMethod === 'cash' && tendered >= total ? Math.max(0, tendered - total) : 0
@@ -52,12 +54,12 @@ export default function CheckoutScreen() {
       void haptics.error()
       return
     }
-    if (paymentMethod === null) {
+    if (!isUtangPayment && paymentMethod === null) {
       setError('Pick a payment method')
       void haptics.error()
       return
     }
-    if (paymentMethod === 'cash' && tendered < total) {
+    if (!isUtangPayment && paymentMethod === 'cash' && tendered < total) {
       setError('Tendered amount is less than total')
       void haptics.error()
       return
@@ -67,6 +69,7 @@ export default function CheckoutScreen() {
       void haptics.error()
       return
     }
+    const checkoutPaymentMethod: PaymentMethod = isUtangPayment ? 'cash' : paymentMethod!
 
     setSubmitting(true)
     void haptics.tapMedium()
@@ -75,7 +78,13 @@ export default function CheckoutScreen() {
       const result = await executeCheckout({
         db,
         clientOperationId: createClientOperationId(),
-        cart: { items, total, tendered, paymentMethod, isUtang: false },
+        cart: {
+          items,
+          total,
+          tendered: isUtangPayment ? 0 : tendered,
+          paymentMethod: checkoutPaymentMethod,
+          isUtang: isUtangPayment,
+        },
         device: { branchId, branchCode, cashierCode, userId, businessId },
       })
 
@@ -92,8 +101,8 @@ export default function CheckoutScreen() {
         total: result.total,
         tendered: result.tendered,
         change: result.change,
-        paymentMethod,
-        isUtang: false,
+        paymentMethod: checkoutPaymentMethod,
+        isUtang: isUtangPayment,
         items: items.map((item) => ({
           name: item.name,
           qty: item.qty,
@@ -140,11 +149,12 @@ export default function CheckoutScreen() {
           <Text variant="labelLarge">{t('checkout.paymentMethod')}</Text>
           <View style={{ flexDirection: 'row', gap: 8 }}>
             {PAYMENT_METHODS.map(({ method, label }) => {
-              const selected = paymentMethod === method
+              const selected = !isUtangPayment && paymentMethod === method
               return (
                 <Pressable
                   key={method}
                   onPress={() => {
+                    setIsUtangPayment(false)
                     setPaymentMethod(method)
                     void haptics.selection()
                   }}
@@ -168,10 +178,42 @@ export default function CheckoutScreen() {
                 </Pressable>
               )
             })}
+            {modules.utang ? (
+              <Pressable
+                onPress={() => {
+                  setIsUtangPayment(true)
+                  setPaymentMethod('cash')
+                  setTendered(0)
+                  void haptics.selection()
+                }}
+                accessibilityRole="button"
+                accessibilityLabel={`Utang${isUtangPayment ? ', selected' : ''}`}
+                style={({ pressed }) => ({
+                  flex: 1,
+                  opacity: pressed ? 0.8 : 1,
+                })}
+              >
+                <Card
+                  mode={isUtangPayment ? 'contained' : 'outlined'}
+                  style={
+                    isUtangPayment
+                      ? { borderColor: theme.tdpos.amber[500], borderWidth: 2 }
+                      : undefined
+                  }
+                >
+                  <Card.Content>
+                    <Text variant="titleMedium">Utang</Text>
+                    <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                      Credit sale
+                    </Text>
+                  </Card.Content>
+                </Card>
+              </Pressable>
+            ) : null}
           </View>
         </View>
 
-        {paymentMethod === 'cash' && (
+        {paymentMethod === 'cash' && !isUtangPayment && (
           <View style={{ gap: 8 }}>
             <Text variant="labelLarge">{t('checkout.cashTendered')}</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
@@ -228,8 +270,8 @@ export default function CheckoutScreen() {
           disabled={
             submitting ||
             items.length === 0 ||
-            paymentMethod === null ||
-            (paymentMethod === 'cash' && tendered < total)
+            (!isUtangPayment && paymentMethod === null) ||
+            (!isUtangPayment && paymentMethod === 'cash' && tendered < total)
           }
           buttonColor={theme.tdpos.amber[500]}
           textColor={theme.tdpos.ink[900]}

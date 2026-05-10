@@ -17,9 +17,21 @@ export function useDiagnosticsMetadata(options: UseDiagnosticsMetadataOptions = 
   const branchCode = useAuthStore((state) => state.branchCode)
   const branchName = useAuthStore((state) => state.branchName)
   const cashierCode = useAuthStore((state) => state.cashierCode)
+  const subscriptionTier = useAuthStore((state) => state.subscriptionTier)
+  const modules = useAuthStore((state) => state.modules)
+  const entitlementsValidUntil = useAuthStore((state) => state.entitlementsValidUntil)
 
   return useQuery({
-    queryKey: ['diagnostics-metadata', role, branchCode, branchName, cashierCode],
+    queryKey: [
+      'diagnostics-metadata',
+      role,
+      branchCode,
+      branchName,
+      cashierCode,
+      subscriptionTier,
+      modules,
+      entitlementsValidUntil,
+    ],
     queryFn: () =>
       getDiagnosticsMetadata(
         db,
@@ -28,6 +40,9 @@ export function useDiagnosticsMetadata(options: UseDiagnosticsMetadataOptions = 
           branchCode,
           branchName,
           cashierCode,
+          subscriptionTier,
+          modules,
+          entitlementsValidUntil,
         },
         storage,
         getDeviceStorageSnapshot(),

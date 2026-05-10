@@ -1,7 +1,7 @@
 import { APP_VERSION } from '@/constants/app'
 import type { AsyncSqliteLike } from '@/db/async-sqlite'
 import { getOrCreateInstallId, type InstallIdStorage } from '@/services/device-identity'
-import type { UserRole } from '@tdpos/shared'
+import type { ModuleName, SubscriptionTier, UserRole } from '@tdpos/shared'
 
 interface SchemaVersionRow {
   version: number | null
@@ -12,6 +12,9 @@ export interface DiagnosticsIdentitySnapshot {
   branchCode: string | null
   branchName: string | null
   cashierCode: string | null
+  subscriptionTier?: SubscriptionTier | null
+  modules?: Record<ModuleName, boolean> | null
+  entitlementsValidUntil?: string | null
 }
 
 export interface DiagnosticsStorage extends InstallIdStorage {
@@ -32,6 +35,9 @@ export interface DiagnosticsMetadata {
   branchCode: string | null
   branchName: string | null
   cashierCode: string | null
+  subscriptionTier: SubscriptionTier | null
+  enabledModuleCount: number
+  entitlementsValidUntil: string | null
   mmkvSizeBytes: number
   mmkvKeyCount: number
   availableDiskBytes: number | null
@@ -60,6 +66,11 @@ export async function getDiagnosticsMetadata(
     branchCode: identity.branchCode,
     branchName: identity.branchName,
     cashierCode: identity.cashierCode,
+    subscriptionTier: identity.subscriptionTier ?? null,
+    enabledModuleCount: identity.modules
+      ? Object.values(identity.modules).filter((enabled) => enabled).length
+      : 0,
+    entitlementsValidUntil: identity.entitlementsValidUntil ?? null,
     mmkvSizeBytes: metadataStorage.size,
     mmkvKeyCount: metadataStorage.getAllKeys().length,
     availableDiskBytes: deviceStorage.availableDiskBytes,

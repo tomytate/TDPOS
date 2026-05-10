@@ -112,6 +112,12 @@ export default function DiagnosticsScreen() {
                   label={t('diagnostics.role')}
                   value={metadata.role ?? t('diagnostics.never')}
                 />
+                <InfoRow label="Tier" value={metadata.subscriptionTier ?? t('diagnostics.never')} />
+                <InfoRow label="Enabled modules" value={metadata.enabledModuleCount.toString()} />
+                <InfoRow
+                  label="Entitlements"
+                  value={metadata.entitlementsValidUntil ?? t('diagnostics.never')}
+                />
                 <InfoRow
                   label={t('diagnostics.mmkvSize')}
                   value={formatBytes(metadata.mmkvSizeBytes)}

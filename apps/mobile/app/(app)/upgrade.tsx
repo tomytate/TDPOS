@@ -16,10 +16,9 @@ import { useAppTheme } from '@/constants/theme'
 import { useAuthStore } from '@/stores/auth-store'
 import {
   SUBSCRIPTION_TIERS,
-  SURFACE_LABELS,
+  getLockedTierSurfaces,
   getMinimumTierForSurface,
   getTierDefinition,
-  isTierSurfaceEnabled,
   type SubscriptionTier,
   type TierSurface,
 } from '@tdpos/shared'
@@ -34,11 +33,8 @@ export default function UpgradeScreen() {
   // that unlocks them. Iterating the SURFACE_LABELS registry means new
   // surfaces don't need explicit wiring — TypeScript exhaustiveness keeps
   // this list in sync with the `TierSurface` union.
-  const lockedByTier = (Object.keys(SURFACE_LABELS) as TierSurface[]).reduce(
+  const lockedByTier = getLockedTierSurfaces(tier, 'mobile').reduce(
     (acc, surface) => {
-      const meta = SURFACE_LABELS[surface]
-      if (meta.group !== 'mobile') return acc
-      if (isTierSurfaceEnabled(tier, surface)) return acc
       const required = getMinimumTierForSurface(surface)
       if (required === tier) return acc
       acc[required] = acc[required] ?? []
@@ -84,7 +80,18 @@ export default function UpgradeScreen() {
                 </View>
                 <View style={{ gap: 8 }}>
                   {surfaces.map((surface) => (
-                    <LockedSurfaceCard key={surface} surface={surface} unlocksAt={definition} />
+                    <LockedSurfaceCard
+                      key={surface}
+                      surface={surface}
+                      unlocksAt={definition}
+                      actionLabel="Open scaffold"
+                      onAction={() =>
+                        router.push({
+                          pathname: '/(app)/surfaces/[surface]',
+                          params: { surface },
+                        })
+                      }
+                    />
                   ))}
                 </View>
               </View>
