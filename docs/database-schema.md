@@ -110,6 +110,8 @@ erDiagram
 
 `business_devices` has a `business_devices_limit_guard` trigger that enforces `businesses.max_devices` for new install ids. Existing install ids can still heartbeat through `ON CONFLICT` updates. The `sync_snapshot` column carries counts only (`unsynced_rows`, `pending_rows`, `failed_rows`, `reviewable_rows`, timestamps), never raw queue payloads.
 
+Mobile also has a local-first counterpart for the first Tier B workflow: `runLocalMigrations()` v2 creates SQLite `shift_sessions` so `mobile.shift_login` and `mobile.shift_handoff` can open, summarize, count, and close a cashier shift while offline. Those rows do not enter `sync_queue` yet; remote shift sync is deferred until the shared sync envelope is extended beyond sales inserts and inventory deltas.
+
 ## Entitlement Guard Functions
 
 The Supabase entitlement scaffold lives in `20260510000001_entitlement_guards.sql`.

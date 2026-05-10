@@ -50,7 +50,7 @@ describe('runLocalMigrations', () => {
     const version = sqlite.prepare(`SELECT MAX(version) AS version FROM schema_version`).get() as {
       version: number
     }
-    expect(version.version).toBe(1)
+    expect(version.version).toBe(2)
   })
 
   test('does not re-run an already applied schema version', async () => {
@@ -73,9 +73,9 @@ describe('runLocalMigrations', () => {
     expect(settings?.value).toBe('kept')
 
     const versions = sqlite
-      .prepare(`SELECT COUNT(*) AS count FROM schema_version WHERE version = 1`)
-      .get() as { count: number }
-    expect(versions.count).toBe(1)
+      .prepare(`SELECT version FROM schema_version ORDER BY version`)
+      .all() as Array<{ version: number }>
+    expect(versions.map((row) => row.version)).toEqual([1, 2])
   })
 
   test('preserves a database that was already created from the v1 schema', async () => {
@@ -96,9 +96,9 @@ describe('runLocalMigrations', () => {
     expect(settings?.value).toBe('kept')
 
     const versions = sqlite
-      .prepare(`SELECT COUNT(*) AS count FROM schema_version WHERE version = 1`)
-      .get() as { count: number }
-    expect(versions.count).toBe(1)
+      .prepare(`SELECT version FROM schema_version ORDER BY version`)
+      .all() as Array<{ version: number }>
+    expect(versions.map((row) => row.version)).toEqual([1, 2])
   })
 
   test('applies missing future migrations in version order exactly once', async () => {

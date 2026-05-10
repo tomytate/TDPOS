@@ -11,11 +11,39 @@ export interface LocalMigrationDb extends AsyncSqliteLike {
   execAsync(sql: string): Promise<void>
 }
 
+export const LOCAL_SHIFT_SESSIONS_SQL = `
+CREATE TABLE IF NOT EXISTS shift_sessions (
+  id TEXT PRIMARY KEY NOT NULL,
+  business_id TEXT NOT NULL,
+  branch_id TEXT NOT NULL,
+  user_id TEXT,
+  cashier_code TEXT NOT NULL,
+  device_install_id TEXT,
+  status TEXT NOT NULL DEFAULT 'open' CHECK(status IN ('open','closed','voided')),
+  opened_at INTEGER NOT NULL DEFAULT (unixepoch()),
+  closed_at INTEGER,
+  opening_cash REAL NOT NULL DEFAULT 0,
+  expected_cash REAL,
+  counted_cash REAL,
+  variance REAL,
+  handoff_note TEXT,
+  created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+  synced_at INTEGER
+);
+
+CREATE INDEX IF NOT EXISTS idx_shift_sessions_open
+  ON shift_sessions(branch_id, cashier_code, status, opened_at DESC);
+`
+
 export const LOCAL_MIGRATIONS: LocalMigration[] = [
   {
     version: 1,
     sql: LOCAL_SCHEMA_SQL,
     transactional: false,
+  },
+  {
+    version: 2,
+    sql: LOCAL_SHIFT_SESSIONS_SQL,
   },
 ]
 
