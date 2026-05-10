@@ -35,6 +35,26 @@ CREATE INDEX IF NOT EXISTS idx_shift_sessions_open
   ON shift_sessions(branch_id, cashier_code, status, opened_at DESC);
 `
 
+export const LOCAL_MANAGER_APPROVALS_SQL = `
+CREATE TABLE IF NOT EXISTS manager_approval_requests (
+  id TEXT PRIMARY KEY NOT NULL,
+  business_id TEXT NOT NULL,
+  branch_id TEXT NOT NULL,
+  requested_by_user_id TEXT,
+  approved_by_user_id TEXT,
+  request_type TEXT NOT NULL CHECK(request_type IN ('void','price_override','shift_correction','cash_variance','other')),
+  status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','approved','declined','voided')),
+  reason TEXT,
+  details TEXT NOT NULL DEFAULT '{}',
+  created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+  resolved_at INTEGER,
+  synced_at INTEGER
+);
+
+CREATE INDEX IF NOT EXISTS idx_manager_approval_requests_pending
+  ON manager_approval_requests(branch_id, status, created_at DESC);
+`
+
 export const LOCAL_MIGRATIONS: LocalMigration[] = [
   {
     version: 1,
@@ -44,6 +64,10 @@ export const LOCAL_MIGRATIONS: LocalMigration[] = [
   {
     version: 2,
     sql: LOCAL_SHIFT_SESSIONS_SQL,
+  },
+  {
+    version: 3,
+    sql: LOCAL_MANAGER_APPROVALS_SQL,
   },
 ]
 
