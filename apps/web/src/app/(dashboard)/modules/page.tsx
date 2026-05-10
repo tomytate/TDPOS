@@ -1,5 +1,9 @@
 import { getModuleManagementRows } from '@/lib/queries/management'
 
+function formatLimit(limit: number | null): string {
+  return limit === null ? 'Unlimited' : limit.toLocaleString('en-PH')
+}
+
 export default async function ModulesPage() {
   const result = await getModuleManagementRows()
 
@@ -37,14 +41,19 @@ export default async function ModulesPage() {
             </div>
             <div className="rounded-lg border border-ink-200 bg-white p-4">
               <p className="m-0 text-[11px] font-semibold uppercase text-ink-500">Tier</p>
-              <p className="mt-2 text-2xl font-semibold capitalize text-teal-700">
-                {result.business?.subscriptionTier ?? '--'}
+              <p className="mt-2 text-2xl font-semibold text-teal-700">
+                {result.entitlements.tierShortLabel}
               </p>
+              <p className="mt-1 text-[12px] text-ink-500">{result.entitlements.description}</p>
             </div>
             <div className="rounded-lg border border-ink-200 bg-white p-4">
               <p className="m-0 text-[11px] font-semibold uppercase text-ink-500">Branches</p>
               <p className="mt-2 text-2xl font-semibold text-ink-700">
-                {result.business?.maxBranches ?? '--'}
+                {formatLimit(result.entitlements.maxBranches)}
+              </p>
+              <p className="mt-1 text-[12px] text-ink-500">
+                {formatLimit(result.entitlements.maxDevices)} devices ·{' '}
+                {formatLimit(result.entitlements.maxUsers)} users
               </p>
             </div>
           </section>
@@ -58,10 +67,12 @@ export default async function ModulesPage() {
                     className={
                       module.enabled
                         ? 'rounded-full bg-success-500/10 px-2 py-0.5 text-[12px] font-semibold text-success-600'
-                        : 'rounded-full bg-ink-100 px-2 py-0.5 text-[12px] font-semibold text-ink-500'
+                        : module.unlockedByTier
+                          ? 'rounded-full bg-ink-100 px-2 py-0.5 text-[12px] font-semibold text-ink-500'
+                          : 'rounded-full bg-amber-100 px-2 py-0.5 text-[12px] font-semibold text-amber-700'
                     }
                   >
-                    {module.enabled ? 'On' : 'Off'}
+                    {module.enabled ? 'On' : module.unlockedByTier ? 'Off' : 'Locked'}
                   </span>
                 </div>
               </article>

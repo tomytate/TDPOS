@@ -1,4 +1,5 @@
-import { getProductManagementRows } from '@/lib/queries/management'
+import { TierLockBanner } from '@/components/tier-lock-banner'
+import { getBusinessEntitlements, getProductManagementRows } from '@/lib/queries/management'
 
 function StatusBadge({ active }: { active: boolean }) {
   return (
@@ -14,8 +15,17 @@ function StatusBadge({ active }: { active: boolean }) {
   )
 }
 
+function formatLimit(limit: number | null): string {
+  return limit === null ? 'Unlimited' : limit.toLocaleString('en-PH')
+}
+
 export default async function ProductsPage() {
-  const result = await getProductManagementRows()
+  const [entitlementsResult, result] = await Promise.all([
+    getBusinessEntitlements(),
+    getProductManagementRows(),
+  ])
+  const entitlements = entitlementsResult.ready ? entitlementsResult.entitlements : null
+  const canManage = entitlements?.isSurfaceEnabled('web.products') ?? false
 
   return (
     <div className="flex flex-col gap-5">
@@ -32,6 +42,14 @@ export default async function ProductsPage() {
           Add product
         </button>
       </header>
+
+      {!canManage && entitlements ? (
+        <TierLockBanner
+          tierLabel={entitlements.tierShortLabel}
+          surfaceLabel="Products management"
+          unlockedAt="Pro"
+        />
+      ) : null}
 
       {!result.ready ? (
         <div role="status" className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm">
@@ -55,8 +73,12 @@ export default async function ProductsPage() {
               <p className="mt-2 text-2xl font-semibold text-amber-700">{result.lowStockCount}</p>
             </div>
             <div className="rounded-lg border border-ink-200 bg-white p-4">
-              <p className="m-0 text-[11px] font-semibold uppercase text-ink-500">Free limit</p>
-              <p className="mt-2 text-2xl font-semibold text-ink-700">{result.freeLimit}</p>
+              <p className="m-0 text-[11px] font-semibold uppercase text-ink-500">
+                {entitlements?.tierShortLabel ?? 'Tier'} limit
+              </p>
+              <p className="mt-2 text-2xl font-semibold text-ink-700">
+                {formatLimit(entitlements?.maxProducts ?? null)}
+              </p>
             </div>
           </section>
 

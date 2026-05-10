@@ -8,12 +8,16 @@
 import 'server-only'
 
 import {
-  DEFAULT_MODULE_STATE,
-  FREE_MAX_PRODUCTS,
-  FREE_MAX_USERS,
   displayStock,
   formatMoney,
+  getTierDefinition,
+  getTierModuleState,
+  isTierSurfaceEnabled,
+  normalizeSubscriptionTier,
   splitStock,
+  type ModuleName,
+  type SubscriptionTier,
+  type TierSurface,
 } from '@tdpos/shared'
 
 import { getServerSupabase } from '@/lib/supabase/server'
@@ -35,6 +39,89 @@ async function withSupabase<T>(
   }
 
   return query(supabase)
+}
+
+// ----- Entitlements -----------------------------------------------------------
+
+export interface BusinessEntitlements {
+  tier: SubscriptionTier
+  tierLabel: string
+  tierShortLabel: string
+  description: string
+  maxProducts: number | null
+  maxBranches: number | null
+  maxDevices: number | null
+  maxUsers: number | null
+  // Effective module state: the tier's defaults merged with DB overrides.
+  // Owners can disable an unlocked module; they cannot enable a locked one
+  // (DB-true on a tier-false module clamps to false).
+  modules: Record<ModuleName, boolean>
+  entitlementsValidUntil: string | null
+  isSurfaceEnabled: (surface: TierSurface) => boolean
+}
+
+export type EntitlementsResult = QueryResult<{ entitlements: BusinessEntitlements }>
+
+interface BusinessEntitlementsRow {
+  subscription_tier: string | null
+  module_state: Record<string, boolean> | null
+  entitlements_valid_until: string | null
+  max_products: number | null
+  max_branches: number | null
+  max_devices: number | null
+  max_users: number | null
+}
+
+function buildEntitlements(row: BusinessEntitlementsRow | null): BusinessEntitlements {
+  const tier = normalizeSubscriptionTier(row?.subscription_tier)
+  const definition = getTierDefinition(tier)
+  const tierModules = getTierModuleState(tier)
+  const dbModules = row?.module_state ?? {}
+
+  const modules = (Object.keys(tierModules) as ModuleName[]).reduce(
+    (acc, key) => {
+      const dbValue = dbModules[key]
+      // DB false wins (owner disable). DB true is ignored on locked modules.
+      acc[key] = typeof dbValue === 'boolean' ? dbValue && tierModules[key] : tierModules[key]
+      return acc
+    },
+    {} as Record<ModuleName, boolean>,
+  )
+
+  return {
+    tier,
+    tierLabel: definition.label,
+    tierShortLabel: definition.shortLabel,
+    description: definition.description,
+    // DB nulls fall back to tier defaults; tier nulls (enterprise) propagate
+    // as `null` meaning unlimited.
+    maxProducts: row?.max_products ?? definition.maxProducts,
+    maxBranches: row?.max_branches ?? definition.maxBranches,
+    maxDevices: row?.max_devices ?? definition.maxDevices,
+    maxUsers: row?.max_users ?? definition.maxUsers,
+    modules,
+    entitlementsValidUntil: row?.entitlements_valid_until ?? null,
+    isSurfaceEnabled: (surface: TierSurface) => isTierSurfaceEnabled(tier, surface),
+  }
+}
+
+export async function getBusinessEntitlements(): Promise<EntitlementsResult> {
+  return withSupabase<{ entitlements: BusinessEntitlements }>(async (supabase) => {
+    const { data, error } = await supabase
+      .from('businesses')
+      .select(
+        'subscription_tier, module_state, entitlements_valid_until, max_products, max_branches, max_devices, max_users',
+      )
+      .limit(1)
+      .maybeSingle()
+
+    if (error) return { ready: false, reason: 'query_failed', message: error.message }
+
+    return {
+      ready: true,
+      entitlements: buildEntitlements((data as BusinessEntitlementsRow) ?? null),
+    }
+  })
 }
 
 // ----- Products ---------------------------------------------------------------
@@ -63,7 +150,6 @@ export type ProductManagementResult = QueryResult<{
   activeCount: number
   inactiveCount: number
   lowStockCount: number
-  freeLimit: number
 }>
 
 interface ProductRow {
@@ -87,7 +173,6 @@ export async function getProductManagementRows(limit = 200): Promise<ProductMana
     activeCount: number
     inactiveCount: number
     lowStockCount: number
-    freeLimit: number
   }>(async (supabase) => {
     const { data, error } = await supabase
       .from('products')
@@ -134,7 +219,6 @@ export async function getProductManagementRows(limit = 200): Promise<ProductMana
         (product) =>
           product.reorderPointPieces !== null && product.stockPieces <= product.reorderPointPieces,
       ).length,
-      freeLimit: FREE_MAX_PRODUCTS,
     }
   })
 }
@@ -206,7 +290,6 @@ export interface UserManagementRow {
 
 export type UserManagementResult = QueryResult<{
   users: UserManagementRow[]
-  freeLimit: number
 }>
 
 interface UserRow {
@@ -226,7 +309,6 @@ function tailPhone(phone: string | null | undefined): string {
 export async function getUserManagementRows(limit = 100): Promise<UserManagementResult> {
   return withSupabase<{
     users: UserManagementRow[]
-    freeLimit: number
   }>(async (supabase) => {
     const { data, error } = await supabase
       .from('users')
@@ -244,16 +326,19 @@ export async function getUserManagementRows(limit = 100): Promise<UserManagement
       createdAt: row.created_at,
     }))
 
-    return { ready: true, users, freeLimit: FREE_MAX_USERS }
+    return { ready: true, users }
   })
 }
 
 // ----- Modules / Business -----------------------------------------------------
 
 export interface ModuleManagementRow {
-  key: string
+  key: ModuleName
   label: string
   enabled: boolean
+  // True when the tier unlocks this module — distinguishes "off because tier
+  // doesn't include it" from "off because owner toggled it off".
+  unlockedByTier: boolean
 }
 
 export interface BusinessManagementSummary {
@@ -261,13 +346,12 @@ export interface BusinessManagementSummary {
   name: string
   address: string | null
   tinPresent: boolean
-  subscriptionTier: string
-  maxBranches: number
   eoptAccredited: boolean
 }
 
 export type ModuleManagementResult = QueryResult<{
   business: BusinessManagementSummary | null
+  entitlements: BusinessEntitlements
   modules: ModuleManagementRow[]
 }>
 
@@ -276,12 +360,17 @@ interface BusinessRow {
   name: string
   address: string | null
   tin: string | null
-  subscription_tier: string
-  max_branches: number
   eopt_accredited: boolean
+  subscription_tier: string | null
+  module_state: Record<string, boolean> | null
+  entitlements_valid_until: string | null
+  max_products: number | null
+  max_branches: number | null
+  max_devices: number | null
+  max_users: number | null
 }
 
-const MODULE_LABELS: Record<keyof typeof DEFAULT_MODULE_STATE, string> = {
+const MODULE_LABELS: Record<ModuleName, string> = {
   utang: 'Utang ledger',
   customer_sms: 'Customer SMS',
   loyalty: 'Loyalty',
@@ -296,17 +385,22 @@ const MODULE_LABELS: Record<keyof typeof DEFAULT_MODULE_STATE, string> = {
 export async function getModuleManagementRows(): Promise<ModuleManagementResult> {
   return withSupabase<{
     business: BusinessManagementSummary | null
+    entitlements: BusinessEntitlements
     modules: ModuleManagementRow[]
   }>(async (supabase) => {
     const { data, error } = await supabase
       .from('businesses')
-      .select('id, name, address, tin, subscription_tier, max_branches, eopt_accredited')
+      .select(
+        'id, name, address, tin, eopt_accredited, subscription_tier, module_state, entitlements_valid_until, max_products, max_branches, max_devices, max_users',
+      )
       .limit(1)
       .maybeSingle()
 
     if (error) return { ready: false, reason: 'query_failed', message: error.message }
 
     const row = data as BusinessRow | null
+    const entitlements = buildEntitlements(row)
+    const tierModules = getTierModuleState(entitlements.tier)
 
     return {
       ready: true,
@@ -316,15 +410,15 @@ export async function getModuleManagementRows(): Promise<ModuleManagementResult>
             name: row.name,
             address: row.address,
             tinPresent: Boolean(row.tin),
-            subscriptionTier: row.subscription_tier,
-            maxBranches: row.max_branches,
             eoptAccredited: row.eopt_accredited,
           }
         : null,
-      modules: Object.entries(DEFAULT_MODULE_STATE).map(([key, enabled]) => ({
+      entitlements,
+      modules: (Object.keys(MODULE_LABELS) as ModuleName[]).map((key) => ({
         key,
-        label: MODULE_LABELS[key as keyof typeof DEFAULT_MODULE_STATE],
-        enabled,
+        label: MODULE_LABELS[key],
+        enabled: entitlements.modules[key],
+        unlockedByTier: tierModules[key],
       })),
     }
   })
