@@ -1,3 +1,5 @@
+import { inviteUserScaffoldAction } from '@/app/(dashboard)/actions'
+import { ScaffoldActionButton } from '@/components/scaffold-action-button'
 import { TierLockBanner } from '@/components/tier-lock-banner'
 import { getBusinessEntitlements, getUserManagementRows } from '@/lib/queries/management'
 
@@ -32,13 +34,31 @@ export default async function UsersPage() {
           <h1 className="m-0 text-2xl font-semibold text-ink-900">Users</h1>
           <p className="mt-1 text-sm text-ink-600">Cashier, manager, and owner access.</p>
         </div>
-        <button
-          type="button"
-          disabled
-          className="rounded-lg border border-ink-300 bg-ink-50 px-3 py-1.5 text-[13px] font-semibold text-ink-400"
-        >
-          Invite user
-        </button>
+        <ScaffoldActionButton
+          action={inviteUserScaffoldAction}
+          label="Validate invite scaffold"
+          fields={[
+            {
+              kind: 'text',
+              name: 'phone',
+              label: 'Phone',
+              placeholder: '09171234567',
+              required: true,
+            },
+            {
+              kind: 'select',
+              name: 'role',
+              label: 'Role',
+              defaultValue: 'cashier',
+              options: [
+                { label: 'Cashier', value: 'cashier' },
+                { label: 'Tindera', value: 'tindera' },
+                { label: 'Manager', value: 'manager' },
+                { label: 'Owner', value: 'owner' },
+              ],
+            },
+          ]}
+        />
       </header>
 
       {!canManage && entitlements ? (

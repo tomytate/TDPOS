@@ -8,9 +8,9 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
+import { checkSurfaceAccess } from '@/lib/entitlements/surface-access'
 import { buildSalesPdfBuffer, buildSalesPdfFilename } from '@/lib/pdf/build-sales-pdf'
 import { getSalesForExport } from '@/lib/queries/sales-export'
-import { getCurrentClaims } from '@/lib/supabase/server'
 
 export const runtime = 'nodejs'
 
@@ -35,15 +35,12 @@ function parseDateParam(value: string | null, fallback: Date): Date | null {
 }
 
 export async function GET(request: NextRequest) {
-  let claims: Awaited<ReturnType<typeof getCurrentClaims>>
-  try {
-    claims = await getCurrentClaims()
-  } catch {
-    return NextResponse.json({ error: 'supabase_unconfigured' }, { status: 503 })
-  }
-
-  if (!claims) {
-    return NextResponse.json({ error: 'unauthenticated' }, { status: 401 })
+  const access = await checkSurfaceAccess('web.exports')
+  if (!access.ok) {
+    return NextResponse.json(
+      { error: access.reason, message: access.message },
+      { status: access.status },
+    )
   }
 
   const today = new Date()

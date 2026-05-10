@@ -26,12 +26,29 @@ export interface SyncHealthFailure {
   reason: string
 }
 
+export interface SyncDeviceSnapshot {
+  id: string
+  installTail: string
+  deviceName: string | null
+  surface: string
+  status: string
+  branchName: string | null
+  lastSeenAt: string | null
+  unsyncedRows: number | null
+  pendingRows: number | null
+  failedRows: number | null
+  reviewableRows: number | null
+  oldestPendingCreatedAt: number | null
+}
+
 export interface SyncHealthSnapshot {
   lastAppliedAt: string | null
   stuckCount: number
   failedCount: number
   completedCount24h: number
   inProgressCount: number
+  activeDeviceCount: number
+  devices: SyncDeviceSnapshot[]
   recentFailures: SyncHealthFailure[]
 }
 
@@ -46,6 +63,24 @@ interface FailureRow {
   result: { reason?: unknown } | null
 }
 
+interface DeviceRow {
+  id: string
+  install_id: string
+  device_name: string | null
+  surface: string
+  status: string
+  last_seen_at: string | null
+  sync_snapshot: {
+    available?: unknown
+    unsynced_rows?: unknown
+    pending_rows?: unknown
+    failed_rows?: unknown
+    reviewable_rows?: unknown
+    oldest_pending_created_at?: unknown
+  } | null
+  branches: Array<{ name: string }> | null
+}
+
 const STUCK_THRESHOLD_MS = 60_000
 const ONE_DAY_MS = 24 * 60 * 60 * 1000
 
@@ -53,6 +88,14 @@ function reasonFromResult(result: { reason?: unknown } | null): string {
   if (!result) return 'unknown'
   const reason = result.reason
   return typeof reason === 'string' && reason.length > 0 ? reason : 'unknown'
+}
+
+function tailInstallId(value: string): string {
+  return value.length > 8 ? `...${value.slice(-8)}` : value
+}
+
+function numberOrNull(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null
 }
 
 export async function getSyncHealthSnapshot(): Promise<SyncHealthResult> {
@@ -67,39 +110,47 @@ export async function getSyncHealthSnapshot(): Promise<SyncHealthResult> {
   const stuckBefore = new Date(now.getTime() - STUCK_THRESHOLD_MS).toISOString()
   const dayAgo = new Date(now.getTime() - ONE_DAY_MS).toISOString()
 
-  const [latest, stuck, failed24h, completed24h, inProgress, recentFailures] = await Promise.all([
-    supabase
-      .from('applied_operations')
-      .select('applied_at')
-      .order('applied_at', { ascending: false })
-      .limit(1)
-      .maybeSingle(),
-    supabase
-      .from('applied_operations')
-      .select('client_operation_id', { count: 'exact', head: true })
-      .eq('status', 'in_progress')
-      .lt('applied_at', stuckBefore),
-    supabase
-      .from('applied_operations')
-      .select('client_operation_id', { count: 'exact', head: true })
-      .eq('status', 'failed')
-      .gte('applied_at', dayAgo),
-    supabase
-      .from('applied_operations')
-      .select('client_operation_id', { count: 'exact', head: true })
-      .eq('status', 'completed')
-      .gte('applied_at', dayAgo),
-    supabase
-      .from('applied_operations')
-      .select('client_operation_id', { count: 'exact', head: true })
-      .eq('status', 'in_progress'),
-    supabase
-      .from('applied_operations')
-      .select('client_operation_id, applied_at, completed_at, result')
-      .eq('status', 'failed')
-      .order('applied_at', { ascending: false })
-      .limit(10),
-  ])
+  const [latest, stuck, failed24h, completed24h, inProgress, recentFailures, devices] =
+    await Promise.all([
+      supabase
+        .from('applied_operations')
+        .select('applied_at')
+        .order('applied_at', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from('applied_operations')
+        .select('client_operation_id', { count: 'exact', head: true })
+        .eq('status', 'in_progress')
+        .lt('applied_at', stuckBefore),
+      supabase
+        .from('applied_operations')
+        .select('client_operation_id', { count: 'exact', head: true })
+        .eq('status', 'failed')
+        .gte('applied_at', dayAgo),
+      supabase
+        .from('applied_operations')
+        .select('client_operation_id', { count: 'exact', head: true })
+        .eq('status', 'completed')
+        .gte('applied_at', dayAgo),
+      supabase
+        .from('applied_operations')
+        .select('client_operation_id', { count: 'exact', head: true })
+        .eq('status', 'in_progress'),
+      supabase
+        .from('applied_operations')
+        .select('client_operation_id, applied_at, completed_at, result')
+        .eq('status', 'failed')
+        .order('applied_at', { ascending: false })
+        .limit(10),
+      supabase
+        .from('business_devices')
+        .select(
+          'id, install_id, device_name, surface, status, last_seen_at, sync_snapshot, branches ( name )',
+        )
+        .order('last_seen_at', { ascending: false, nullsFirst: false })
+        .limit(20),
+    ])
 
   const firstError =
     latest.error ??
@@ -107,13 +158,15 @@ export async function getSyncHealthSnapshot(): Promise<SyncHealthResult> {
     failed24h.error ??
     completed24h.error ??
     inProgress.error ??
-    recentFailures.error
+    recentFailures.error ??
+    devices.error
 
   if (firstError) {
     return { ready: false, reason: 'query_failed', message: firstError.message }
   }
 
   const failureRows = (recentFailures.data ?? []) as FailureRow[]
+  const deviceRows = (devices.data ?? []) as DeviceRow[]
 
   const snapshot: SyncHealthSnapshot = {
     lastAppliedAt: (latest.data as { applied_at?: string } | null)?.applied_at ?? null,
@@ -121,6 +174,21 @@ export async function getSyncHealthSnapshot(): Promise<SyncHealthResult> {
     failedCount: failed24h.count ?? 0,
     completedCount24h: completed24h.count ?? 0,
     inProgressCount: inProgress.count ?? 0,
+    activeDeviceCount: deviceRows.filter((device) => device.status === 'active').length,
+    devices: deviceRows.map((device) => ({
+      id: device.id,
+      installTail: tailInstallId(device.install_id),
+      deviceName: device.device_name,
+      surface: device.surface,
+      status: device.status,
+      branchName: device.branches?.[0]?.name ?? null,
+      lastSeenAt: device.last_seen_at,
+      unsyncedRows: numberOrNull(device.sync_snapshot?.unsynced_rows),
+      pendingRows: numberOrNull(device.sync_snapshot?.pending_rows),
+      failedRows: numberOrNull(device.sync_snapshot?.failed_rows),
+      reviewableRows: numberOrNull(device.sync_snapshot?.reviewable_rows),
+      oldestPendingCreatedAt: numberOrNull(device.sync_snapshot?.oldest_pending_created_at),
+    })),
     recentFailures: failureRows.map((row) => ({
       clientOperationId: row.client_operation_id,
       appliedAt: row.applied_at,

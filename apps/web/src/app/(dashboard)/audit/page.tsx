@@ -5,7 +5,9 @@
 // owners get accountability without the page becoming a free-form PII viewer.
 // See ADR-011 (immutability) + ADR-014 (diagnostics privacy).
 
+import { TierLockBanner } from '@/components/tier-lock-banner'
 import { getRecentAuditEntries } from '@/lib/queries/audit-log'
+import { getBusinessEntitlements } from '@/lib/queries/management'
 
 function changeSummary(beforeKeys: string[], afterKeys: string[]): string {
   if (beforeKeys.length === 0 && afterKeys.length === 0) return '—'
@@ -30,6 +32,32 @@ function tailRef(value: string | null): string {
 }
 
 export default async function AuditLogPage() {
+  const entitlementsResult = await getBusinessEntitlements()
+  const entitlements = entitlementsResult.ready ? entitlementsResult.entitlements : null
+  const canView = entitlements?.isSurfaceEnabled('web.audit') ?? false
+
+  if (entitlements && !canView) {
+    return (
+      <div className="flex flex-col gap-4">
+        <header>
+          <h1 className="m-0 text-2xl font-semibold text-ink-900">Audit log</h1>
+          <p className="mt-1 text-sm text-ink-600">Append-only tenant accountability view.</p>
+        </header>
+        <TierLockBanner
+          tierLabel={entitlements.tierShortLabel}
+          surfaceLabel="Audit log"
+          unlockedAt="Pro"
+          copy={
+            <>
+              Audit log access is not included on your current tier. Upgrade to{' '}
+              <span className="font-semibold">Pro</span> to view tenant accountability events.
+            </>
+          }
+        />
+      </div>
+    )
+  }
+
   const result = await getRecentAuditEntries(50)
 
   return (

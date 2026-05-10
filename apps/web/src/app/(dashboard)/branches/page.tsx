@@ -1,3 +1,5 @@
+import { createBranchScaffoldAction } from '@/app/(dashboard)/actions'
+import { ScaffoldActionButton } from '@/components/scaffold-action-button'
 import { TierLockBanner } from '@/components/tier-lock-banner'
 import { getBranchManagementRows, getBusinessEntitlements } from '@/lib/queries/management'
 
@@ -20,13 +22,15 @@ export default async function BranchesPage() {
           <h1 className="m-0 text-2xl font-semibold text-ink-900">Branches</h1>
           <p className="mt-1 text-sm text-ink-600">Store locations and active selling points.</p>
         </div>
-        <button
-          type="button"
-          disabled
-          className="rounded-lg border border-ink-300 bg-ink-50 px-3 py-1.5 text-[13px] font-semibold text-ink-400"
-        >
-          Add branch
-        </button>
+        <ScaffoldActionButton
+          action={createBranchScaffoldAction}
+          label="Validate branch scaffold"
+          fields={[
+            { kind: 'text', name: 'name', label: 'Name', placeholder: 'Main', required: true },
+            { kind: 'text', name: 'region', label: 'Region', placeholder: 'NCR' },
+            { kind: 'text', name: 'address', label: 'Address', placeholder: 'Quezon City' },
+          ]}
+        />
       </header>
 
       {!canManage && entitlements ? (

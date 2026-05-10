@@ -12,6 +12,7 @@ import {
   getSalesSummaryForRange,
   getTopProductsBreakdown,
 } from '@/lib/queries/dashboard'
+import { getBusinessEntitlements } from '@/lib/queries/management'
 import { formatMoney } from '@tdpos/shared'
 
 type DashboardRange = 'today' | 'week' | 'month'
@@ -191,15 +192,25 @@ export default async function DashboardHome({
   const exportHref = `/api/exports/sales?from=${fromIso}&to=${toIso}`
   const exportPdfHref = `/api/exports/sales/pdf?from=${fromIso}&to=${toIso}`
 
-  const [salesSummary, lowStock, recentSales, perBranch, perCashier, topProducts] =
-    await Promise.all([
-      getSalesSummaryForRange(dateRange),
-      getLowStockProducts(),
-      getRecentSales(),
-      getPerBranchBreakdown(dateRange),
-      getPerCashierBreakdown(dateRange),
-      getTopProductsBreakdown(dateRange),
-    ])
+  const [
+    entitlementsResult,
+    salesSummary,
+    lowStock,
+    recentSales,
+    perBranch,
+    perCashier,
+    topProducts,
+  ] = await Promise.all([
+    getBusinessEntitlements(),
+    getSalesSummaryForRange(dateRange),
+    getLowStockProducts(),
+    getRecentSales(),
+    getPerBranchBreakdown(dateRange),
+    getPerCashierBreakdown(dateRange),
+    getTopProductsBreakdown(dateRange),
+  ])
+  const canExport =
+    entitlementsResult.ready && entitlementsResult.entitlements.isSurfaceEnabled('web.exports')
 
   const envUnconfigured = !salesSummary.ready && salesSummary.reason === 'supabase_unconfigured'
 
@@ -249,22 +260,30 @@ export default async function DashboardHome({
           >
             View
           </button>
-          <a
-            href={exportHref}
-            download
-            className="inline-flex items-center gap-2 rounded-lg border border-teal-700 bg-white px-3 py-1.5 text-[13px] font-semibold text-teal-700 shadow-sm transition-colors hover:bg-teal-50"
-          >
-            <span aria-hidden>↓</span>
-            Export CSV
-          </a>
-          <a
-            href={exportPdfHref}
-            download
-            className="inline-flex items-center gap-2 rounded-lg border border-amber-500 bg-white px-3 py-1.5 text-[13px] font-semibold text-amber-700 shadow-sm transition-colors hover:bg-amber-50"
-          >
-            <span aria-hidden>↓</span>
-            Export PDF
-          </a>
+          {canExport ? (
+            <>
+              <a
+                href={exportHref}
+                download
+                className="inline-flex items-center gap-2 rounded-lg border border-teal-700 bg-white px-3 py-1.5 text-[13px] font-semibold text-teal-700 shadow-sm transition-colors hover:bg-teal-50"
+              >
+                <span aria-hidden>↓</span>
+                Export CSV
+              </a>
+              <a
+                href={exportPdfHref}
+                download
+                className="inline-flex items-center gap-2 rounded-lg border border-amber-500 bg-white px-3 py-1.5 text-[13px] font-semibold text-amber-700 shadow-sm transition-colors hover:bg-amber-50"
+              >
+                <span aria-hidden>↓</span>
+                Export PDF
+              </a>
+            </>
+          ) : (
+            <span className="rounded-lg border border-ink-200 bg-ink-50 px-3 py-1.5 text-[13px] font-semibold text-ink-500">
+              Exports unlock at Plus
+            </span>
+          )}
         </form>
       </header>
 

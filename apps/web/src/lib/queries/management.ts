@@ -14,6 +14,7 @@ import {
   getTierModuleState,
   isTierSurfaceEnabled,
   normalizeSubscriptionTier,
+  resolveTierModuleState,
   splitStock,
   type ModuleName,
   type SubscriptionTier,
@@ -47,7 +48,13 @@ export interface BusinessEntitlements {
   tier: SubscriptionTier
   tierLabel: string
   tierShortLabel: string
+  tierPublicName: string
+  segment: string
   description: string
+  billing: 'free' | 'paid' | 'enterprise'
+  uiMode: string
+  uiSource: string
+  upgradeTarget: SubscriptionTier | null
   maxProducts: number | null
   maxBranches: number | null
   maxDevices: number | null
@@ -75,24 +82,19 @@ interface BusinessEntitlementsRow {
 function buildEntitlements(row: BusinessEntitlementsRow | null): BusinessEntitlements {
   const tier = normalizeSubscriptionTier(row?.subscription_tier)
   const definition = getTierDefinition(tier)
-  const tierModules = getTierModuleState(tier)
-  const dbModules = row?.module_state ?? {}
-
-  const modules = (Object.keys(tierModules) as ModuleName[]).reduce(
-    (acc, key) => {
-      const dbValue = dbModules[key]
-      // DB false wins (owner disable). DB true is ignored on locked modules.
-      acc[key] = typeof dbValue === 'boolean' ? dbValue && tierModules[key] : tierModules[key]
-      return acc
-    },
-    {} as Record<ModuleName, boolean>,
-  )
+  const modules = resolveTierModuleState(tier, row?.module_state)
 
   return {
     tier,
     tierLabel: definition.label,
     tierShortLabel: definition.shortLabel,
+    tierPublicName: definition.publicName,
+    segment: definition.segment,
     description: definition.description,
+    billing: definition.billing,
+    uiMode: definition.uiMode,
+    uiSource: definition.uiSource,
+    upgradeTarget: definition.upgradeTarget,
     // DB nulls fall back to tier defaults; tier nulls (enterprise) propagate
     // as `null` meaning unlimited.
     maxProducts: row?.max_products ?? definition.maxProducts,
@@ -223,6 +225,45 @@ export async function getProductManagementRows(limit = 200): Promise<ProductMana
   })
 }
 
+export interface CategoryManagementRow {
+  id: string
+  name: string
+  color: string | null
+}
+
+export type CategoryManagementResult = QueryResult<{
+  categories: CategoryManagementRow[]
+}>
+
+interface CategoryRow {
+  id: string
+  name: string
+  color: string | null
+}
+
+export async function getCategoryManagementRows(limit = 100): Promise<CategoryManagementResult> {
+  return withSupabase<{
+    categories: CategoryManagementRow[]
+  }>(async (supabase) => {
+    const { data, error } = await supabase
+      .from('categories')
+      .select('id, name, color')
+      .order('name', { ascending: true })
+      .limit(limit)
+
+    if (error) return { ready: false, reason: 'query_failed', message: error.message }
+
+    return {
+      ready: true,
+      categories: ((data ?? []) as CategoryRow[]).map((row) => ({
+        id: row.id,
+        name: row.name,
+        color: row.color,
+      })),
+    }
+  })
+}
+
 // ----- Branches ---------------------------------------------------------------
 
 export interface BranchManagementRow {
@@ -327,6 +368,94 @@ export async function getUserManagementRows(limit = 100): Promise<UserManagement
     }))
 
     return { ready: true, users }
+  })
+}
+
+// ----- Devices ----------------------------------------------------------------
+
+export interface DeviceManagementRow {
+  id: string
+  installTail: string
+  deviceName: string | null
+  branchName: string | null
+  surface: string
+  status: string
+  lastSeenAt: string | null
+  unsyncedRows: number | null
+  pendingRows: number | null
+  failedRows: number | null
+  reviewableRows: number | null
+  oldestPendingCreatedAt: number | null
+}
+
+export type DeviceManagementResult = QueryResult<{
+  devices: DeviceManagementRow[]
+  activeCount: number
+  lostCount: number
+}>
+
+interface DeviceRow {
+  id: string
+  install_id: string
+  device_name: string | null
+  surface: string
+  status: string
+  last_seen_at: string | null
+  sync_snapshot: {
+    unsynced_rows?: unknown
+    pending_rows?: unknown
+    failed_rows?: unknown
+    reviewable_rows?: unknown
+    oldest_pending_created_at?: unknown
+  } | null
+  branches: Array<{ name: string }> | null
+}
+
+function tailInstallId(value: string): string {
+  return value.length > 8 ? `...${value.slice(-8)}` : value
+}
+
+function numberOrNull(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null
+}
+
+export async function getDeviceManagementRows(limit = 100): Promise<DeviceManagementResult> {
+  return withSupabase<{
+    devices: DeviceManagementRow[]
+    activeCount: number
+    lostCount: number
+  }>(async (supabase) => {
+    const { data, error } = await supabase
+      .from('business_devices')
+      .select(
+        'id, install_id, device_name, surface, status, last_seen_at, sync_snapshot, branches ( name )',
+      )
+      .order('last_seen_at', { ascending: false, nullsFirst: false })
+      .limit(limit)
+
+    if (error) return { ready: false, reason: 'query_failed', message: error.message }
+
+    const devices = ((data ?? []) as DeviceRow[]).map((row) => ({
+      id: row.id,
+      installTail: tailInstallId(row.install_id),
+      deviceName: row.device_name,
+      branchName: row.branches?.[0]?.name ?? null,
+      surface: row.surface,
+      status: row.status,
+      lastSeenAt: row.last_seen_at,
+      unsyncedRows: numberOrNull(row.sync_snapshot?.unsynced_rows),
+      pendingRows: numberOrNull(row.sync_snapshot?.pending_rows),
+      failedRows: numberOrNull(row.sync_snapshot?.failed_rows),
+      reviewableRows: numberOrNull(row.sync_snapshot?.reviewable_rows),
+      oldestPendingCreatedAt: numberOrNull(row.sync_snapshot?.oldest_pending_created_at),
+    }))
+
+    return {
+      ready: true,
+      devices,
+      activeCount: devices.filter((device) => device.status === 'active').length,
+      lostCount: devices.filter((device) => device.status === 'lost').length,
+    }
   })
 }
 

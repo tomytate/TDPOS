@@ -1,5 +1,14 @@
+import { ScaffoldActionButton } from '@/components/scaffold-action-button'
 import { TierLockBanner } from '@/components/tier-lock-banner'
-import { getBusinessEntitlements, getProductManagementRows } from '@/lib/queries/management'
+import {
+  createCategoryScaffoldAction,
+  createProductScaffoldAction,
+} from '@/app/(dashboard)/actions'
+import {
+  getBusinessEntitlements,
+  getCategoryManagementRows,
+  getProductManagementRows,
+} from '@/lib/queries/management'
 
 function StatusBadge({ active }: { active: boolean }) {
   return (
@@ -20,9 +29,10 @@ function formatLimit(limit: number | null): string {
 }
 
 export default async function ProductsPage() {
-  const [entitlementsResult, result] = await Promise.all([
+  const [entitlementsResult, result, categoriesResult] = await Promise.all([
     getBusinessEntitlements(),
     getProductManagementRows(),
+    getCategoryManagementRows(),
   ])
   const entitlements = entitlementsResult.ready ? entitlementsResult.entitlements : null
   const canManage = entitlements?.isSurfaceEnabled('web.products') ?? false
@@ -34,13 +44,25 @@ export default async function ProductsPage() {
           <h1 className="m-0 text-2xl font-semibold text-ink-900">Products</h1>
           <p className="mt-1 text-sm text-ink-600">Catalog, stock, tingi units, and prices.</p>
         </div>
-        <button
-          type="button"
-          disabled
-          className="rounded-lg border border-ink-300 bg-ink-50 px-3 py-1.5 text-[13px] font-semibold text-ink-400"
-        >
-          Add product
-        </button>
+        <ScaffoldActionButton
+          action={createProductScaffoldAction}
+          label="Validate product scaffold"
+          fields={[
+            {
+              kind: 'text',
+              name: 'name',
+              label: 'Name',
+              placeholder: 'Test Sachet',
+              required: true,
+            },
+            { kind: 'text', name: 'sku', label: 'SKU', placeholder: 'SACHET-001' },
+            { kind: 'number', name: 'price_per_piece', label: 'Piece price', defaultValue: '7' },
+            { kind: 'number', name: 'stock_pieces', label: 'Stock pieces', defaultValue: '0' },
+            { kind: 'number', name: 'pieces_per_pack', label: 'Pieces / pack', defaultValue: '1' },
+            { kind: 'text', name: 'unit_label', label: 'Unit label', defaultValue: 'pc' },
+            { kind: 'checkbox', name: 'is_tingi', label: 'Tingi enabled' },
+          ]}
+        />
       </header>
 
       {!canManage && entitlements ? (
@@ -50,6 +72,62 @@ export default async function ProductsPage() {
           unlockedAt="Pro"
         />
       ) : null}
+
+      <section className="rounded-lg border border-ink-200 bg-ink-50 p-4">
+        <div className="mb-3">
+          <h2 className="m-0 text-base font-semibold text-ink-900">Category scaffold</h2>
+          <p className="mt-1 text-sm text-ink-600">
+            Category creation shares the Products tier guard. Real inserts and audit rows land in
+            the W0.8 mutation pass.
+          </p>
+        </div>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,0.7fr)]">
+          <ScaffoldActionButton
+            action={createCategoryScaffoldAction}
+            label="Validate category scaffold"
+            fields={[
+              {
+                kind: 'text',
+                name: 'name',
+                label: 'Name',
+                placeholder: 'Sachets',
+                required: true,
+              },
+              { kind: 'text', name: 'color', label: 'Color', defaultValue: '#0f766e' },
+            ]}
+          />
+          <div className="rounded-lg border border-ink-200 bg-white p-3">
+            <p className="m-0 text-[11px] font-semibold uppercase text-ink-500">
+              Existing categories
+            </p>
+            {!categoriesResult.ready ? (
+              <p className="mt-2 text-sm text-amber-700">
+                {categoriesResult.reason === 'supabase_unconfigured'
+                  ? 'Supabase is not configured.'
+                  : `Categories could not load: ${categoriesResult.message ?? 'unknown error'}`}
+              </p>
+            ) : categoriesResult.categories.length === 0 ? (
+              <p className="mt-2 text-sm text-ink-500">No categories found.</p>
+            ) : (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {categoriesResult.categories.map((category) => (
+                  <span
+                    key={category.id}
+                    className="inline-flex items-center gap-2 rounded-full border border-ink-200 bg-white px-2.5 py-1 text-[12px] font-semibold text-ink-700"
+                  >
+                    <span
+                      aria-hidden="true"
+                      className="size-2 rounded-full"
+                      style={{ backgroundColor: category.color ?? '#0f766e' }}
+                    />
+                    {category.name}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
 
       {!result.ready ? (
         <div role="status" className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm">

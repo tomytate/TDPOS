@@ -2,17 +2,19 @@
 // the current tier doesn't unlock them. Pure presentational — pages decide
 // when to render it from `entitlements.isSurfaceEnabled(surface)`.
 //
-// At v0.1 this is read-only across the board (no Server Actions yet); the
-// banner exists to make the tier gate visible early so the upgrade path is
-// part of the scaffold, not a polish-pass afterthought.
+// At v0.1 these surfaces are mostly scaffolded; guarded Server Actions return
+// clear lock / scaffold states until the real W0.8 mutations land.
+
+import type { ReactNode } from 'react'
 
 interface TierLockBannerProps {
   tierLabel: string
   surfaceLabel: string
   unlockedAt: string
+  copy?: ReactNode
 }
 
-export function TierLockBanner({ tierLabel, surfaceLabel, unlockedAt }: TierLockBannerProps) {
+export function TierLockBanner({ tierLabel, surfaceLabel, unlockedAt, copy }: TierLockBannerProps) {
   return (
     <aside
       role="note"
@@ -22,8 +24,12 @@ export function TierLockBanner({ tierLabel, surfaceLabel, unlockedAt }: TierLock
         {tierLabel} — read-only
       </p>
       <p className="m-0 text-sm text-ink-700">
-        {surfaceLabel} is read-only on your current tier. Upgrade to{' '}
-        <span className="font-semibold">{unlockedAt}</span> to add and edit.
+        {copy ?? (
+          <>
+            {surfaceLabel} is read-only on your current tier. Upgrade to{' '}
+            <span className="font-semibold">{unlockedAt}</span> to add and edit.
+          </>
+        )}
       </p>
     </aside>
   )

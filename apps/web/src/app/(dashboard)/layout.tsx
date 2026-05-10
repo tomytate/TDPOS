@@ -4,6 +4,7 @@ import type { ReactNode } from 'react'
 
 import { getBusinessEntitlements } from '@/lib/queries/management'
 import { getCurrentClaims } from '@/lib/supabase/server'
+import type { TierSurface } from '@tdpos/shared'
 
 import { signOutAction } from './actions'
 
@@ -21,9 +22,20 @@ export default async function DashboardLayout({ children }: { children: ReactNod
 
   const phone = typeof claims.phone === 'string' ? claims.phone : '—'
   const entitlementsResult = await getBusinessEntitlements()
-  const tierShortLabel = entitlementsResult.ready
-    ? entitlementsResult.entitlements.tierShortLabel
-    : null
+  const entitlements = entitlementsResult.ready ? entitlementsResult.entitlements : null
+  const tierShortLabel = entitlements?.tierShortLabel ?? null
+
+  const navItems: Array<{ href: string; label: string; surface: TierSurface }> = [
+    { href: '/dashboard', label: 'Overview', surface: 'web.overview' },
+    { href: '/sync', label: 'Sync health', surface: 'web.sync' },
+    { href: '/products', label: 'Products', surface: 'web.products' },
+    { href: '/branches', label: 'Branches', surface: 'web.branches' },
+    { href: '/users', label: 'Users', surface: 'web.users' },
+    { href: '/devices', label: 'Devices', surface: 'web.devices' },
+    { href: '/modules', label: 'Modules', surface: 'web.modules' },
+    { href: '/audit', label: 'Audit log', surface: 'web.audit' },
+    { href: '/hq', label: 'HQ', surface: 'web.hq' },
+  ]
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -33,54 +45,24 @@ export default async function DashboardLayout({ children }: { children: ReactNod
           <span className="text-[13px] opacity-85">Owner Dashboard</span>
         </div>
         <nav className="flex items-center gap-1 text-[13px]" aria-label="Primary">
-          <Link
-            href="/dashboard"
-            className="rounded-md px-2.5 py-1 text-white transition-colors hover:bg-white/10"
-          >
-            Overview
-          </Link>
-          <Link
-            href="/sync"
-            className="rounded-md px-2.5 py-1 text-white transition-colors hover:bg-white/10"
-          >
-            Sync health
-          </Link>
-          <Link
-            href="/products"
-            className="rounded-md px-2.5 py-1 text-white transition-colors hover:bg-white/10"
-          >
-            Products
-          </Link>
-          <Link
-            href="/branches"
-            className="rounded-md px-2.5 py-1 text-white transition-colors hover:bg-white/10"
-          >
-            Branches
-          </Link>
-          <Link
-            href="/users"
-            className="rounded-md px-2.5 py-1 text-white transition-colors hover:bg-white/10"
-          >
-            Users
-          </Link>
-          <Link
-            href="/modules"
-            className="rounded-md px-2.5 py-1 text-white transition-colors hover:bg-white/10"
-          >
-            Modules
-          </Link>
-          <Link
-            href="/audit"
-            className="rounded-md px-2.5 py-1 text-white transition-colors hover:bg-white/10"
-          >
-            Audit log
-          </Link>
-          <Link
-            href="/hq"
-            className="rounded-md px-2.5 py-1 text-white transition-colors hover:bg-white/10"
-          >
-            HQ
-          </Link>
+          {navItems.map((item) => {
+            const unlocked = entitlements?.isSurfaceEnabled(item.surface) ?? true
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={
+                  unlocked
+                    ? 'rounded-md px-2.5 py-1 text-white transition-colors hover:bg-white/10'
+                    : 'rounded-md px-2.5 py-1 text-white/60 transition-colors hover:bg-white/10'
+                }
+                title={unlocked ? item.label : `${item.label} is tier-locked`}
+              >
+                {item.label}
+                {unlocked ? null : <span className="ml-1 text-[10px]">Locked</span>}
+              </Link>
+            )
+          })}
         </nav>
         <div className="flex items-center gap-3 text-[13px]">
           {tierShortLabel ? (

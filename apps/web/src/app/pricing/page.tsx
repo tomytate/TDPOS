@@ -90,7 +90,10 @@ export default async function PricingPage() {
                     <p className="m-0 text-[11px] font-semibold uppercase tracking-wide text-teal-700">
                       {definition.shortLabel}
                     </p>
-                    <h2 className="m-0 text-lg font-semibold text-ink-900">{definition.label}</h2>
+                    <h2 className="m-0 text-lg font-semibold text-ink-900">
+                      {definition.publicName}
+                    </h2>
+                    <p className="m-0 text-[12px] text-ink-500">{definition.segment}</p>
                   </div>
                   {isCurrent ? (
                     <span className="rounded-full bg-teal-700 px-2 py-0.5 text-[11px] font-semibold uppercase text-white">
