@@ -8,7 +8,7 @@ import { useAppTheme } from '@/constants/theme'
 import { describeBootstrapFailure } from '@/services/auth-bootstrap'
 import { supabase } from '@/services/supabase'
 import { useAuthStore } from '@/stores/auth-store'
-import { isValidPhPhone, normalizePhPhone } from '@tdpos/shared'
+import { TIER_A_FREE, getTierModuleState, isValidPhPhone, normalizePhPhone } from '@tdpos/shared'
 
 export default function SignInScreen() {
   const theme = useAppTheme()
@@ -61,6 +61,9 @@ export default function SignInScreen() {
       businessId: 'demo-business',
       role: 'owner',
       phone: '+639171234567',
+      subscriptionTier: TIER_A_FREE,
+      modules: getTierModuleState(TIER_A_FREE),
+      entitlementsValidUntil: null,
     })
     setDevice({
       branchId: 'demo-branch',

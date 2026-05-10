@@ -3,13 +3,24 @@ import { createJSONStorage, persist } from 'zustand/middleware'
 
 import type { BootstrapOutcome } from '@/services/auth-bootstrap'
 import { mmkvStorage } from '@/services/storage'
-import type { UserRole } from '@tdpos/shared'
+import {
+  TIER_A_FREE,
+  getTierModuleState,
+  type ModuleName,
+  type SubscriptionTier,
+  type UserRole,
+} from '@tdpos/shared'
+
+type ModuleState = Record<ModuleName, boolean>
 
 interface AuthUserInput {
   userId: string
   businessId: string
   role: UserRole
   phone?: string | null
+  subscriptionTier?: SubscriptionTier
+  modules?: ModuleState
+  entitlementsValidUntil?: string | null
 }
 
 interface DeviceInput {
@@ -34,6 +45,14 @@ interface AuthState {
   storeName: string | null
   storeAddress: string | null
   tin: string | null
+  // Tier fields — populated by `bootstrapAuthFromSession` from the
+  // `businesses` row, defaulted to tier_a_free when absent. Persisted so
+  // an offline cold start can render the right surfaces immediately;
+  // the listener re-evaluates on every INITIAL_SESSION so stale entries
+  // are corrected the next time the device is online.
+  subscriptionTier: SubscriptionTier
+  modules: ModuleState
+  entitlementsValidUntil: string | null
   // Ephemeral. Tracks the most recent auth-bootstrap result so (auth) screens
   // can render `account_not_provisioned` / `no_branches_configured` etc.
   // Excluded from MMKV persist via partialize — re-evaluated each session.
@@ -43,6 +62,8 @@ interface AuthState {
   setBootstrapStatus: (status: BootstrapOutcome | null) => void
   clearAuth: () => void
 }
+
+const TIER_A_DEFAULT_MODULES: ModuleState = getTierModuleState(TIER_A_FREE)
 
 export const useAuthStore = create<AuthState>()(
   persist(
@@ -58,9 +79,28 @@ export const useAuthStore = create<AuthState>()(
       storeName: null,
       storeAddress: null,
       tin: null,
+      subscriptionTier: TIER_A_FREE,
+      modules: TIER_A_DEFAULT_MODULES,
+      entitlementsValidUntil: null,
       bootstrapStatus: null,
-      setAuth: ({ userId, businessId, role, phone = null }) =>
-        set({ userId, businessId, role, phone }),
+      setAuth: ({
+        userId,
+        businessId,
+        role,
+        phone = null,
+        subscriptionTier = TIER_A_FREE,
+        modules = TIER_A_DEFAULT_MODULES,
+        entitlementsValidUntil = null,
+      }) =>
+        set({
+          userId,
+          businessId,
+          role,
+          phone,
+          subscriptionTier,
+          modules,
+          entitlementsValidUntil,
+        }),
       setDevice: ({
         branchId,
         branchCode,
@@ -93,14 +133,18 @@ export const useAuthStore = create<AuthState>()(
           storeName: null,
           storeAddress: null,
           tin: null,
+          subscriptionTier: TIER_A_FREE,
+          modules: TIER_A_DEFAULT_MODULES,
+          entitlementsValidUntil: null,
           bootstrapStatus: null,
         }),
     }),
     {
       name: 'auth-storage',
       storage: createJSONStorage(() => mmkvStorage),
-      // Persist identity facts only. bootstrapStatus is session-scoped — the
-      // listener re-fires INITIAL_SESSION and re-evaluates on every cold start.
+      // Persist identity facts + tier-derived entitlements. bootstrapStatus is
+      // session-scoped — the listener re-fires INITIAL_SESSION and
+      // re-evaluates on every cold start.
       partialize: (state) => ({
         userId: state.userId,
         businessId: state.businessId,
@@ -113,6 +157,9 @@ export const useAuthStore = create<AuthState>()(
         storeName: state.storeName,
         storeAddress: state.storeAddress,
         tin: state.tin,
+        subscriptionTier: state.subscriptionTier,
+        modules: state.modules,
+        entitlementsValidUntil: state.entitlementsValidUntil,
       }),
     },
   ),

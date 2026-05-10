@@ -6,13 +6,23 @@
  * with mocks.
  */
 
-import type { UserRole } from '@tdpos/shared'
+import {
+  TIER_A_FREE,
+  getTierModuleState,
+  normalizeSubscriptionTier,
+  type ModuleName,
+  type SubscriptionTier,
+  type UserRole,
+} from '@tdpos/shared'
 
 export interface BootstrapAuthInput {
   userId: string
   businessId: string
   role: UserRole
   phone?: string | null
+  subscriptionTier: SubscriptionTier
+  modules: Record<ModuleName, boolean>
+  entitlementsValidUntil: string | null
 }
 
 export interface BootstrapDeviceInput {
@@ -59,6 +69,9 @@ interface SupabaseBusinessRow {
   name: string | null
   address: string | null
   tin: string | null
+  subscription_tier?: string | null
+  module_state?: Record<string, boolean> | null
+  entitlements_valid_until?: string | null
 }
 
 /**
@@ -189,7 +202,7 @@ export async function bootstrapAuthFromSession(params: {
       .maybeSingle(),
     supabase
       .from('businesses')
-      .select('id, name, address, tin')
+      .select('id, name, address, tin, subscription_tier, module_state, entitlements_valid_until')
       .eq('id', userRow.business_id)
       .maybeSingle(),
   ])
@@ -205,11 +218,32 @@ export async function bootstrapAuthFromSession(params: {
   let storeName: string | null = null
   let storeAddress: string | null = null
   let tin: string | null = null
+  let subscriptionTier: SubscriptionTier = TIER_A_FREE
+  let modules: Record<ModuleName, boolean> = getTierModuleState(TIER_A_FREE)
+  let entitlementsValidUntil: string | null = null
   if (!businessRes.error && businessRes.data) {
     const businessRow = businessRes.data as SupabaseBusinessRow
     storeName = businessRow.name
     storeAddress = businessRow.address
     tin = businessRow.tin
+    subscriptionTier = normalizeSubscriptionTier(businessRow.subscription_tier)
+    // Tier defaults are the floor; per-tenant DB overrides win when present.
+    // Owners can disable an unlocked module without dropping a tier; they
+    // cannot enable a module that isn't unlocked at their tier (the merge
+    // keeps the DB value `false` overriding the tier `true` is fine, but
+    // module_state's truthy values for locked modules are silently ignored
+    // by clamping to the tier floor's `true` set on the consumer side).
+    const tierModules = getTierModuleState(subscriptionTier)
+    const dbModules = businessRow.module_state ?? {}
+    modules = (Object.keys(tierModules) as ModuleName[]).reduce(
+      (acc, key) => {
+        const dbValue = dbModules[key]
+        acc[key] = typeof dbValue === 'boolean' ? dbValue && tierModules[key] : tierModules[key]
+        return acc
+      },
+      {} as Record<ModuleName, boolean>,
+    )
+    entitlementsValidUntil = businessRow.entitlements_valid_until ?? null
   }
 
   // 4. Populate stores.
@@ -218,6 +252,9 @@ export async function bootstrapAuthFromSession(params: {
     businessId: userRow.business_id,
     role,
     phone,
+    subscriptionTier,
+    modules,
+    entitlementsValidUntil,
   }
   const device: BootstrapDeviceInput = {
     branchId: branchRow.id,

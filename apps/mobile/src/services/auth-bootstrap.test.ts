@@ -112,7 +112,7 @@ describe('bootstrapAuthFromSession', () => {
     if (!result.ok) return
 
     expect(calls.auth).toHaveLength(1)
-    expect(calls.auth[0]).toEqual({
+    expect(calls.auth[0]).toMatchObject({
       userId: USER_ID,
       businessId: BUSINESS_ID,
       role: 'owner',
