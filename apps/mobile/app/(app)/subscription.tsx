@@ -117,6 +117,14 @@ export default function SubscriptionScreen() {
         </Card>
 
         <Button
+          mode="contained-tonal"
+          icon="lock-open-outline"
+          onPress={() => router.push('/(app)/upgrade')}
+        >
+          See what other tiers unlock
+        </Button>
+
+        <Button
           mode="contained"
           icon="open-in-new"
           onPress={openPricing}
