@@ -12,6 +12,7 @@ import { useAppTheme } from '@/constants/theme'
 import { TierBSurfaceControls } from '@/features/tier-surfaces/tier-b-surface-controls'
 import { TierCSurfaceControls } from '@/features/tier-surfaces/tier-c-surface-controls'
 import { TierDSurfaceControls } from '@/features/tier-surfaces/tier-d-surface-controls'
+import { TierESurfaceControls } from '@/features/tier-surfaces/tier-e-surface-controls'
 import {
   getMobileSurfaceScaffold,
   type MobileTierSurface,
@@ -208,6 +209,7 @@ export default function TierSurfaceScreen() {
                 <TierBSurfaceControls surface={surface} />
                 <TierCSurfaceControls surface={surface} />
                 <TierDSurfaceControls surface={surface} />
+                <TierESurfaceControls surface={surface} />
               </>
             ) : null}
 

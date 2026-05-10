@@ -55,6 +55,47 @@ CREATE INDEX IF NOT EXISTS idx_manager_approval_requests_pending
   ON manager_approval_requests(branch_id, status, created_at DESC);
 `
 
+export const LOCAL_KIOSK_ORDERS_SQL = `
+CREATE TABLE IF NOT EXISTS kiosk_orders (
+  id TEXT PRIMARY KEY NOT NULL,
+  business_id TEXT NOT NULL,
+  branch_id TEXT NOT NULL,
+  device_id TEXT,
+  status TEXT NOT NULL DEFAULT 'draft' CHECK(status IN ('draft','awaiting_staff','confirmed','cancelled')),
+  customer_label TEXT,
+  payload TEXT NOT NULL DEFAULT '{}',
+  total_amount REAL NOT NULL DEFAULT 0,
+  created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+  confirmed_at INTEGER,
+  synced_at INTEGER
+);
+
+CREATE INDEX IF NOT EXISTS idx_kiosk_orders_status
+  ON kiosk_orders(branch_id, status, created_at DESC);
+`
+
+export const LOCAL_RETURN_REQUESTS_SQL = `
+CREATE TABLE IF NOT EXISTS return_requests (
+  id TEXT PRIMARY KEY NOT NULL,
+  business_id TEXT NOT NULL,
+  branch_id TEXT NOT NULL,
+  original_sale_id TEXT,
+  compensating_sale_id TEXT,
+  requested_by TEXT,
+  approved_by TEXT,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','approved','declined','completed')),
+  reason_code TEXT NOT NULL,
+  reason_note TEXT,
+  payload TEXT NOT NULL DEFAULT '{}',
+  created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+  resolved_at INTEGER,
+  synced_at INTEGER
+);
+
+CREATE INDEX IF NOT EXISTS idx_return_requests_status
+  ON return_requests(branch_id, status, created_at DESC);
+`
+
 export const LOCAL_MIGRATIONS: LocalMigration[] = [
   {
     version: 1,
@@ -68,6 +109,14 @@ export const LOCAL_MIGRATIONS: LocalMigration[] = [
   {
     version: 3,
     sql: LOCAL_MANAGER_APPROVALS_SQL,
+  },
+  {
+    version: 4,
+    sql: LOCAL_KIOSK_ORDERS_SQL,
+  },
+  {
+    version: 5,
+    sql: LOCAL_RETURN_REQUESTS_SQL,
   },
 ]
 
