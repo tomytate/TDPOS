@@ -47,7 +47,7 @@ export default {
     let body: unknown
     try {
       body = await req.json()
-    } catch (_err) {
+    } catch {
       return Response.json({ error: 'invalid_json' }, { status: 400 })
     }
 
