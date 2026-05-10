@@ -1,9 +1,9 @@
 -- TD POS — Development Seed Data
 -- Sari-sari store templates and sample products
 
--- Sample business
+-- Sample business (canonical 5-tier scaffold; tier_a_free is the entry tier)
 INSERT INTO businesses (id, name, tin, address, subscription_tier) VALUES
-  ('00000000-0000-0000-0000-000000000001', 'Tindahan ni Aling Nena', NULL, 'Holy Spirit, Quezon City', 'free');
+  ('00000000-0000-0000-0000-000000000001', 'Tindahan ni Aling Nena', NULL, 'Holy Spirit, Quezon City', 'tier_a_free');
 
 -- Sample branch
 INSERT INTO branches (id, business_id, name, address, region) VALUES

@@ -20,8 +20,27 @@ export interface DbBusiness {
   tin: string | null
   bir_rdo: string | null
   address: string | null
+  // Canonical 5-tier value: 'tier_a_free' | 'tier_b_pro' | 'tier_c_plus'
+  // | 'tier_d_premium' | 'tier_e_enterprise'. Old six-tier names (free,
+  // starter, pro, growth, business, enterprise) are normalized at the
+  // migration boundary; runtime code routes through
+  // `normalizeSubscriptionTier` from `@tdpos/shared`.
   subscription_tier: string
-  max_branches: number
+  // Per-tenant module overrides. Defaults to {} on insert; the tier's
+  // module unlocks (`getTierModuleState(tier)`) are merged at read-time
+  // with this row taking precedence so owners can disable an unlocked
+  // module without dropping a tier.
+  module_state: Record<string, boolean>
+  // Hard limits — null means unlimited. Backfilled from tier defaults
+  // when missing; per-tenant adjustments live here.
+  max_branches: number | null
+  max_products: number | null
+  max_devices: number | null
+  max_users: number | null
+  // ISO timestamp when the current entitlements expire. null = no expiry
+  // (tier_a_free or perpetual). Past dates fall back to tier_a_free
+  // entitlements at read-time.
+  entitlements_valid_until: DbTimestamp | null
   eopt_accredited: DbBoolean
   created_at: DbTimestamp
 }
