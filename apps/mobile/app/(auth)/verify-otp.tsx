@@ -21,6 +21,7 @@ export default function VerifyOtpScreen() {
   const [token, setToken] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const isBusy = submitting && !bootstrapError
 
   const signOutAndReset = async () => {
     if (!supabase) return
@@ -101,7 +102,7 @@ export default function VerifyOtpScreen() {
           maxLength={6}
           value={token}
           onChangeText={(value) => setToken(value.replace(/\D/g, ''))}
-          disabled={submitting}
+          disabled={isBusy}
         />
         {error ? (
           <HelperText type="error" visible>
@@ -113,14 +114,14 @@ export default function VerifyOtpScreen() {
       <Button
         mode="contained"
         onPress={verify}
-        loading={submitting}
-        disabled={submitting || token.length !== 6}
+        loading={isBusy}
+        disabled={isBusy || token.length !== 6}
         buttonColor={theme.colors.primary}
       >
-        {submitting ? 'Verifying…' : 'Verify and sign in'}
+        {isBusy ? 'Verifying…' : 'Verify and sign in'}
       </Button>
 
-      <Button mode="text" onPress={() => router.back()} disabled={submitting}>
+      <Button mode="text" onPress={() => router.back()} disabled={isBusy}>
         Use a different number
       </Button>
     </View>

@@ -514,7 +514,7 @@ Run this review once any paid service is enabled.
 - [x] `createClientOperationId()` helper exists (`@tdpos/shared`) and is used by checkout.
 - [x] Sale-row + sync-queue payload Zod validators exist (`saleSchema`, `syncQueueEnvelopeSchema` discriminated union).
 - [x] SQLite seed helper for development products/categories exists (`db/seed-dev.ts`, gated on `__DEV__`).
-- [/] `app/(auth)/sign-in.tsx` still ships a demo-mode shortcut. Production builds now hide the button and a `DEMO MODE` banner is shown in dev. Real OTP flow lands under P7.1.
+- [/] `app/(auth)/sign-in.tsx` still ships a demo-mode shortcut for local development. Production builds hide the button, a `DEMO MODE` banner is shown in dev, and the real phone-OTP flow already lands under P7.1.
 - [x] Git repo initialized; first commit `f4bb457` on `main` with full v0.1 foundation. Pushed to `github.com/tomytate/TDPOS`. Subsequent commits land PDF export, reporting ranges, EAS link, and dep refresh (4 commits ahead of origin at audit time).
 - [x] Hosted Supabase project provisioned at `ukrftgwpaidsusxqrlnc.supabase.co`. Three migrations applied (initial schema + immutability triggers + `create_sale_atomic`). Phone-auth provider enabled with at least one test OTP for development.
 - [x] EAS project linked (`a9cf7f75-…` hardcoded in `apps/mobile/app.config.ts` with `EAS_PROJECT_ID` env override). Android development build now passes locally and in EAS cloud from commit `fcb333e`.
@@ -1815,9 +1815,9 @@ Purpose: every row in this phase blocks v1.0. Per the Release Pact, "enterprise-
 ### P11.5.12 Doc Repair (Critical Cleanup)
 
 - [x] Fix the `docs/spec-v5.md` references in `README.md`, `CLAUDE.md`, `GEMINI.md`, and this checklist. `docs/spec-v5.md` exists as the operative meta-index and `check:doc-links` verifies the links.
-- [ ] Audit `docs/suki-pos-integration-tasks.md` against the current code (multiple WPs are already done) and either close the doc as historical or update its checkboxes.
+- [x] Audit `docs/suki-pos-integration-tasks.md` against the current code. It is now explicitly frozen as a historical Tier A provenance doc; active blockers live in this checklist, `docs/spec-v5.md`, and ADRs.
 - [x] Move the BIR language list out of `AGENTS.md` and `CLAUDE.md` into a single skill so changes happen once.
-- [ ] Remove the demo-mode shortcut in `app/(auth)/sign-in.tsx` and replace it with the real phone-OTP flow before pilot.
+- [ ] Remove the dev-only demo-mode shortcut in `app/(auth)/sign-in.tsx` before pilot. The real phone-OTP flow already exists; this remaining row is about eliminating the local escape hatch for external users.
 
 ## Phase W: Web Dashboard (parallel mainline track)
 

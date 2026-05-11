@@ -156,7 +156,7 @@ This project includes comprehensive anti-hallucination documentation for AI codi
 - [Architecture Decisions](docs/architecture.md)
 - [Database Schema](docs/database-schema.md)
 - [Development Setup](docs/development-setup.md)
-- [Suki POS Integration Tasks](docs/suki-pos-integration-tasks.md) — Multi-agent task plan (partly historical; reconciliation tracked under DocGate-1).
+- [Suki POS Integration Tasks](docs/suki-pos-integration-tasks.md) — historical Tier A work-package provenance; current blockers live in the spec/checklist/ADR set.
 
 ## Development
 

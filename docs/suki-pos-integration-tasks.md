@@ -5,6 +5,8 @@
 
 > [!IMPORTANT]
 > **Checkpoint status (2026-05-10):** this file is now a historical Tier A work-package reference, not the active product plan. The active plan is the five-tier scaffold in [spec-v5.md](spec-v5.md), [architecture.md](architecture.md), and [road-to-1.0-enterprise-checklist.md](road-to-1.0-enterprise-checklist.md). Keep this document for provenance when comparing Tier A against `UI/b_g4eU9LYiRKM/components/pos/tier-a-lite.tsx`, but do not add new global product decisions here.
+>
+> **Audit status (2026-05-11):** this document was re-checked after the five-tier scaffold landed. Its unchecked WP rows are intentionally frozen as historical Tier A tasks; do not use them as current release blockers. Current blockers and evidence live only in the active spec/checklist/ADR set above.
 
 > [!CAUTION]
 > **Fact-Check Errata (v2.0):** Three critical corrections from v1.0:
