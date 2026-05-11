@@ -1,3 +1,8 @@
+// Return request local persistence — Tier E Enterprise.
+// Returns never mutate original sales (ADR-011). Each return creates a
+// compensating row with its own operation ID. Manager approval required
+// for resolution. Local table created by migration v5 (LOCAL_RETURN_REQUESTS_SQL).
+
 import { createClientOperationId } from '@tdpos/shared'
 
 import type { AsyncSqliteLike } from '@/db/async-sqlite'

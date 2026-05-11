@@ -1,3 +1,8 @@
+// Kiosk order local persistence — Tier E Enterprise.
+// Orders queue with `awaiting_staff` status; stock decrement happens only
+// after staff confirmation through the shared checkout path. Local table
+// created by migration v4 (LOCAL_KIOSK_ORDERS_SQL).
+
 import { createClientOperationId } from '@tdpos/shared'
 
 import type { AsyncSqliteLike } from '@/db/async-sqlite'

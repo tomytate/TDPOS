@@ -1,3 +1,8 @@
+// Tier E Enterprise mobile surface controls.
+// Three surfaces: HQ rollup (cross-branch read, owner/manager gated),
+// self-service kiosk (customer order queue with staff confirmation),
+// and returns/warranty desk (receipt lookup, reason codes, ADR-011 safe).
+
 import { useSQLiteContext } from 'expo-sqlite'
 import { useCallback, useEffect, useState } from 'react'
 import { View } from 'react-native'
