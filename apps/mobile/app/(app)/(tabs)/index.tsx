@@ -64,6 +64,7 @@ function ProductSkeletonGrid() {
 
 function ProductCard({ product, onAdd }: { product: DbProduct; onAdd: () => void }) {
   const theme = useAppTheme()
+  const t = useT()
   const lowStock =
     product.reorder_point_pieces !== null && product.stock_pieces <= product.reorder_point_pieces
 
@@ -71,7 +72,7 @@ function ProductCard({ product, onAdd }: { product: DbProduct; onAdd: () => void
     <Pressable
       onPress={onAdd}
       accessibilityLabel={`${product.name}, ${formatMoney(product.price_per_piece)}`}
-      accessibilityHint="Tap to add one piece to the cart"
+      accessibilityHint={t('sale.addHint')}
       accessibilityRole="button"
       style={({ pressed }) => ({
         flexBasis: '47%',
@@ -95,7 +96,7 @@ function ProductCard({ product, onAdd }: { product: DbProduct; onAdd: () => void
                 fontVariant: ['tabular-nums'],
               }}
             >
-              {product.stock_pieces} pcs
+              {product.stock_pieces} {t('sale.pieces')}
             </Text>
             {lowStock ? (
               <Chip
@@ -104,7 +105,7 @@ function ProductCard({ product, onAdd }: { product: DbProduct; onAdd: () => void
                 style={{ backgroundColor: theme.tdpos.amber[100] }}
                 textStyle={{ color: theme.tdpos.amber[700], fontSize: 11 }}
               >
-                Low
+                {t('inventory.low')}
               </Chip>
             ) : null}
           </View>
@@ -204,9 +205,9 @@ export default function SaleScreen() {
           selected={activeCategory === ALL_CATEGORY}
           mode={activeCategory === ALL_CATEGORY ? 'flat' : 'outlined'}
           onPress={() => handleCategorySelect(ALL_CATEGORY)}
-          accessibilityLabel="Show all categories"
+          accessibilityLabel={t('sale.showAllCategories')}
         >
-          All
+          {t('inventory.all')}
         </Chip>
         {categories.map((cat) => (
           <Chip
@@ -214,7 +215,7 @@ export default function SaleScreen() {
             selected={activeCategory === cat.id}
             mode={activeCategory === cat.id ? 'flat' : 'outlined'}
             onPress={() => handleCategorySelect(cat.id)}
-            accessibilityLabel={`Filter by ${cat.name}, ${cat.product_count} products`}
+            accessibilityLabel={`${t('sale.filterCategory')}: ${cat.name}, ${cat.product_count} ${t('inventory.products')}`}
           >
             {cat.name} · {cat.product_count}
           </Chip>
@@ -231,9 +232,7 @@ export default function SaleScreen() {
             <Card.Content style={{ gap: 12 }}>
               <Text variant="titleMedium">{t('sale.empty')}</Text>
               <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
-                {activeCategory === ALL_CATEGORY
-                  ? 'No active products yet. Add inventory from the web dashboard, or pull to refresh once a manager loads stock.'
-                  : 'No active products in this category. Try All or pick another category above.'}
+                {activeCategory === ALL_CATEGORY ? t('sale.emptyAll') : t('sale.emptyCategory')}
               </Text>
               <Button
                 mode="outlined"
@@ -245,7 +244,7 @@ export default function SaleScreen() {
                   void refetch()
                 }}
               >
-                Refresh
+                {t('sale.refresh')}
               </Button>
             </Card.Content>
           </Card>
