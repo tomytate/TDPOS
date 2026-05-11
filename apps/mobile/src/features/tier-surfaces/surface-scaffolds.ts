@@ -1,3 +1,7 @@
+// Surface scaffold metadata registry — maps every TierSurface to its
+// label, description, icon, tier, and action status. Used by the surface
+// preview cards and the mobile surface router for dispatch.
+
 import type { TierSurface } from '@tdpos/shared'
 
 export type MobileTierSurface = Extract<TierSurface, `mobile.${string}`>

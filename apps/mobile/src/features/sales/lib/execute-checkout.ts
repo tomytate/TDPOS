@@ -1,3 +1,7 @@
+// Checkout execution — local-first sale recording.
+// Writes sale + sale_items + inventory delta + sync_queue envelope
+// in a single SQLite transaction. Idempotent via client_operation_id.
+
 import {
   createClientOperationId,
   formatReceiptDate,

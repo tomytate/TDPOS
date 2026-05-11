@@ -1,3 +1,7 @@
+// Manager approval request local persistence — Tier C Plus.
+// Supports discount overrides, void requests, and refund approvals.
+// Table created by migration v3 (LOCAL_MANAGER_APPROVAL_REQUESTS_SQL).
+
 import { createClientOperationId } from '@tdpos/shared'
 
 import type { AsyncSqliteLike } from '@/db/async-sqlite'

@@ -1,3 +1,7 @@
+// Offline entitlement cache — fail-closed for paid surfaces.
+// Tier A cashier always works. Paid manager/owner surfaces require
+// entitlements refreshed within the 7-day grace period.
+
 import { isTierSurfaceEnabled, type SubscriptionTier, type TierSurface } from '@tdpos/shared'
 
 const ENTITLEMENT_STALE_GRACE_MS = 7 * 24 * 60 * 60 * 1000

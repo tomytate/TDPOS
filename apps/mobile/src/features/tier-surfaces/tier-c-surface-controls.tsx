@@ -1,3 +1,7 @@
+// Tier C Plus mobile surface controls.
+// Surfaces: convenience counter (quick-scan product lookup, running totals),
+// manager phone (approval requests, inventory alerts, shift reports).
+
 import { router } from 'expo-router'
 import { useSQLiteContext } from 'expo-sqlite'
 import { useCallback, useEffect, useState } from 'react'

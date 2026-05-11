@@ -1,3 +1,7 @@
+// Tier B Pro mobile surface controls.
+// Surfaces: tablet POS (product grid with category filters, cart, checkout),
+// owner cashier lanes (shift overview for all active lanes), shift login/handoff.
+
 import { router } from 'expo-router'
 import { useSQLiteContext } from 'expo-sqlite'
 import { useCallback, useEffect, useState } from 'react'

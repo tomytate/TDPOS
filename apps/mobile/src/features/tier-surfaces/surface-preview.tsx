@@ -1,3 +1,7 @@
+// Surface preview cards — renders tier-gated surface selection UI.
+// Shows unlocked surfaces with navigation and locked surfaces with
+// upgrade prompts. Reads TIER_DEFINITIONS and SURFACE_LABELS.
+
 import type { ReactNode } from 'react'
 import { View } from 'react-native'
 import { Card, Chip, Text } from 'react-native-paper'

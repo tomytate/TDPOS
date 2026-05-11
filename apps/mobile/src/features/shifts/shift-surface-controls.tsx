@@ -1,3 +1,7 @@
+// Shift session UI — embedded in Tier B+ surface controls.
+// Provides shift login (open with cash count) and handoff (close with final count).
+// Reads/writes through shift-sessions.ts local persistence.
+
 import { useSQLiteContext } from 'expo-sqlite'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { View } from 'react-native'

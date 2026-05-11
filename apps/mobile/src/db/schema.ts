@@ -1,3 +1,7 @@
+// Local SQLite schema — v1 baseline for offline-first mobile.
+// Tables: products, categories, sales, sale_items, sync_queue, applied_operations.
+// All writes go here first; sync is a background concern.
+
 export const LOCAL_SCHEMA_SQL = `
 PRAGMA journal_mode = WAL;
 PRAGMA foreign_keys = ON;

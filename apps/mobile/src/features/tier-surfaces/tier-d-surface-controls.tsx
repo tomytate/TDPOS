@@ -1,3 +1,7 @@
+// Tier D Premium mobile surface controls.
+// Surfaces: supermarket counter (multi-lane cashier), customer display (cart mirror),
+// back-office audit (sales/inventory/sync health), weighted PLU (lookup + weight entry).
+
 import { router } from 'expo-router'
 import { useSQLiteContext } from 'expo-sqlite'
 import { useCallback, useEffect, useState } from 'react'

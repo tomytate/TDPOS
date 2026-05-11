@@ -1,3 +1,7 @@
+// Auth store — Zustand 5 + MMKV persistence.
+// Holds session, user profile, role, business/branch context.
+// Hydrated from MMKV on app launch, updated by auth-bootstrap.
+
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 

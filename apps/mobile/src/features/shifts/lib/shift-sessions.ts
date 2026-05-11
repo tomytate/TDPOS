@@ -1,3 +1,7 @@
+// Shift session local persistence — Tier B+ foundation.
+// Local SQLite CRUD for shift open, close, count, and summary queries.
+// Table created by migration v2 (LOCAL_SHIFT_SESSIONS_SQL).
+
 import { createClientOperationId } from '@tdpos/shared'
 
 import type { AsyncSqliteLike } from '@/db/async-sqlite'

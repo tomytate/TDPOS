@@ -1,3 +1,7 @@
+// Cart store — Zustand 5 (ephemeral, no persistence).
+// Manages current transaction items, totals, tender, and change.
+// Cleared on checkout completion or explicit discard.
+
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 

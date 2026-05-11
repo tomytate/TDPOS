@@ -1,3 +1,7 @@
+// Local SQLite migration runner — applies versioned schema changes.
+// Migrations are registered in LOCAL_MIGRATIONS array (v2–v5).
+// Each migration runs exactly once via schema_version tracking.
+
 import type { AsyncSqliteLike } from './async-sqlite'
 import { LOCAL_SCHEMA_SQL } from './schema'
 
