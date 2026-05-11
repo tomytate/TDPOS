@@ -126,13 +126,7 @@ The canonical deprecations table lives in [`docs/skills/deprecations.md`](docs/s
 
 ## BIR Language Discipline
 
-| ✅ Always Use                                  | ❌ Never Use (Until Accredited)     |
-| ---------------------------------------------- | ----------------------------------- |
-| "BIR-ready receipt format"                     | "BIR-compliant"                     |
-| "BIR-ready data export"                        | "BIR-certified"                     |
-| "Designed to BIR specification"                | "BIR-approved"                      |
-| "Provisional receipts"                         | "Official Receipts"                 |
-| "Sales Invoice format ready for accreditation" | "Sales Invoice" (without qualifier) |
+The canonical wording rules live in [`docs/skills/bir-compliance.md`](docs/skills/bir-compliance.md), and regex-detectable forbidden patterns live in [`docs/skills/deprecations.md`](docs/skills/deprecations.md). Do not duplicate the phrase table here; DocGate-2 keeps BIR wording single-sourced.
 
 ## Skills Reference (22 procedural docs in `docs/skills/`)
 

@@ -19,7 +19,7 @@ import { checkInsertLimit, checkSurfaceAccess } from '@/lib/entitlements/surface
 import { getServerSupabase } from '@/lib/supabase/server'
 
 // `scaffold_only` is intentionally retained on the union for any future
-// stub action that wants to return early without mutating. The five W0.8
+// stub action that wants to return early without mutating. The six W0.8
 // management surfaces (products / branches / categories / users / modules /
 // devices) all run real DB writes today.
 export type ScaffoldActionResult =

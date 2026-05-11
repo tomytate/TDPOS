@@ -9,7 +9,7 @@
     "ios": "expo start --ios --dev-client",
     "android": "expo start --android --dev-client",
     "web": "expo start --web",
-    "build": "expo export --platform all",
+    "build": "rm -rf dist && expo export --platform android --output-dir dist/android && expo export --platform ios --output-dir dist/ios",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
     "test": "bun test",

@@ -107,7 +107,7 @@ TDPOS/
 ├── packages/db/             # Database schema types + re-exported Zod validators
 ├── packages/typescript-config/
 ├── packages/eslint-config/
-├── supabase/                # PG17 migrations (6), Edge Functions (2), seed
+├── supabase/                # PG17 migrations (8), Edge Functions (3), seed
 ├── docs/                    # Spec, architecture (17 ADRs), schema reference
 │   └── skills/              # 22 anti-hallucination skill docs (DocGate-3 enforced)
 └── UI/                      # Suki POS design canvas (reference only)

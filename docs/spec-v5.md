@@ -7,7 +7,7 @@
 
 ## Release Posture
 
-- **Current baseline:** v0.1 Scaffold Checkpoint.
+- **Current baseline:** v0.8 Scaffold Complete.
 - **Current build posture:** 0.1 through 0.9 lays the full mobile/web/backend scaffold. 0.9 is the concentrated testing, polish, visual QA, accessibility, and performance pass. v0.1alpha is the first pilot store after those gates, not before them.
 - **Target:** v1.0 Public Launch — mobile + web dashboard + marketing site simultaneously.
 - **No release date.** v1.0 is a quality bar; time to v1.0 is determined by readiness.

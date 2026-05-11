@@ -75,7 +75,7 @@ The full deprecations table lives in [`docs/skills/deprecations.md`](docs/skills
 - **DAR-30** is the north star metric: one sari-sari store completes ≥5 sales/day on ≥25 of 30 consecutive days.
 - **SAS (Stock Accuracy Score)** is the marketing weapon: measures system vs physical stock match rate.
 - **End-of-Day Report** is the Tier A Free→Tier B Pro conversion trigger (automated SMS delivery).
-- **BIR language:** NEVER use "BIR-compliant/certified/approved" — only "BIR-ready" until accredited.
+- **BIR language:** follow `docs/skills/bir-compliance.md`; wording stays BIR-ready until accreditation.
 - **Five-tier UI:** `UI/` is reference-only. Tier A is free; B-E progressively unlock paid/enterprise surfaces through shared tier gates.
 
 ### Sync Architecture

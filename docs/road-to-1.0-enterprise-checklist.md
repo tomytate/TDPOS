@@ -1,6 +1,6 @@
 # TD POS Road to 1.0 / Enterprise-Grade Checklist
 
-> Current baseline: **v0.1 Scaffold Checkpoint**.
+> Current baseline: **v0.8 Scaffold Complete**.
 > Target: **v1.0 Public Launch** — enterprise-grade from day one, mobile + web dashboard + marketing site simultaneously.
 > No release date. v1.0 is a quality bar; time to v1.0 is determined by readiness.
 
@@ -141,7 +141,7 @@ A surface (mobile, web, backend) meets the bar when **every** row below is `[x]`
 - [ ] Every Edge Function has a docstring describing its inputs, outputs, and dedup contract.
 - [ ] Every public screen has at least one test or a documented "manual test plan" entry.
 - [ ] CLAUDE.md, AGENTS.md, GEMINI.md, CODEX.md stay in sync; the deprecations table is single-source (one file, others reference).
-- [ ] README.md links resolve. No broken `docs/spec-v5.md` references.
+- [x] README.md links resolve. No broken `docs/spec-v5.md` references; `check:doc-links` walks all markdown files in the foundation gate.
 - [ ] Suki integration doc reflects current state or is archived as historical.
 
 ### EG-7 Operations
@@ -418,7 +418,7 @@ Run this review once any paid service is enabled.
 - [ ] BIR language uses “BIR-ready,” “provisional receipt,” and similar safe wording only.
 - [ ] No deprecated stack choices: no Expo Go for production testing, no `expo-background-fetch`, no legacy `SQLite.openDatabase()`, no Next.js `middleware.ts`, no Zod `message:` param.
 
-## Current State: v0.1 Scaffold Checkpoint
+## Current State: v0.8 Scaffold Complete
 
 ### What Exists
 
@@ -1669,7 +1669,7 @@ Purpose: decide whether TD POS is safe to call v1.0. Per the Release Pact, v1.0 
 ### P11.5 Documentation Gate
 
 - [ ] Documentation Quality Gate (DocGate-1 through DocGate-6) all `[x]`.
-- [ ] `docs/spec-v5.md` resolves to a real meta-index.
+- [x] `docs/spec-v5.md` resolves to a real meta-index.
 - [ ] Every package has a skill doc with verified official-source link.
 - [ ] Every architectural choice has an ADR.
 - [ ] CLAUDE.md / AGENTS.md / GEMINI.md / CODEX.md stay in sync via single-source references.
@@ -1814,9 +1814,9 @@ Purpose: every row in this phase blocks v1.0. Per the Release Pact, "enterprise-
 
 ### P11.5.12 Doc Repair (Critical Cleanup)
 
-- [ ] Fix the `docs/spec-v5.md` references in `README.md`, `CLAUDE.md`, `GEMINI.md`, and this checklist. Either commit a stub that points to this checklist + skills + ADRs as the operative spec, or replace each link.
+- [x] Fix the `docs/spec-v5.md` references in `README.md`, `CLAUDE.md`, `GEMINI.md`, and this checklist. `docs/spec-v5.md` exists as the operative meta-index and `check:doc-links` verifies the links.
 - [ ] Audit `docs/suki-pos-integration-tasks.md` against the current code (multiple WPs are already done) and either close the doc as historical or update its checkboxes.
-- [ ] Move the BIR language list out of `AGENTS.md` and `CLAUDE.md` into a single skill so changes happen once.
+- [x] Move the BIR language list out of `AGENTS.md` and `CLAUDE.md` into a single skill so changes happen once.
 - [ ] Remove the demo-mode shortcut in `app/(auth)/sign-in.tsx` and replace it with the real phone-OTP flow before pilot.
 
 ## Phase W: Web Dashboard (parallel mainline track)
@@ -1899,14 +1899,14 @@ Acceptance:
 
 ### W0.8 Management
 
-> Status: scaffolded, not complete. Read-only management pages, tier-aware locked actions, Zod-validated Server Action payload shapes, and server-side limit guard calls exist. The actions intentionally stop before mutation; database writes and audit-log emission land when W0.8 turns from scaffold into production workflow.
+> Status: scaffolded with real guarded writes, not complete full CRUD. Management pages, tier-aware locked actions, Zod-validated Server Actions, server-side limit guard calls, Supabase mutations, audit-log inserts, and `revalidatePath()` calls exist for the first create/update flows. Update/delete/bulk workflows, hosted Supabase exercise, and pilot-owner UX remain pending.
 
-- [/] Product CRUD with bulk import CSV. Page scaffold and product-draft validation exist; mutating action pending.
-- [/] Category CRUD. Product/catalog management scaffold, RLS-scoped category list, and guarded category-draft validation exist; mutating action pending.
-- [/] Branch CRUD with branch-code uniqueness checked across tenant. Page scaffold and branch-draft validation exist; mutating action pending.
-- [/] User CRUD (cashier, manager, owner) with role assignment. Page scaffold and invite-draft validation exist; mutating action pending.
-- [/] Device management. `/devices` route, `web.devices` tier surface, registered-device table, max-device limit display, sanitized queue counts, and guarded status-action validation exist; mark-lost/deactivate mutations pending.
-- [/] Module toggles (utang, customer SMS, loyalty, multi-branch, etc.) — with confirmation step. Page scaffold, module-state validation, and tier display exist; persistent toggle action pending.
+- [/] Product CRUD with bulk import CSV. Product create action writes to `products` behind `web.products`, Zod validation, product limit guard, RLS, and audit logging; edit/delete/bulk import pending.
+- [/] Category CRUD. Category create action writes to `categories` behind the product-management gate with Zod validation, RLS, and audit logging; edit/delete pending.
+- [/] Branch CRUD with branch-code uniqueness checked across tenant. Branch create action writes to `branches` behind `web.branches`, branch limit guard, RLS, and audit logging; edit/delete and code reservation pending.
+- [/] User CRUD (cashier, manager, owner) with role assignment. Invite action writes to `pending_invites` behind `web.users`, combined user+invite limit guard, RLS, and audit logging; revoke/role-change/deactivate pending.
+- [/] Device management. `/devices` route, `web.devices` tier surface, registered-device table, max-device limit display, sanitized queue counts, guarded status update action, RLS, and audit logging exist; richer lost-device replacement flow pending.
+- [/] Module toggles (utang, customer SMS, loyalty, multi-branch, etc.) — with confirmation step. Module action persists `businesses.module_state` behind `web.modules`, with Zod validation, RLS, and before/after audit logging; local-cache PII clearing on mobile sync pending.
 - [ ] EOD SMS configuration (provider, schedule, opt-in customers).
 - [x] Subscription tier display + upgrade path scaffold (no in-app payment yet).
 
@@ -1936,7 +1936,7 @@ Acceptance:
 - W0.3 Auth Shell — ✅ done.
 - W0.5 Read-Only Dashboard — ✅ done; date-range support added in W0.7.
 - W0.7 Reporting & Exports — ✅ daily/weekly/monthly report (incl. hourly pattern), CSV/PDF export, audit log, sync health. Open: Stock Accuracy Score (needs cycle-count schema).
-- W0.8 Management — scaffolded with tier-aware locked actions; mutating CRUD actions pending.
+- W0.8 Management — scaffolded with tier-aware guarded create/update actions and audit logging; full edit/delete/bulk workflows pending.
 - W0.9 Web Production Candidate — gated on hosted deploy + pilot user.
 
 Code-side, the web track has matched the substrate quality of the mobile track: same `@tdpos/shared` formatters, same brand palette, same defense-in-depth auth, same discriminated-union query pattern. What's left is either (a) more screens following the same pattern (W0.8) or (b) infrastructure work the code can't do alone (W0.9).
@@ -2000,8 +2000,8 @@ These checks belong in CI alongside the foundation gate. Documentation is a deli
 
 ### DocGate-5 Spec Index Integrity
 
-- [ ] `docs/spec-v5.md` exists as a meta-index pointing to: this checklist, ADRs, schema reference, skill docs, and the Definition of Enterprise-Grade.
-- [ ] No file references a missing doc.
+- [x] `docs/spec-v5.md` exists as a meta-index pointing to: this checklist, ADRs, schema reference, skill docs, and the Definition of Enterprise-Grade.
+- [x] No file references a missing doc.
 
 ### DocGate-6 Code-To-Doc Drift
 
@@ -2122,7 +2122,7 @@ Use this section as releases progress.
 - [x] Foundation gate shape: format → SQLite drift → forbidden patterns → tier UI source check → doc links → skill docs → Expo Doctor → Android bundle export → typecheck → lint → existing tests.
 - [x] Verification: `source scripts/use-toolchain.sh && bun run check:toolchain` passes with Node 24.15.0, Bun 1.3.13, Supabase CLI 2.98.2, and EAS CLI runner available.
 - [x] Verification: `source scripts/use-toolchain.sh && bun run check:foundation` passes end-to-end.
-- [x] Current existing test count before the 0.9 tier suite: 57 passing tests total — 13 shared + 44 mobile.
+- [x] Current code-testable count after the first 0.9 tier suite: 103 passing tests total — 32 shared + 71 mobile.
 - [x] Mobile scaffold evidence: every registered `mobile.*` TierSurface now renders a native preview panel under `apps/mobile/src/features/tier-surfaces/surface-preview.tsx`; this keeps B-E routes visible without starting 0.9 polish.
 - [x] Backend scaffold evidence: `20260511000000_tier_surface_scaffold.sql` adds tenant-scoped RLS tables for devices, shifts, manager approvals, PLUs, kiosks, and returns; `/sync` reads device status from the new scaffold.
 - [x] Device heartbeat evidence: mobile foreground sync calls `upsertDeviceHeartbeat()` after entitlement refresh; the database trigger allows same-install refreshes while blocking a second active install over `max_devices`; heartbeat includes sanitized local sync-count snapshots only.
@@ -2137,11 +2137,11 @@ Use this section as releases progress.
 - [x] Dependency posture: `bun outdated --recursive` was reviewed. Mobile React/RN/native package holds are intentional because Expo SDK 55 controls compatibility; do not chase npm latest when it breaks `expo-doctor`.
 - [!] Local machine posture: the default shell reported Node 25.9.0 before sourcing `scripts/use-toolchain.sh`. Source the helper, or otherwise use Node 24, before CI-parity verification.
 
-### Foundation Checkpoint — Latest-Docs Audit
+### Historical Foundation Checkpoint — Latest-Docs Audit
 
 - [x] Date: 2026-05-09.
 - [x] Gate: `npx bun@1.3.13 run check:foundation` passes end-to-end after the README skill-doc count drift was corrected.
-- [x] Test count: 57 passing tests total — 13 shared + 44 mobile.
+- [x] Test count at this historical checkpoint: 57 passing tests total — 13 shared + 44 mobile. Current count is tracked in the Five-Tier Scaffold Checkpoint above.
 - [x] Latest-doc spot check: Expo SDK 55 BackgroundTask, Clipboard, and SQLite docs; TanStack Query v5 migration docs; Supabase `@supabase/server` public beta announcement.
 - [x] Dependency posture: current mobile package versions stay aligned with the verified stack — Expo SDK 55, React 19.2, React Native 0.83.6, React Query 5.100.x, React Native Paper 5.15.x, and `expo-clipboard` SDK 55.
 - [x] Package refresh: root tooling is on ESLint 10.3.0, `@eslint/js` 10.0.1, Turbo 2.9.12; web React is on 19.2.6; mobile native packages were reconciled with `expo install --fix`; the shared TypeScript target is `esnext` so Expo's SDK-compatible TypeScript 5.9.3 and root/web/shared TypeScript 6.0.3 both pass.
