@@ -454,7 +454,7 @@ Run this review once any paid service is enabled.
 - [x] Route shells: `(auth)/sign-in.tsx`, `(auth)/verify-otp.tsx`, `(app)/(tabs)/index.tsx` (sale), `(app)/(tabs)/inventory.tsx`, `(app)/(tabs)/reports.tsx`, `(app)/checkout.tsx`, `(app)/receipt.tsx`, `(app)/scanner.tsx`, root `index.tsx` redirect.
 - [x] Services: `services/storage.ts` (single MMKV + Zustand adapter), `services/query-client.ts` (5min stale, 30min gc, retry 2, no refetchOnFocus), `services/supabase.ts` (publishable-key, MMKV auth storage, `autoRefreshToken`, `persistSession`, no URL detection).
 - [x] Zustand stores with MMKV persist: `stores/auth-store.ts` (user/business/role/branch/cashier/store/TIN + cached tier entitlements), `stores/cart-store.ts` (CartItem with line totals, partialize items only), `stores/settings-store.ts` (modules, language, themeMode, all modules default OFF).
-- [x] Local DB: `db/init.ts`, `db/schema.ts` (LOCAL_SCHEMA_SQL), `db/migrations/001_initial_schema.sql` (products, categories, sales, sale_items, sync_queue, receipt_sequence, customers, inventory_logs, settings, schema_version with PRAGMA WAL + foreign_keys ON, idempotent CREATE IF NOT EXISTS), `runLocalMigrations()` v2 for local Tier B `shift_sessions`, and v3 for local Tier C `manager_approval_requests`.
+- [x] Local DB: `db/init.ts`, `db/schema.ts` (LOCAL_SCHEMA_SQL), `db/migrations/001_initial_schema.sql` (products, categories, sales, sale_items, sync_queue, receipt_sequence, customers, inventory_logs, settings, schema_version with PRAGMA WAL + foreign_keys ON, idempotent CREATE IF NOT EXISTS), and `runLocalMigrations()` v2-v7 for shifts, manager approvals, kiosk orders, returns, customer-erasure markers, and sale clock metadata.
 - [x] Theme + design tokens: `constants/colors.ts` (teal/amber/ink/semantic/categoryBg) with passing test, `constants/theme.ts` (MD3 light + dark + `useAppTheme`).
 - [x] i18n: `i18n/translations.ts` (29 EN + 29 TL keys, `useT()` reads from settings store).
 - [x] Feature hooks: `features/products/hooks/use-products.ts` (filter by `category_id`, sort by name), `features/products/hooks/use-categories.ts` (with product counts), `features/reports/hooks/use-daily-sales.ts` (hourly bucket, payment mix, totals).
@@ -1738,11 +1738,11 @@ Purpose: every row in this phase blocks v1.0. Per the Release Pact, "enterprise-
 
 ### P11.5.2 Clock Skew And Receipt Date Safety
 
-- [ ] Decide the canonical sale clock: device wall-clock at the moment of `db.withTransactionAsync` start.
-- [ ] Capture `device_local_time` AND `device_timezone` AND `synced_server_time_at_last_handshake` per sale.
+- [x] Decide the canonical sale clock: device wall-clock at the moment of local checkout transaction creation; server `received_at` is comparison metadata, not the receipt clock.
+- [/] Capture `device_local_time` AND `device_timezone` AND `synced_server_time_at_last_handshake` per sale. Mobile checkout now stores local epoch seconds and device timezone in SQLite + sync payloads, and the schema has the last-handshake placeholder; real handshake capture remains pending.
 - [ ] Reject device clocks that are >24h ahead/behind last server handshake from issuing new receipts; show "Set device time" prompt instead.
-- [ ] Server stores both `device_local_time` and server-side `received_at` so reports can detect skew.
-- [ ] Receipt `DATE` segment uses local sale date — not server date — to keep receipts unambiguous offline.
+- [x] Server stores both `device_local_time` and server-side `received_at` so reports can detect skew. `create_sale_atomic(jsonb)` writes `created_at` from `device_local_time` and `received_at = now()`.
+- [x] Receipt `DATE` segment uses local sale date — not server date — to keep receipts unambiguous offline.
 - [ ] Document the skew tolerance in the ops runbook so support can explain "why my receipt date is yesterday."
 
 ### P11.5.3 Cycle Count And Stock Adjustment
@@ -2134,6 +2134,7 @@ Use this section as releases progress.
 - [x] Safe logging scaffold update 2026-05-12: mobile service catch paths and web management audit-log warning paths now route through `warnSafe()`, logging only a sanitized error kind/class instead of raw Error objects or messages that could contain customer/store data.
 - [x] Production log gate update 2026-05-12: the forbidden-pattern scanner now fails app/package/Supabase source if `console.log(...)` is introduced, keeping CLI checker output separate from production bundles.
 - [x] Receipt recovery update 2026-05-12: mobile Sale now shows a last-receipt action in the app bar when `lastSaleResult` exists, and the cart store persists that last receipt summary in MMKV while keeping payment/tender state ephemeral.
+- [x] Sale clock metadata update 2026-05-12: local SQLite sales, sync sale payloads, Supabase sales, and `create_sale_atomic(jsonb)` now carry device timezone / last-server-handshake scaffolding and server `received_at` for future skew detection while preserving the local receipt date namespace. Migration `20260512000002_sale_clock_metadata.sql` was applied to local Supabase and column/RPC presence was smoke-checked.
 - [x] Verification: `source scripts/use-toolchain.sh && bun run check:toolchain` passes with Node 24.15.0, Bun 1.3.13, Supabase CLI 2.98.2, and EAS CLI runner available.
 - [x] Verification: `source scripts/use-toolchain.sh && bun run check:foundation` passes end-to-end.
 - [x] Current code-testable count after the first 0.9 tier suite: 103 passing tests total — 32 shared + 71 mobile.

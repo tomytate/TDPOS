@@ -1,13 +1,15 @@
 import { describe, expect, test } from 'bun:test'
 import { Database } from 'bun:sqlite'
 
-import type { AsyncSqliteLike } from '@/db/async-sqlite'
-import { LOCAL_SCHEMA_SQL } from '@/db/schema'
+import { runLocalMigrations, type LocalMigrationDb } from '@/db/migrations'
 
 import { executeCheckout, type ExecuteCheckoutCart } from './execute-checkout'
 
-function makeAdapter(sqlite: Database): AsyncSqliteLike {
+function makeAdapter(sqlite: Database): LocalMigrationDb {
   return {
+    async execAsync(sql) {
+      sqlite.exec(sql)
+    },
     async runAsync(sql, params = []) {
       sqlite.prepare(sql).run(...(params as never[]))
     },
@@ -31,9 +33,9 @@ function makeAdapter(sqlite: Database): AsyncSqliteLike {
   }
 }
 
-function freshDb(): Database {
+async function freshDb(): Promise<Database> {
   const sqlite = new Database(':memory:')
-  sqlite.exec(LOCAL_SCHEMA_SQL)
+  await runLocalMigrations(makeAdapter(sqlite))
   return sqlite
 }
 
@@ -81,7 +83,7 @@ interface SyncQueueOperationRow {
 
 describe('executeCheckout — required §14 tests (local-only subset)', () => {
   test('#1 tingi math: sell 7 from a 12-sachet pack leaves stock_pieces = 5', async () => {
-    const sqlite = freshDb()
+    const sqlite = await freshDb()
     seedShampoo(sqlite)
     const db = makeAdapter(sqlite)
 
@@ -116,7 +118,7 @@ describe('executeCheckout — required §14 tests (local-only subset)', () => {
   })
 
   test('local idempotency: same client_operation_id twice produces ONE sale', async () => {
-    const sqlite = freshDb()
+    const sqlite = await freshDb()
     seedShampoo(sqlite, { stock: 24 })
     const db = makeAdapter(sqlite)
     const opId = '00000000-0000-4000-8000-000000000002'
@@ -157,7 +159,7 @@ describe('executeCheckout — required §14 tests (local-only subset)', () => {
   })
 
   test('#5 receipt collision: two cashiers, 5 sales each, all 10 receipts unique', async () => {
-    const sqlite = freshDb()
+    const sqlite = await freshDb()
     seedShampoo(sqlite, { stock: 1000 })
     const db = makeAdapter(sqlite)
     const numbers = new Set<string>()
@@ -183,7 +185,7 @@ describe('executeCheckout — required §14 tests (local-only subset)', () => {
   })
 
   test('insufficient stock: refuses to mutate when delta would push below zero', async () => {
-    const sqlite = freshDb()
+    const sqlite = await freshDb()
     seedShampoo(sqlite, { stock: 3 })
     const db = makeAdapter(sqlite)
 
@@ -208,7 +210,7 @@ describe('executeCheckout — required §14 tests (local-only subset)', () => {
   })
 
   test('rejects empty cart and bad cash tender without writing rows', async () => {
-    const sqlite = freshDb()
+    const sqlite = await freshDb()
     seedShampoo(sqlite)
     const db = makeAdapter(sqlite)
 

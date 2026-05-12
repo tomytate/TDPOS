@@ -171,6 +171,8 @@ export const syncSalePayloadSchema = z.object({
   utang_balance: z.number().nullable().optional(),
   receipt_number: z.string().regex(RECEIPT_NUMBER_PATTERN),
   device_local_time: z.int().nonnegative({ error: 'Device clock time required' }),
+  device_timezone: z.string().trim().min(1).optional(),
+  synced_server_time_at_last_handshake: z.string().datetime().nullable().optional(),
   items: z.array(syncSaleItemSchema).min(1),
 })
 

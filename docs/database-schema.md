@@ -86,6 +86,18 @@ erDiagram
 
 `20260512000000_customer_erasure.sql` adds `erase_customer_pii(uuid, text)`, a security-definer RPC for owner/manager roles. It blanks PII fields and writes a sanitized `audit_logs` entry, but keeps the customer row id so historical sales, payments, and future loyalty/utang references stay intact.
 
+### sales (Immutable Receipt Ledger)
+
+| Column | Type | Description |
+|---|---|---|
+| `created_at` | TIMESTAMPTZ / local INTEGER | Device wall-clock sale time. Receipt date namespaces derive from this value. |
+| `device_timezone` | TEXT | IANA timezone reported by the cashier device when the sale was created. |
+| `synced_server_time_at_last_handshake` | TIMESTAMPTZ | Last known server time before the sale, once handshake tracking lands. |
+| `received_at` | TIMESTAMPTZ | Server insertion time for skew detection. Local SQLite does not store this field. |
+| `synced_at` | TIMESTAMPTZ | Only mutable sales metadata field. |
+
+Sales rows are immutable after creation; corrections use compensating rows. `20260512000002_sale_clock_metadata.sql` adds clock metadata and refreshes `create_sale_atomic(jsonb)` so the remote insert keeps local sale time and server receive time side by side.
+
 ### sale_items
 
 | Column | Type | Description |
@@ -158,3 +170,4 @@ The Supabase entitlement scaffold lives in `20260510000001_entitlement_guards.sq
 | `20260511000002_business_limit_triggers.sql` | Defense-in-depth insert triggers for tier product, branch, user, and invite limits. |
 | `20260512000000_customer_erasure.sql` | Customer PII erasure columns and owner/manager erasure RPC with sanitized audit logging. |
 | `20260512000001_tenant_export_audit.sql` | Owner-only tenant export audit marker with `client_operation_id` dedupe. |
+| `20260512000002_sale_clock_metadata.sql` | Device timezone, last-handshake placeholder, server `received_at`, and refreshed atomic sale RPC for skew detection. |

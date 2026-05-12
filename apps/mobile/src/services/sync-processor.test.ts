@@ -2,13 +2,16 @@ import { describe, expect, test } from 'bun:test'
 import { Database } from 'bun:sqlite'
 
 import type { AsyncSqliteLike } from '@/db/async-sqlite'
-import { LOCAL_SCHEMA_SQL } from '@/db/schema'
+import { runLocalMigrations, type LocalMigrationDb } from '@/db/migrations'
 import { executeCheckout, type ExecuteCheckoutCart } from '@/features/sales/lib/execute-checkout'
 
 import { MAX_SYNC_BATCH_SIZE, processSyncQueue, type SyncCallables } from './sync-processor'
 
-function makeAdapter(sqlite: Database): AsyncSqliteLike {
+function makeAdapter(sqlite: Database): LocalMigrationDb {
   return {
+    async execAsync(sql) {
+      sqlite.exec(sql)
+    },
     async runAsync(sql, params) {
       sqlite.prepare(sql).run(...(params as never[]))
     },
@@ -38,9 +41,9 @@ const BRANCH_ID = '33333333-3333-4333-8333-333333333333'
 const USER_ID = '44444444-4444-4444-8444-444444444444'
 const OP_ID_1 = '55555555-5555-4555-8555-555555555555'
 
-function freshDb(): Database {
+async function freshDb(): Promise<Database> {
   const sqlite = new Database(':memory:')
-  sqlite.exec(LOCAL_SCHEMA_SQL)
+  await runLocalMigrations(makeAdapter(sqlite))
   return sqlite
 }
 
@@ -144,7 +147,7 @@ function makeCallables(overrides: Partial<SyncCallables> = {}): SyncCallables {
 
 describe('processSyncQueue', () => {
   test('marks rows synced when callables succeed', async () => {
-    const sqlite = freshDb()
+    const sqlite = await freshDb()
     seedShampoo(sqlite)
     const db = makeAdapter(sqlite)
     await seedQueueViaCheckout(sqlite, db)
@@ -176,7 +179,7 @@ describe('processSyncQueue', () => {
   })
 
   test('defers concurrent_in_progress without bumping retry_count', async () => {
-    const sqlite = freshDb()
+    const sqlite = await freshDb()
     seedShampoo(sqlite)
     const db = makeAdapter(sqlite)
     await seedQueueViaCheckout(sqlite, db)
@@ -206,7 +209,7 @@ describe('processSyncQueue', () => {
   })
 
   test('increments retry_count and stores last_error on transport error', async () => {
-    const sqlite = freshDb()
+    const sqlite = await freshDb()
     seedShampoo(sqlite)
     const db = makeAdapter(sqlite)
     await seedQueueViaCheckout(sqlite, db)
@@ -229,7 +232,7 @@ describe('processSyncQueue', () => {
   })
 
   test('marks reviewable when server says ok: false (insufficient_stock)', async () => {
-    const sqlite = freshDb()
+    const sqlite = await freshDb()
     seedShampoo(sqlite)
     const db = makeAdapter(sqlite)
     await seedQueueViaCheckout(sqlite, db)
@@ -256,7 +259,7 @@ describe('processSyncQueue', () => {
   })
 
   test('rejects malformed envelope without calling the network', async () => {
-    const sqlite = freshDb()
+    const sqlite = await freshDb()
     const db = makeAdapter(sqlite)
     sqlite
       .prepare(
@@ -287,7 +290,7 @@ describe('processSyncQueue', () => {
   })
 
   test('honours maxRetries: rows at the cap are skipped', async () => {
-    const sqlite = freshDb()
+    const sqlite = await freshDb()
     seedShampoo(sqlite)
     const db = makeAdapter(sqlite)
     await seedQueueViaCheckout(sqlite, db)
@@ -315,7 +318,7 @@ describe('processSyncQueue', () => {
   })
 
   test('processes only the requested batch size in one sync cycle', async () => {
-    const sqlite = freshDb()
+    const sqlite = await freshDb()
     const db = makeAdapter(sqlite)
     seedSaleSyncRows(sqlite, 3)
 
@@ -342,7 +345,7 @@ describe('processSyncQueue', () => {
   })
 
   test('caps oversized batches at the background-task budget', async () => {
-    const sqlite = freshDb()
+    const sqlite = await freshDb()
     const db = makeAdapter(sqlite)
     seedSaleSyncRows(sqlite, MAX_SYNC_BATCH_SIZE + 5)
 

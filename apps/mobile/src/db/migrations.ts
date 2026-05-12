@@ -1,5 +1,5 @@
 // Local SQLite migration runner — applies versioned schema changes.
-// Migrations are registered in LOCAL_MIGRATIONS array (v2-v6).
+// Migrations are registered in LOCAL_MIGRATIONS array (v2-v7).
 // Each migration runs exactly once via schema_version tracking.
 
 import type { AsyncSqliteLike } from './async-sqlite'
@@ -111,6 +111,11 @@ CREATE INDEX IF NOT EXISTS idx_customers_erased
   WHERE erased_at IS NOT NULL;
 `
 
+export const LOCAL_SALE_CLOCK_METADATA_SQL = `
+ALTER TABLE sales ADD COLUMN device_timezone TEXT;
+ALTER TABLE sales ADD COLUMN synced_server_time_at_last_handshake TEXT;
+`
+
 export const LOCAL_MIGRATIONS: LocalMigration[] = [
   {
     version: 1,
@@ -136,6 +141,10 @@ export const LOCAL_MIGRATIONS: LocalMigration[] = [
   {
     version: 6,
     sql: LOCAL_CUSTOMER_ERASURE_SQL,
+  },
+  {
+    version: 7,
+    sql: LOCAL_SALE_CLOCK_METADATA_SQL,
   },
 ]
 

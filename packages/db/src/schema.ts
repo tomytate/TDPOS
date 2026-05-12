@@ -96,6 +96,9 @@ export interface DbSale {
   utang_balance: number | null
   receipt_number: string
   created_at: DbTimestamp
+  device_timezone: string | null
+  synced_server_time_at_last_handshake: DbTimestamp | null
+  received_at?: DbTimestamp
   synced_at: DbTimestamp | null
 }
 

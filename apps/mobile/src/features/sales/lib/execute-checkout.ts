@@ -71,6 +71,14 @@ export type ExecuteCheckoutResult =
       details?: Record<string, unknown>
     }
 
+function getDeviceTimezone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'unknown'
+  } catch {
+    return 'unknown'
+  }
+}
+
 export async function executeCheckout(
   params: ExecuteCheckoutParams,
 ): Promise<ExecuteCheckoutResult> {
@@ -139,6 +147,8 @@ export async function executeCheckout(
   const saleDate = now()
   const dateLocal = formatReceiptDate(saleDate)
   const createdAtSeconds = Math.floor(saleDate.getTime() / 1000)
+  const deviceTimezone = getDeviceTimezone()
+  const syncedServerTimeAtLastHandshake: string | null = null
   const total = cart.items.reduce((sum, item) => sum + item.lineTotal, 0)
   const change = cart.isUtang ? 0 : Math.max(0, cart.tendered - total)
   const persistedPaymentMethod: PaymentMethod = cart.isUtang ? 'cash' : cart.paymentMethod
@@ -173,8 +183,9 @@ export async function executeCheckout(
     await db.runAsync(
       `INSERT INTO sales (
          id, branch_id, user_id, customer_id, total_amount, payment_method, status,
-         is_utang, utang_balance, receipt_number, created_at
-       ) VALUES (?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?, ?)`,
+         is_utang, utang_balance, receipt_number, created_at, device_timezone,
+         synced_server_time_at_last_handshake
+       ) VALUES (?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?, ?, ?, ?)`,
       [
         clientOperationId,
         device.branchId,
@@ -186,6 +197,8 @@ export async function executeCheckout(
         cart.isUtang ? total : null,
         receiptNumber,
         createdAtSeconds,
+        deviceTimezone,
+        syncedServerTimeAtLastHandshake,
       ],
     )
 
@@ -291,6 +304,8 @@ export async function executeCheckout(
       utang_balance: cart.isUtang ? total : null,
       receipt_number: receiptNumber,
       device_local_time: createdAtSeconds,
+      device_timezone: deviceTimezone,
+      synced_server_time_at_last_handshake: syncedServerTimeAtLastHandshake,
       items: itemPayloads,
     }
 
