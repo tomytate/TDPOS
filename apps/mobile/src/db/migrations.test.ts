@@ -50,7 +50,13 @@ describe('runLocalMigrations', () => {
     const version = sqlite.prepare(`SELECT MAX(version) AS version FROM schema_version`).get() as {
       version: number
     }
-    expect(version.version).toBe(5)
+    expect(version.version).toBe(6)
+
+    const customerColumns = sqlite.prepare(`PRAGMA table_info(customers)`).all() as Array<{
+      name: string
+    }>
+    expect(customerColumns.map((column) => column.name)).toContain('pii_erased')
+    expect(customerColumns.map((column) => column.name)).toContain('erased_at')
   })
 
   test('does not re-run an already applied schema version', async () => {
@@ -75,7 +81,7 @@ describe('runLocalMigrations', () => {
     const versions = sqlite
       .prepare(`SELECT version FROM schema_version ORDER BY version`)
       .all() as Array<{ version: number }>
-    expect(versions.map((row) => row.version)).toEqual([1, 2, 3, 4, 5])
+    expect(versions.map((row) => row.version)).toEqual([1, 2, 3, 4, 5, 6])
   })
 
   test('preserves a database that was already created from the v1 schema', async () => {
@@ -98,7 +104,7 @@ describe('runLocalMigrations', () => {
     const versions = sqlite
       .prepare(`SELECT version FROM schema_version ORDER BY version`)
       .all() as Array<{ version: number }>
-    expect(versions.map((row) => row.version)).toEqual([1, 2, 3, 4, 5])
+    expect(versions.map((row) => row.version)).toEqual([1, 2, 3, 4, 5, 6])
   })
 
   test('applies missing future migrations in version order exactly once', async () => {

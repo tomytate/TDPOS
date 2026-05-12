@@ -508,7 +508,7 @@ Run this review once any paid service is enabled.
 - [!] Supabase local phone login warns when no SMS provider is configured; hosted staging needs a provider/test-number strategy before real OTP closes.
 - [x] `docs/spec-v5.md` exists as the project spec meta-index.
 - [/] Supabase Edge Function folders exist. `apply-inventory-delta`, `create-sale`, and `eod-report` report scaffold are implemented; deployment evidence and SMS delivery remain planned.
-- [/] Tier A vertical: sale → checkout → receipt now writes a real `db.withTransactionAsync` transaction with sync-queue rows. Inventory and reports tabs now render local SQLite data; scanner is still intentionally disabled.
+- [/] Tier A vertical: sale → checkout → receipt now writes a real `db.withTransactionAsync` transaction with sync-queue rows. Inventory and reports tabs now render local SQLite data; scanner uses `expo-camera` CameraView with local SKU lookup, with physical-device scan evidence still pending.
 - [/] Sync processor exists with foreground AppState trigger, background-task registration, auth guard, shared executor, and a local sync-health query. Real Supabase staging verification is still pending.
 - [ ] No printer integration exists.
 - [x] `createClientOperationId()` helper exists (`@tdpos/shared`) and is used by checkout.
@@ -1194,18 +1194,20 @@ Acceptance:
 
 ### P5.7 Scanner Modal
 
-- [x] Route `apps/mobile/app/(app)/scanner.tsx` exists as a "scanner unavailable" placeholder.
-- [ ] Use `expo-camera` `CameraView`.
-- [ ] Request camera permissions.
-- [ ] Support EAN-13.
-- [ ] Support UPC-A.
-- [ ] Support Code 128.
-- [ ] Throttle scan handling.
-- [ ] Lookup product by `sku`.
-- [ ] Add product to cart.
+- [x] Route `apps/mobile/app/(app)/scanner.tsx` exists.
+- [x] Use `expo-camera` `CameraView` with EAN/UPC/code barcode settings.
+- [x] Request camera permissions and show a product-tile fallback while permission is unavailable.
+- [x] Lookup scanned SKU/product id in local SQLite and add one piece through the existing cart store.
+- [ ] Prove scanning on a physical development build with real product barcodes.
+- [x] Support EAN-13.
+- [x] Support UPC-A.
+- [x] Support Code 128.
+- [x] Throttle scan handling.
+- [x] Lookup product by `sku`.
+- [x] Add product to cart.
 - [ ] Play scan beep.
-- [ ] Haptic on successful scan.
-- [ ] Show permission denied fallback.
+- [x] Haptic on successful scan.
+- [x] Show permission denied fallback.
 
 Acceptance:
 
@@ -2125,6 +2127,8 @@ Use this section as releases progress.
 - [x] Disabled-module privacy update 2026-05-12: mobile entitlement refresh now clears local customer-facing caches when `utang`, `customer_sms`, or `loyalty` are turned off, preserving server history while removing no-longer-entitled PII from device storage.
 - [x] Data-retention scaffold update 2026-05-12: `@tdpos/shared` now owns `DATA_RETENTION_POLICIES`, and mobile `/privacy` renders the EN/TL retention table for account, customer, sales, sync, support, device, kiosk, and returns/warranty surfaces.
 - [x] Customer-erasure scaffold update 2026-05-12: Supabase migration `20260512000000_customer_erasure.sql` adds customer erasure markers and the `erase_customer_pii(uuid, text)` RPC so owner/manager roles can blank customer PII while preserving historical transaction references and sanitized audit evidence.
+- [x] Scanner scaffold update 2026-05-12: mobile `/scanner` now uses Expo `CameraView`, requests camera permission, scans EAN/UPC/code barcodes, looks up active local products by SKU or id, and adds one piece through the same cart path as Sale product tiles. Physical barcode evidence remains part of the 0.9 device pass.
+- [x] Local customer-erasure schema update 2026-05-12: mobile SQLite migration v6 adds customer erasure markers locally so shared `DbCustomer` fields, disabled-module cleanup, and server erasure semantics remain aligned.
 - [x] Verification: `source scripts/use-toolchain.sh && bun run check:toolchain` passes with Node 24.15.0, Bun 1.3.13, Supabase CLI 2.98.2, and EAS CLI runner available.
 - [x] Verification: `source scripts/use-toolchain.sh && bun run check:foundation` passes end-to-end.
 - [x] Current code-testable count after the first 0.9 tier suite: 103 passing tests total — 32 shared + 71 mobile.
