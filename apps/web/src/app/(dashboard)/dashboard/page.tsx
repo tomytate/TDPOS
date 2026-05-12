@@ -7,6 +7,7 @@
 
 import Link from 'next/link'
 
+import { TenantDataExportButton } from '@/components/tenant-data-export-button'
 import {
   getLowStockProducts,
   getPerBranchBreakdown,
@@ -244,73 +245,76 @@ export default async function DashboardHome({
             {dateLabel} · live read-only view of sales, low-stock items, and recent receipts.
           </p>
         </div>
-        <form action="/dashboard" method="get" className="flex flex-wrap items-center gap-2">
-          <label htmlFor="dashboard-date" className="text-[12px] font-semibold text-ink-600">
-            Date
-          </label>
-          <input
-            id="dashboard-date"
-            name="date"
-            type="date"
-            defaultValue={dateIso}
-            className="rounded-lg border border-ink-300 bg-white px-2 py-1.5 text-[13px] text-ink-800 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-100"
-          />
-          <div
-            aria-label="Reporting range"
-            className="inline-flex overflow-hidden rounded-lg border border-ink-300 bg-white"
-            role="radiogroup"
-          >
-            {(['today', 'week', 'month'] as const).map((range) => (
-              <label key={range} className="cursor-pointer">
-                <input
-                  className="peer sr-only"
-                  defaultChecked={selectedRange === range}
-                  name="range"
-                  type="radio"
-                  value={range}
-                />
-                <span className="block px-3 py-1.5 text-[13px] font-semibold text-ink-600 transition-colors peer-checked:bg-teal-700 peer-checked:text-white">
-                  {RANGE_LABELS[range]}
-                </span>
-              </label>
-            ))}
-          </div>
-          <button
-            type="submit"
-            className="rounded-lg border border-ink-300 bg-white px-3 py-1.5 text-[13px] font-semibold text-ink-700 transition-colors hover:bg-ink-50"
-          >
-            View
-          </button>
-          {canExport ? (
-            <>
-              <a
-                href={exportHref}
-                download
-                className="inline-flex items-center gap-2 rounded-lg border border-teal-700 bg-white px-3 py-1.5 text-[13px] font-semibold text-teal-700 shadow-sm transition-colors hover:bg-teal-50"
-              >
-                <span aria-hidden>↓</span>
-                Export CSV
-              </a>
-              <a
-                href={exportPdfHref}
-                download
-                className="inline-flex items-center gap-2 rounded-lg border border-amber-500 bg-white px-3 py-1.5 text-[13px] font-semibold text-amber-700 shadow-sm transition-colors hover:bg-amber-50"
-              >
-                <span aria-hidden>↓</span>
-                Export PDF
-              </a>
-            </>
-          ) : (
-            <Link
-              href="/pricing"
-              className="inline-flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-[13px] font-semibold text-amber-700 no-underline transition-colors hover:bg-amber-100"
-              title="Compare tiers to unlock CSV + PDF exports"
+        <div className="flex flex-wrap items-start justify-end gap-2">
+          <form action="/dashboard" method="get" className="flex flex-wrap items-center gap-2">
+            <label htmlFor="dashboard-date" className="text-[12px] font-semibold text-ink-600">
+              Date
+            </label>
+            <input
+              id="dashboard-date"
+              name="date"
+              type="date"
+              defaultValue={dateIso}
+              className="rounded-lg border border-ink-300 bg-white px-2 py-1.5 text-[13px] text-ink-800 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-100"
+            />
+            <div
+              aria-label="Reporting range"
+              className="inline-flex overflow-hidden rounded-lg border border-ink-300 bg-white"
+              role="radiogroup"
             >
-              <span aria-hidden>🔒</span>
-              Exports unlock at Plus
-            </Link>
-          )}
-        </form>
+              {(['today', 'week', 'month'] as const).map((range) => (
+                <label key={range} className="cursor-pointer">
+                  <input
+                    className="peer sr-only"
+                    defaultChecked={selectedRange === range}
+                    name="range"
+                    type="radio"
+                    value={range}
+                  />
+                  <span className="block px-3 py-1.5 text-[13px] font-semibold text-ink-600 transition-colors peer-checked:bg-teal-700 peer-checked:text-white">
+                    {RANGE_LABELS[range]}
+                  </span>
+                </label>
+              ))}
+            </div>
+            <button
+              type="submit"
+              className="rounded-lg border border-ink-300 bg-white px-3 py-1.5 text-[13px] font-semibold text-ink-700 transition-colors hover:bg-ink-50"
+            >
+              View
+            </button>
+            {canExport ? (
+              <>
+                <a
+                  href={exportHref}
+                  download
+                  className="inline-flex items-center gap-2 rounded-lg border border-teal-700 bg-white px-3 py-1.5 text-[13px] font-semibold text-teal-700 shadow-sm transition-colors hover:bg-teal-50"
+                >
+                  <span aria-hidden>↓</span>
+                  Export CSV
+                </a>
+                <a
+                  href={exportPdfHref}
+                  download
+                  className="inline-flex items-center gap-2 rounded-lg border border-amber-500 bg-white px-3 py-1.5 text-[13px] font-semibold text-amber-700 shadow-sm transition-colors hover:bg-amber-50"
+                >
+                  <span aria-hidden>↓</span>
+                  Export PDF
+                </a>
+              </>
+            ) : (
+              <Link
+                href="/pricing"
+                className="inline-flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-[13px] font-semibold text-amber-700 no-underline transition-colors hover:bg-amber-100"
+                title="Compare tiers to unlock CSV + PDF exports"
+              >
+                <span aria-hidden>🔒</span>
+                Exports unlock at Plus
+              </Link>
+            )}
+          </form>
+          <TenantDataExportButton />
+        </div>
       </header>
 
       {envUnconfigured ? (
