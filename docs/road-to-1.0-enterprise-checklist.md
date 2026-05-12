@@ -101,7 +101,7 @@ A surface (mobile, web, backend) meets the bar when **every** row below is `[x]`
 - [ ] Edge Functions use `@supabase/server` `withSupabase()`; no hand-rolled JWT.
 - [ ] Web dashboard uses `getClaims()`; no `getSession()`.
 - [ ] All mutating Edge Functions take `client_operation_id` and dedup via `applied_operations`.
-- [ ] No secrets in commits; pre-commit secret scan is part of the foundation gate.
+- [x] No secrets in commits; committed-secret scan is part of the foundation gate.
 - [ ] Threat model documented: device theft, lost phone, malicious cashier, compromised cashier device, hostile network.
 - [ ] Rate limits configured per tenant on Edge Functions.
 
@@ -425,7 +425,7 @@ Run this review once any paid service is enabled.
 #### Root + tooling
 
 - [x] Root monorepo scaffold exists.
-- [x] Root `package.json` has Turborepo scripts (`dev`, `build`, `lint`, `typecheck`, `test`, `format`, `db:*`, `mobile:*`, `check:tier-ui-sources`, `check:expo-doctor`, `check:mobile-bundle`, `check:foundation`).
+- [x] Root `package.json` has Turborepo scripts (`dev`, `build`, `lint`, `typecheck`, `test`, `format`, `db:*`, `mobile:*`, `check:secrets`, `check:tier-ui-sources`, `check:expo-doctor`, `check:mobile-bundle`, `check:foundation`).
 - [x] `turbo.json` uses `tasks`, not deprecated `pipeline`. Schema URL is `https://turborepo.dev/schema.json`.
 - [x] TypeScript base config exists (`packages/typescript-config/base.json`, `target: esnext`, `strict`, `noUncheckedIndexedAccess`).
 - [x] ESLint 10 flat config exists (`eslint.config.mjs` with TS-ESLint, react-hooks, prettier).
@@ -435,7 +435,7 @@ Run this review once any paid service is enabled.
 - [x] `.env.example` uses publishable-key naming, no anon key.
 - [x] PR template (`.github/PULL_REQUEST_TEMPLATE.md`) lists the foundation gate and BIR/RLS rules.
 - [x] CI workflow (`.github/workflows/foundation.yml`) runs the same foundation gate on Bun 1.3.13.
-- [x] Foundation gate scripts: forbidden patterns, local SQLite schema drift, tier UI source existence, markdown links, and skill-doc structure.
+- [x] Foundation gate scripts: committed-secret scan, forbidden patterns, local SQLite schema drift, tier UI source existence, markdown links, and skill-doc structure.
 
 #### Workspace packages
 
@@ -1549,7 +1549,7 @@ Acceptance:
 - [ ] Document stored local data.
 - [ ] Document customer data handling.
 - [ ] Document phone auth flow.
-- [ ] Ensure secrets are not committed.
+- [x] Ensure secrets are not committed. `scripts/check-secrets.mjs` scans tracked text/code/config files for real-looking service-role, JWT, private-key, GitHub, Anthropic, and payment-secret material.
 - [ ] Ensure service role keys are never in mobile app.
 - [ ] Review RLS policies.
 - [ ] Review Edge Function auth modes.
@@ -2119,7 +2119,8 @@ Use this section as releases progress.
 - [x] Date: 2026-05-10.
 - [x] Scope: five canonical tiers, entitlement scaffolding, mobile/web surface gates, Supabase tier migrations, docs reconciliation.
 - [x] Code evidence: `packages/shared/src/constants/index.ts` owns `TIER_DEFINITIONS`; `scripts/check-tier-ui-sources.mjs` validates all five UI reference paths; Supabase migrations `20260510000000_tier_normalization.sql` and `20260510000001_entitlement_guards.sql` exist.
-- [x] Foundation gate shape: format → SQLite drift → forbidden patterns → tier UI source check → doc links → skill docs → Expo Doctor → Android bundle export → typecheck → lint → existing tests.
+- [x] Foundation gate shape: format → committed-secret scan → SQLite drift → forbidden patterns → tier UI source check → doc links → skill docs → Expo Doctor → Android bundle export → typecheck → lint → existing tests.
+- [x] Security hardening update 2026-05-12: `check:secrets` scans tracked text/code/config files for real-looking committed secrets, and CI now runs the tier UI source check so hosted checks match the local foundation gate.
 - [x] Verification: `source scripts/use-toolchain.sh && bun run check:toolchain` passes with Node 24.15.0, Bun 1.3.13, Supabase CLI 2.98.2, and EAS CLI runner available.
 - [x] Verification: `source scripts/use-toolchain.sh && bun run check:foundation` passes end-to-end.
 - [x] Current code-testable count after the first 0.9 tier suite: 103 passing tests total — 32 shared + 71 mobile.

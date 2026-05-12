@@ -1,8 +1,8 @@
 # Development Setup
 
-Last verified: May 11, 2026.
+Last verified: May 12, 2026.
 
-This project is mobile-first and foundation-gated. A clean checkout should be able to install, check formatting, verify local SQLite schema drift, scan for forbidden patterns, typecheck, lint, and test through one command.
+This project is mobile-first and foundation-gated. A clean checkout should be able to install, check formatting, scan for committed secrets, verify local SQLite schema drift, scan for forbidden patterns, typecheck, lint, and test through one command.
 
 ## Required Tools
 
@@ -108,6 +108,7 @@ bun run check:foundation
 This runs:
 
 - `prettier --check .`
+- committed-secret pattern scan
 - local SQLite schema drift check
 - forbidden/deprecated pattern scan
 - tier UI source reference check

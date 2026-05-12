@@ -8,7 +8,7 @@ TD POS is a mobile-first, offline-capable SaaS POS and inventory management syst
 
 ## Release Posture
 
-- **Current baseline:** v0.8 Scaffold Complete — all five tier surfaces implemented, 103 tests passing, 11-stage foundation gate green.
+- **Current baseline:** v0.8 Scaffold Complete — all five tier surfaces implemented, 103 tests passing, 12-stage foundation gate green.
 - **Next real milestone:** v0.9 — full test suite (screenshot parity, accessibility, performance), hosted Supabase staging, EAS dev builds, physical-device airplane-mode sale.
 - **Then:** v0.1alpha — first pilot store.
 - **Target:** v1.0 Public Launch — mobile + web dashboard + marketing site simultaneously.
@@ -162,6 +162,7 @@ This project includes comprehensive anti-hallucination documentation for AI codi
 
 ```bash
 bun run check:foundation # Full foundation gate
+bun run check:secrets # Verify no committed secret patterns
 bun run check:tier-ui-sources # Verify every tier points at an existing UI reference
 bun run check:expo-doctor # Expo native dependency health check
 bun run check:mobile-bundle # Android Metro bundle/export check

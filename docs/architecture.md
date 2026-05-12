@@ -250,7 +250,7 @@
 **Why:**
 - TD POS is a five-tier product. Building and validating only Tier A too deeply before laying B-E routes risks architectural rework once paid tiers are introduced.
 - The owner explicitly wants scaffolding first and polish later; the checklist should reflect that operating mode rather than accidentally treating Tier A polish as the pilot trigger.
-- Existing foundation checks still protect basic correctness while scaffold work continues: format, schema drift, forbidden patterns, tier UI sources, doc links, skill docs, Expo Doctor, Android bundle export, typecheck, lint, and existing tests.
+- Existing foundation checks still protect basic correctness while scaffold work continues: format, committed-secret scan, schema drift, forbidden patterns, tier UI sources, doc links, skill docs, Expo Doctor, Android bundle export, typecheck, lint, and existing tests.
 
 **Consequences:**
 - New surfaces may land as gated shells before they are feature-complete.
