@@ -88,6 +88,24 @@ export default function DiagnosticsScreen() {
             </Card.Content>
           </Card>
 
+          <Card mode="contained">
+            <Card.Content style={{ gap: 8 }}>
+              <Text variant="labelLarge" style={{ color: theme.colors.onSurfaceVariant }}>
+                {t('diagnostics.privacy')}
+              </Text>
+              <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
+                {t('diagnostics.privacySummary')}
+              </Text>
+              <Button
+                mode="contained-tonal"
+                icon="shield-account-outline"
+                onPress={() => router.push('/(app)/privacy')}
+              >
+                {t('diagnostics.privacy')}
+              </Button>
+            </Card.Content>
+          </Card>
+
           {metadata ? (
             <Card mode="contained">
               <Card.Content style={{ gap: 12 }}>

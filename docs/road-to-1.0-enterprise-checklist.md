@@ -1773,7 +1773,7 @@ Purpose: every row in this phase blocks v1.0. Per the Release Pact, "enterprise-
 - [ ] Right-to-export: business owner can export all of their tenant's data through one Edge Function call.
 - [ ] Right-to-erasure for end customers: store owner can soft-delete a customer; PII fields blanked, transactions remain (BIR retention requires sales records).
 - [ ] No PII (names, phone numbers, addresses) is ever sent to crash/error logging without the privacy review on P10.4.
-- [ ] Privacy notice surface in app settings; consent recorded with timestamp.
+- [/] Privacy notice surface; mobile `/privacy` scaffold records a local acknowledgement timestamp in MMKV and is reachable from Diagnostics. Final settings placement, legal copy, and server-side consent audit remain pending.
 
 ### P11.5.7 Backup, Restore, And Disaster Recovery
 
@@ -2121,6 +2121,7 @@ Use this section as releases progress.
 - [x] Code evidence: `packages/shared/src/constants/index.ts` owns `TIER_DEFINITIONS`; `scripts/check-tier-ui-sources.mjs` validates all five UI reference paths; Supabase migrations `20260510000000_tier_normalization.sql` and `20260510000001_entitlement_guards.sql` exist.
 - [x] Foundation gate shape: format → committed-secret scan → SQLite drift → forbidden patterns → tier UI source check → doc links → skill docs → Expo Doctor → Android bundle export → typecheck → lint → existing tests.
 - [x] Security hardening update 2026-05-12: `check:secrets` scans tracked text/code/config files for real-looking committed secrets, and CI now runs the tier UI source check so hosted checks match the local foundation gate.
+- [x] Privacy scaffold update 2026-05-12: mobile `/privacy` exists, is reachable from Diagnostics, is EN/TL translated, and records a local acknowledgement timestamp in persisted settings for the 0.9 privacy/legal review.
 - [x] Verification: `source scripts/use-toolchain.sh && bun run check:toolchain` passes with Node 24.15.0, Bun 1.3.13, Supabase CLI 2.98.2, and EAS CLI runner available.
 - [x] Verification: `source scripts/use-toolchain.sh && bun run check:foundation` passes end-to-end.
 - [x] Current code-testable count after the first 0.9 tier suite: 103 passing tests total — 32 shared + 71 mobile.

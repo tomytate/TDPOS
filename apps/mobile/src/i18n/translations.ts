@@ -67,6 +67,27 @@ export const translations = {
     'diagnostics.noError': 'No sync errors',
     'diagnostics.never': 'Never',
     'diagnostics.restricted': 'Manager access only',
+    'diagnostics.privacy': 'Privacy notice',
+    'diagnostics.privacySummary':
+      'Local data, support bundle, and disabled-module privacy posture.',
+    'privacy.title': 'Privacy notice',
+    'privacy.status': 'Consent status',
+    'privacy.notAccepted': 'Not acknowledged on this device',
+    'privacy.acceptedAt': 'Acknowledged',
+    'privacy.summaryTitle': 'What this device stores',
+    'privacy.summaryBody':
+      'TD POS stores sales, inventory, receipt numbers, device identity, and sync status locally so cashier work can continue offline.',
+    'privacy.piiTitle': 'Personal data surfaces',
+    'privacy.piiBody':
+      'Phone numbers are used for account access and staff identity. Customer names, balances, and SMS details stay hidden unless their paid modules are enabled.',
+    'privacy.supportTitle': 'Support bundles',
+    'privacy.supportBody':
+      'Support bundles are copied only when a manager taps the button. They include counts and diagnostics, and strip phone numbers and emails before leaving the device.',
+    'privacy.modulesTitle': 'Disabled modules',
+    'privacy.modulesBody':
+      'Modules start off. When a module is off, its screens stay hidden and its local customer-facing cache must be cleared before launch approval.',
+    'privacy.accept': 'Acknowledge notice',
+    'privacy.accepted': 'Privacy notice acknowledged',
     'tabs.sale': 'Sale',
     'tabs.stock': 'Stock',
     'tabs.report': 'Report',
@@ -137,6 +158,27 @@ export const translations = {
     'diagnostics.noError': 'Walang sync error',
     'diagnostics.never': 'Wala pa',
     'diagnostics.restricted': 'Para sa manager lang',
+    'diagnostics.privacy': 'Privacy notice',
+    'diagnostics.privacySummary':
+      'Local data, support bundle, at privacy posture ng disabled modules.',
+    'privacy.title': 'Privacy notice',
+    'privacy.status': 'Consent status',
+    'privacy.notAccepted': 'Hindi pa na-acknowledge sa device na ito',
+    'privacy.acceptedAt': 'Na-acknowledge',
+    'privacy.summaryTitle': 'Ano ang naka-store sa device',
+    'privacy.summaryBody':
+      'Nag-iimbak ang TD POS ng benta, stock, receipt numbers, device identity, at sync status sa device para tuloy ang cashier kahit offline.',
+    'privacy.piiTitle': 'Personal data surfaces',
+    'privacy.piiBody':
+      'Ginagamit ang phone numbers para sa account access at staff identity. Nakatago ang customer names, balances, at SMS details maliban kung naka-on ang paid modules.',
+    'privacy.supportTitle': 'Support bundles',
+    'privacy.supportBody':
+      'Nakokopya lang ang support bundles kapag pinindot ng manager ang button. Counts at diagnostics lang ang laman, at tinatanggal ang phone numbers at emails bago umalis sa device.',
+    'privacy.modulesTitle': 'Disabled modules',
+    'privacy.modulesBody':
+      'Naka-off muna ang modules. Kapag off ang module, nakatago ang screens nito at kailangang linisin ang local customer-facing cache bago launch approval.',
+    'privacy.accept': 'I-acknowledge ang notice',
+    'privacy.accepted': 'Na-acknowledge ang privacy notice',
     'tabs.sale': 'Benta',
     'tabs.stock': 'Stock',
     'tabs.report': 'Ulat',
