@@ -129,6 +129,10 @@ export interface DbCustomer {
   barangay: string | null
   points_balance: number
   total_utang: number
+  pii_erased: DbBoolean
+  erased_at: DbTimestamp | null
+  erased_by: string | null
+  erasure_reason: string | null
   created_at: DbTimestamp
 }
 

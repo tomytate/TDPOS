@@ -70,6 +70,22 @@ erDiagram
 
 **Display:** `divmod(stock_pieces, pieces_per_pack)` → "X packs + Y pieces"
 
+### customers (PII + Stable Transaction Reference)
+
+| Column | Type | Description |
+|---|---|---|
+| `name` | TEXT NOT NULL | Customer display name; replaced with `Erased customer` after erasure. |
+| `phone` | TEXT | Optional customer phone; cleared by the erasure RPC. |
+| `barangay` | TEXT | Optional locality field; cleared by the erasure RPC. |
+| `points_balance` | INTEGER | Loyalty scaffold balance; zeroed by the erasure RPC. |
+| `total_utang` | NUMERIC | Utang scaffold balance; zeroed by the erasure RPC. |
+| `pii_erased` | BOOLEAN | True once customer PII has been blanked. |
+| `erased_at` | TIMESTAMPTZ | Timestamp of the erasure action. |
+| `erased_by` | UUID | Owner or manager user who requested erasure. |
+| `erasure_reason` | TEXT | Optional manager-entered reason; avoid storing sensitive details here. |
+
+`20260512000000_customer_erasure.sql` adds `erase_customer_pii(uuid, text)`, a security-definer RPC for owner/manager roles. It blanks PII fields and writes a sanitized `audit_logs` entry, but keeps the customer row id so historical sales, payments, and future loyalty/utang references stay intact.
+
 ### sale_items
 
 | Column | Type | Description |
@@ -138,3 +154,6 @@ The Supabase entitlement scaffold lives in `20260510000001_entitlement_guards.sq
 | `20260510000000_tier_normalization.sql` | Canonical A-E tier normalization and check constraint. |
 | `20260510000001_entitlement_guards.sql` | Server helper functions for entitlement and limit checks. |
 | `20260511000000_tier_surface_scaffold.sql` | Tenant-scoped tables for paid-tier devices, shifts, approvals, PLUs, kiosks, and returns. |
+| `20260511000001_pending_invites.sql` | Pending invite table and invite-consume RPC for phone OTP onboarding. |
+| `20260511000002_business_limit_triggers.sql` | Defense-in-depth insert triggers for tier product, branch, user, and invite limits. |
+| `20260512000000_customer_erasure.sql` | Customer PII erasure columns and owner/manager erasure RPC with sanitized audit logging. |
