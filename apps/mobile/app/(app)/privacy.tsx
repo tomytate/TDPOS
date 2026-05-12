@@ -1,13 +1,20 @@
-// Mobile privacy notice scaffold.
-// Records a local acknowledgement timestamp so the 0.9 privacy pass can prove
-// the notice was surfaced before launch. This is not the final legal copy.
+// Mobile privacy notice. Polished for v0.9 visual QA: safe-area-aware
+// docked Acknowledge CTA so it never sits behind the home indicator, a
+// status hero card that turns teal when the device has been acknowledged,
+// haptic-tap on accept, and a more legible retention table with chip
+// labels for Module vs Core scope.
+//
+// Records a local acknowledgement timestamp so the 0.9 privacy pass can
+// prove the notice was surfaced before launch. Not the final legal copy.
 
 import { router } from 'expo-router'
 import { useState } from 'react'
 import { ScrollView, View } from 'react-native'
-import { Appbar, Button, Card, Snackbar, Text } from 'react-native-paper'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { Appbar, Button, Card, Chip, Snackbar, Surface, Text } from 'react-native-paper'
 
 import { useAppTheme } from '@/constants/theme'
+import { useHaptics } from '@/hooks/use-haptics'
 import { useT } from '@/i18n/translations'
 import { useSettingsStore } from '@/stores/settings-store'
 import { DATA_RETENTION_POLICIES, type DataRetentionPolicy } from '@tdpos/shared'
@@ -15,6 +22,8 @@ import { DATA_RETENTION_POLICIES, type DataRetentionPolicy } from '@tdpos/shared
 export default function PrivacyScreen() {
   const theme = useAppTheme()
   const t = useT()
+  const insets = useSafeAreaInsets()
+  const haptics = useHaptics()
   const acceptedAt = useSettingsStore((state) => state.privacyNoticeAcceptedAt)
   const language = useSettingsStore((state) => state.language)
   const recordAccepted = useSettingsStore((state) => state.recordPrivacyNoticeAccepted)
@@ -31,6 +40,7 @@ export default function PrivacyScreen() {
     : t('privacy.notAccepted')
 
   const acknowledge = () => {
+    void haptics.success()
     recordAccepted(new Date().toISOString())
     setSnackbarVisible(true)
   }
@@ -38,22 +48,57 @@ export default function PrivacyScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <Appbar.Header style={{ backgroundColor: theme.colors.primary }}>
-        <Appbar.BackAction color={theme.colors.onPrimary} onPress={() => router.back()} />
+        <Appbar.BackAction
+          color={theme.colors.onPrimary}
+          onPress={() => router.back()}
+          accessibilityLabel="Back"
+        />
         <Appbar.Content title={t('privacy.title')} color={theme.colors.onPrimary} />
       </Appbar.Header>
 
-      <ScrollView contentContainerStyle={{ gap: 12, padding: 16, paddingBottom: 32 }}>
-        <Card mode="contained">
-          <Card.Content style={{ gap: 8 }}>
-            <Text variant="labelLarge" style={{ color: theme.colors.onSurfaceVariant }}>
-              {t('privacy.status')}
-            </Text>
+      <ScrollView
+        contentContainerStyle={{
+          gap: 12,
+          padding: 16,
+          paddingBottom: 112 + insets.bottom,
+        }}
+      >
+        {/* Status hero — teal when acknowledged, neutral when pending */}
+        <Card
+          mode="contained"
+          style={{
+            backgroundColor: acceptedAt ? theme.tdpos.teal[50] : theme.colors.surfaceVariant,
+          }}
+        >
+          <Card.Content style={{ gap: 6 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Text variant="labelLarge" style={{ color: theme.colors.onSurfaceVariant }}>
+                {t('privacy.status')}
+              </Text>
+              <Chip
+                compact
+                mode="flat"
+                style={{
+                  backgroundColor: acceptedAt ? theme.tdpos.teal[100] : theme.tdpos.amber[100],
+                }}
+                textStyle={{
+                  color: acceptedAt ? theme.tdpos.teal[800] : theme.tdpos.amber[700],
+                  fontWeight: '600',
+                }}
+              >
+                {acceptedAt ? 'Acknowledged' : 'Pending'}
+              </Chip>
+            </View>
             <Text variant="titleMedium">{formattedAcceptedAt}</Text>
             {acceptedAt ? (
               <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
                 {t('privacy.acceptedAt')}
               </Text>
-            ) : null}
+            ) : (
+              <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                Tap “{t('privacy.accept')}” after reading the cards below.
+              </Text>
+            )}
           </Card.Content>
         </Card>
 
@@ -77,13 +122,35 @@ export default function PrivacyScreen() {
             </View>
           </Card.Content>
         </Card>
-
-        <Button mode="contained" icon="check-circle-outline" onPress={acknowledge}>
-          {t('privacy.accept')}
-        </Button>
       </ScrollView>
 
-      <Snackbar visible={snackbarVisible} onDismiss={() => setSnackbarVisible(false)}>
+      <Surface
+        mode="elevated"
+        elevation={4}
+        style={{
+          paddingHorizontal: 16,
+          paddingTop: 12,
+          paddingBottom: 12 + insets.bottom,
+          backgroundColor: theme.colors.surface,
+        }}
+      >
+        <Button
+          mode="contained"
+          icon={acceptedAt ? 'refresh' : 'check-circle-outline'}
+          buttonColor={theme.colors.primary}
+          onPress={acknowledge}
+          accessibilityLabel={t('privacy.accept')}
+          accessibilityHint="Stores a local timestamp on this device only"
+        >
+          {acceptedAt ? 'Re-acknowledge notice' : t('privacy.accept')}
+        </Button>
+      </Surface>
+
+      <Snackbar
+        visible={snackbarVisible}
+        onDismiss={() => setSnackbarVisible(false)}
+        duration={3000}
+      >
         {t('privacy.accepted')}
       </Snackbar>
     </View>
@@ -100,6 +167,7 @@ function RetentionPolicyRow({
   const theme = useAppTheme()
   const t = useT()
   const isTagalog = language === 'tl'
+  const isModule = policy.module !== undefined
 
   return (
     <View
@@ -115,12 +183,20 @@ function RetentionPolicyRow({
         <Text variant="labelLarge" style={{ flex: 1 }}>
           {isTagalog ? policy.piiSurfaceTl : policy.piiSurface}
         </Text>
-        <Text
-          variant="labelSmall"
-          style={{ color: theme.colors.primary, flexShrink: 0, textTransform: 'uppercase' }}
+        <Chip
+          compact
+          mode="flat"
+          style={{
+            backgroundColor: isModule ? theme.tdpos.amber[50] : theme.tdpos.teal[50],
+          }}
+          textStyle={{
+            color: isModule ? theme.tdpos.amber[700] : theme.tdpos.teal[800],
+            fontWeight: '600',
+            textTransform: 'uppercase',
+          }}
         >
           {policy.module ?? t('privacy.retentionCore')}
-        </Text>
+        </Chip>
       </View>
       <RetentionLine
         label={t('privacy.retentionLocal')}
