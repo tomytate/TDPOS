@@ -16,6 +16,7 @@ import {
 } from '@tdpos/shared'
 
 import { checkInsertLimit, checkSurfaceAccess } from '@/lib/entitlements/surface-access'
+import { warnSafe } from '@/lib/safe-logger'
 import { getServerSupabase } from '@/lib/supabase/server'
 
 // `scaffold_only` is intentionally retained on the union for any future
@@ -145,7 +146,7 @@ async function logAuditEvent(
     after: params.after ?? null,
   })
   if (error) {
-    console.warn('[audit] failed to log', params.action, error.message)
+    warnSafe('[audit] failed to log', error, { action: params.action })
   }
 }
 
