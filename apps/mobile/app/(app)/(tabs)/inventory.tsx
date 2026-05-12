@@ -3,7 +3,7 @@
 // empty states, KPI tiles with tone-coded values, haptic chip selection,
 // and a refresh affordance baked into both empty and populated states.
 
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useSQLiteContext } from 'expo-sqlite'
 import { useState } from 'react'
 import { ScrollView, View } from 'react-native'
@@ -23,6 +23,7 @@ import {
 
 import { useAppTheme } from '@/constants/theme'
 import { executeStockTake } from '@/features/inventory/lib/execute-stock-take'
+import { getStockAccuracySnapshot } from '@/features/inventory/lib/stock-accuracy'
 import { useCategories } from '@/features/products/hooks/use-categories'
 import { useProducts } from '@/features/products/hooks/use-products'
 import { useHaptics } from '@/hooks/use-haptics'
@@ -173,6 +174,11 @@ export default function InventoryScreen() {
     isFetching,
     refetch,
   } = useProducts(activeCategory === ALL_CATEGORY ? undefined : activeCategory)
+  const { data: stockAccuracy } = useQuery({
+    queryKey: ['stock-accuracy'],
+    queryFn: () => getStockAccuracySnapshot(db),
+    staleTime: 60 * 1000,
+  })
 
   const stockValue = products.reduce(
     (total, product) => total + product.stock_pieces * (product.cost_per_piece ?? 0),
@@ -185,6 +191,11 @@ export default function InventoryScreen() {
       product.stock_pieces <= product.reorder_point_pieces,
   ).length
   const outCount = products.filter((product) => product.stock_pieces <= 0).length
+  const accuracyLabel =
+    stockAccuracy?.averageAccuracyPercent === null ||
+    stockAccuracy?.averageAccuracyPercent === undefined
+      ? t('inventory.noCounts')
+      : `${Math.round(stockAccuracy.averageAccuracyPercent)}%`
   const canStockTake = role === 'owner' || role === 'manager'
   const countedPiecesNumber = Number.parseInt(countedPieces, 10)
   const countedPiecesInvalid =
@@ -242,19 +253,18 @@ export default function InventoryScreen() {
 
     if (!result.ok) {
       const message =
-        result.reason === 'no_adjustment_needed'
-          ? 'Stock already matches the counted pieces.'
-          : result.reason === 'invalid_count'
-            ? 'Enter a whole-piece count.'
-            : result.reason === 'product_not_found'
-              ? 'Product is no longer active. Refresh inventory.'
-              : 'Stock take could not be recorded.'
+        result.reason === 'invalid_count'
+          ? 'Enter a whole-piece count.'
+          : result.reason === 'product_not_found'
+            ? 'Product is no longer active. Refresh inventory.'
+            : 'Stock take could not be recorded.'
       setStockTakeError(message)
       void haptics.error()
       return
     }
 
     await queryClient.invalidateQueries({ queryKey: ['products'] })
+    await queryClient.invalidateQueries({ queryKey: ['stock-accuracy'] })
     await refetch()
     setStockTakeProduct(null)
     setSnackbar(
@@ -374,6 +384,20 @@ export default function InventoryScreen() {
               label={t('inventory.out')}
               value={String(outCount)}
               tone={outCount > 0 ? 'danger' : 'neutral'}
+            />
+            <MetricTile
+              label={t('inventory.accuracy')}
+              value={accuracyLabel}
+              tone={
+                stockAccuracy?.averageAccuracyPercent === undefined ||
+                stockAccuracy.averageAccuracyPercent === null
+                  ? 'neutral'
+                  : stockAccuracy.averageAccuracyPercent >= 95
+                    ? 'good'
+                    : stockAccuracy.averageAccuracyPercent >= 80
+                      ? 'warn'
+                      : 'danger'
+              }
             />
           </View>
 

@@ -100,6 +100,24 @@ describe('executeStockTake', () => {
       reason: 'count_correction',
       log_type: 'adjustment',
     })
+
+    const count = sqlite
+      .prepare(
+        `SELECT counted_stock_pieces, system_stock_pieces_before, pieces_delta, reason
+         FROM stock_take_counts`,
+      )
+      .get() as {
+      counted_stock_pieces: number
+      system_stock_pieces_before: number
+      pieces_delta: number
+      reason: string
+    }
+    expect(count).toEqual({
+      counted_stock_pieces: 12,
+      system_stock_pieces_before: 10,
+      pieces_delta: 2,
+      reason: 'count_correction',
+    })
   })
 
   test('writes a negative delta with the manager note sanitized to trimmed text', async () => {
@@ -127,11 +145,11 @@ describe('executeStockTake', () => {
     expect(log.reason).toBe('damage: broken display pack')
   })
 
-  test('refuses no-op, invalid, and unknown-product stock takes without writes', async () => {
+  test('records a no-delta count without queueing an adjustment', async () => {
     const sqlite = await freshDb()
     const db = makeAdapter(sqlite)
 
-    const noDelta = await executeStockTake({
+    const result = await executeStockTake({
       db,
       clientOperationId: '00000000-0000-4000-8000-000000000103',
       productId: '11111111-1111-1111-1111-111111111111',
@@ -139,13 +157,20 @@ describe('executeStockTake', () => {
       countedStockPieces: 10,
       reason: 'count_correction',
     })
-    expect(noDelta.ok).toBe(false)
-    if (noDelta.ok) return
-    expect(noDelta.reason).toBe('no_adjustment_needed')
+    expect(result).toMatchObject({ ok: true, delta: 0, replayed: false })
+
+    expect(sqlite.prepare(`SELECT id FROM inventory_logs`).all()).toHaveLength(0)
+    expect(sqlite.prepare(`SELECT id FROM sync_queue`).all()).toHaveLength(0)
+    expect(sqlite.prepare(`SELECT id FROM stock_take_counts`).all()).toHaveLength(1)
+  })
+
+  test('refuses invalid and unknown-product stock takes without writes', async () => {
+    const sqlite = await freshDb()
+    const db = makeAdapter(sqlite)
 
     const invalid = await executeStockTake({
       db,
-      clientOperationId: '00000000-0000-4000-8000-000000000104',
+      clientOperationId: '00000000-0000-4000-8000-000000000107',
       productId: '11111111-1111-1111-1111-111111111111',
       branchId: 'branch-1',
       countedStockPieces: -1,
@@ -157,7 +182,7 @@ describe('executeStockTake', () => {
 
     const missing = await executeStockTake({
       db,
-      clientOperationId: '00000000-0000-4000-8000-000000000105',
+      clientOperationId: '00000000-0000-4000-8000-000000000108',
       productId: '22222222-2222-4222-8222-222222222222',
       branchId: 'branch-1',
       countedStockPieces: 1,
@@ -168,6 +193,7 @@ describe('executeStockTake', () => {
     expect(missing.reason).toBe('product_not_found')
 
     expect(sqlite.prepare(`SELECT id FROM inventory_logs`).all()).toHaveLength(0)
+    expect(sqlite.prepare(`SELECT id FROM stock_take_counts`).all()).toHaveLength(0)
     expect(sqlite.prepare(`SELECT id FROM sync_queue`).all()).toHaveLength(0)
   })
 
@@ -197,6 +223,7 @@ describe('executeStockTake', () => {
 
     expect(replay).toMatchObject({ ok: true, delta: 3, replayed: true })
     expect(sqlite.prepare(`SELECT id FROM inventory_logs`).all()).toHaveLength(1)
+    expect(sqlite.prepare(`SELECT id FROM stock_take_counts`).all()).toHaveLength(1)
     expect(sqlite.prepare(`SELECT id FROM sync_queue`).all()).toHaveLength(1)
   })
 })

@@ -124,6 +124,20 @@ export interface DbInventoryLog {
   created_at: DbTimestamp
 }
 
+export interface DbStockTakeCount {
+  id: string
+  business_id?: string
+  product_id: string
+  branch_id: string
+  counted_stock_pieces: number
+  system_stock_pieces_before: number
+  pieces_delta: number
+  reason: string
+  reason_note: string | null
+  user_id: string | null
+  created_at: DbTimestamp
+}
+
 export interface DbCustomer {
   id: string
   business_id: string

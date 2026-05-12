@@ -1,5 +1,5 @@
 // Local SQLite migration runner — applies versioned schema changes.
-// Migrations are registered in LOCAL_MIGRATIONS array (v2-v7).
+// Migrations are registered in LOCAL_MIGRATIONS array (v2-v8).
 // Each migration runs exactly once via schema_version tracking.
 
 import type { AsyncSqliteLike } from './async-sqlite'
@@ -116,6 +116,24 @@ ALTER TABLE sales ADD COLUMN device_timezone TEXT;
 ALTER TABLE sales ADD COLUMN synced_server_time_at_last_handshake TEXT;
 `
 
+export const LOCAL_STOCK_TAKE_COUNTS_SQL = `
+CREATE TABLE IF NOT EXISTS stock_take_counts (
+  id TEXT PRIMARY KEY NOT NULL,
+  product_id TEXT NOT NULL REFERENCES products(id),
+  branch_id TEXT NOT NULL,
+  counted_stock_pieces INTEGER NOT NULL,
+  system_stock_pieces_before INTEGER NOT NULL,
+  pieces_delta INTEGER NOT NULL,
+  reason TEXT NOT NULL,
+  reason_note TEXT,
+  user_id TEXT,
+  created_at INTEGER NOT NULL DEFAULT (unixepoch())
+);
+
+CREATE INDEX IF NOT EXISTS idx_stock_take_counts_latest
+  ON stock_take_counts(product_id, created_at DESC);
+`
+
 export const LOCAL_MIGRATIONS: LocalMigration[] = [
   {
     version: 1,
@@ -145,6 +163,10 @@ export const LOCAL_MIGRATIONS: LocalMigration[] = [
   {
     version: 7,
     sql: LOCAL_SALE_CLOCK_METADATA_SQL,
+  },
+  {
+    version: 8,
+    sql: LOCAL_STOCK_TAKE_COUNTS_SQL,
   },
 ]
 

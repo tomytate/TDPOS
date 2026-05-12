@@ -8,7 +8,7 @@ TD POS is a mobile-first, offline-capable SaaS POS and inventory management syst
 
 ## Release Posture
 
-- **Current baseline:** v0.8 Scaffold Complete — all five tier surfaces implemented, 110 tests passing, 12-stage foundation gate green.
+- **Current baseline:** v0.8 Scaffold Complete — all five tier surfaces implemented, 113 tests passing, 12-stage foundation gate green.
 - **Next real milestone:** v0.9 — full test suite (screenshot parity, accessibility, performance), hosted Supabase staging, EAS dev builds, physical-device airplane-mode sale.
 - **Then:** v0.1alpha — first pilot store.
 - **Target:** v1.0 Public Launch — mobile + web dashboard + marketing site simultaneously.
@@ -107,7 +107,7 @@ TDPOS/
 ├── packages/db/             # Database schema types + re-exported Zod validators
 ├── packages/typescript-config/
 ├── packages/eslint-config/
-├── supabase/                # PG17 migrations (13), Edge Functions (3), seed
+├── supabase/                # PG17 migrations (14), Edge Functions (3), seed
 ├── docs/                    # Spec, architecture (17 ADRs), schema reference
 │   └── skills/              # 22 anti-hallucination skill docs (DocGate-3 enforced)
 └── UI/                      # Suki POS design canvas (reference only)

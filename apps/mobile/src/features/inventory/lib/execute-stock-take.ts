@@ -25,11 +25,7 @@ export type ExecuteStockTakeResult =
     }
   | {
       ok: false
-      reason:
-        | 'product_not_found'
-        | 'invalid_count'
-        | 'missing_device_identity'
-        | 'no_adjustment_needed'
+      reason: 'product_not_found' | 'invalid_count' | 'missing_device_identity'
       details?: Record<string, unknown>
     }
 
@@ -39,6 +35,13 @@ interface ProductStockRow {
 
 interface ExistingQueueRow {
   payload: string
+}
+
+interface ExistingStockTakeRow {
+  product_id: string
+  counted_stock_pieces: number
+  system_stock_pieces_before: number
+  pieces_delta: number
 }
 
 function normalizeReasonNote(reasonNote: string | null | undefined): string | null {
@@ -64,6 +67,24 @@ export async function executeStockTake(
   if (!branchId) return { ok: false, reason: 'missing_device_identity' }
   if (!Number.isInteger(countedStockPieces) || countedStockPieces < 0) {
     return { ok: false, reason: 'invalid_count' }
+  }
+
+  const existingCount = await db.getFirstAsync<ExistingStockTakeRow>(
+    `SELECT product_id, counted_stock_pieces, system_stock_pieces_before, pieces_delta
+     FROM stock_take_counts
+     WHERE id = ?`,
+    [clientOperationId],
+  )
+
+  if (existingCount) {
+    return {
+      ok: true,
+      productId: existingCount.product_id,
+      previousStockPieces: existingCount.system_stock_pieces_before,
+      countedStockPieces: existingCount.counted_stock_pieces,
+      delta: existingCount.pieces_delta,
+      replayed: true,
+    }
   }
 
   const existing = await db.getFirstAsync<ExistingQueueRow>(
@@ -101,16 +122,10 @@ export async function executeStockTake(
   if (!product) return { ok: false, reason: 'product_not_found', details: { productId } }
 
   const delta = countedStockPieces - product.stock_pieces
-  if (delta === 0) {
-    return {
-      ok: false,
-      reason: 'no_adjustment_needed',
-      details: { productId, countedStockPieces },
-    }
-  }
 
   const createdAt = now()
   const inventoryLogId = createClientOperationId()
+  const stockTakeCountId = clientOperationId
   const note = normalizeReasonNote(reasonNote)
   const localReason = note ? `${reason}: ${note}` : reason
   const payload = {
@@ -124,6 +139,27 @@ export async function executeStockTake(
   }
 
   await db.withTransactionAsync(async () => {
+    await db.runAsync(
+      `INSERT INTO stock_take_counts (
+         id, product_id, branch_id, counted_stock_pieces, system_stock_pieces_before,
+         pieces_delta, reason, reason_note, user_id, created_at
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        stockTakeCountId,
+        productId,
+        branchId,
+        countedStockPieces,
+        product.stock_pieces,
+        delta,
+        reason,
+        note,
+        userId,
+        createdAt,
+      ],
+    )
+
+    if (delta === 0) return
+
     await db.runAsync(
       `UPDATE products
        SET stock_pieces = ?, updated_at = unixepoch()
