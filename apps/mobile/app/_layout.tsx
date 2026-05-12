@@ -13,6 +13,7 @@ import { darkTheme, lightTheme } from '@/constants/theme'
 import { initializeDatabase } from '@/db/init'
 import { queryClient } from '@/services/query-client'
 import { useAuthStateListener } from '@/services/auth-listener'
+import { ModulePrivacyCleanupEffect } from '@/services/module-privacy-effect'
 import { useBackgroundSyncRegistration } from '@/services/register-sync'
 import '@/services/storage'
 import { SyncTriggerEffect } from '@/services/sync-trigger'
@@ -34,6 +35,7 @@ export default function RootLayout() {
       <SQLiteProvider databaseName="tdpos.db" onInit={initializeDatabase}>
         <QueryClientProvider client={queryClient}>
           <SyncTriggerEffect />
+          <ModulePrivacyCleanupEffect />
           <PaperProvider theme={paperTheme}>
             <StatusBar style={useDarkTheme ? 'light' : 'dark'} />
             <Stack screenOptions={{ headerShown: false }}>

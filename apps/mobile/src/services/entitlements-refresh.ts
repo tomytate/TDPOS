@@ -1,3 +1,5 @@
+import type { AsyncSqliteLike } from '@/db/async-sqlite'
+import { clearLocalCachesForDisabledModules } from '@/services/module-privacy'
 import { useAuthStore } from '@/stores/auth-store'
 import {
   normalizeSubscriptionTier,
@@ -40,6 +42,7 @@ export type EntitlementsRefreshOutcome =
 export async function refreshEntitlementsFromSupabase(params: {
   supabase: SupabaseEntitlementsClient
   businessId?: string | null
+  db?: AsyncSqliteLike
 }): Promise<EntitlementsRefreshOutcome> {
   const businessId = params.businessId ?? useAuthStore.getState().businessId
   if (!businessId) return { ok: false, reason: 'signed_out' }
@@ -57,6 +60,19 @@ export async function refreshEntitlementsFromSupabase(params: {
   const subscriptionTier = normalizeSubscriptionTier(row.subscription_tier)
   const modules = resolveTierModuleState(subscriptionTier, row.module_state)
   const entitlementsValidUntil = row.entitlements_valid_until ?? null
+  const previousModules = useAuthStore.getState().modules
+
+  if (params.db) {
+    await clearLocalCachesForDisabledModules({
+      db: params.db,
+      previousModules,
+      nextModules: modules,
+    }).catch((err) => {
+      if (typeof console !== 'undefined') {
+        console.warn('[Entitlements] module privacy cleanup failed', err)
+      }
+    })
+  }
 
   useAuthStore.getState().setEntitlements({
     subscriptionTier,

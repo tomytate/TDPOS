@@ -23,6 +23,7 @@ export async function runSyncQueueOnce(db: AsyncSqliteLike): Promise<SyncExecuto
 
   await refreshEntitlementsFromSupabase({
     supabase: supabase as unknown as SupabaseEntitlementsClient,
+    db,
   }).catch((err) => {
     if (typeof console !== 'undefined') {
       console.warn('[SyncExecutor] entitlement refresh failed', err)
