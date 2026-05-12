@@ -10,11 +10,13 @@ import { Appbar, Button, Card, Snackbar, Text } from 'react-native-paper'
 import { useAppTheme } from '@/constants/theme'
 import { useT } from '@/i18n/translations'
 import { useSettingsStore } from '@/stores/settings-store'
+import { DATA_RETENTION_POLICIES, type DataRetentionPolicy } from '@tdpos/shared'
 
 export default function PrivacyScreen() {
   const theme = useAppTheme()
   const t = useT()
   const acceptedAt = useSettingsStore((state) => state.privacyNoticeAcceptedAt)
+  const language = useSettingsStore((state) => state.language)
   const recordAccepted = useSettingsStore((state) => state.recordPrivacyNoticeAccepted)
   const [snackbarVisible, setSnackbarVisible] = useState(false)
 
@@ -60,6 +62,22 @@ export default function PrivacyScreen() {
         <PrivacyCard title={t('privacy.supportTitle')} body={t('privacy.supportBody')} />
         <PrivacyCard title={t('privacy.modulesTitle')} body={t('privacy.modulesBody')} />
 
+        <Card mode="contained">
+          <Card.Content style={{ gap: 10 }}>
+            <View style={{ gap: 4 }}>
+              <Text variant="titleMedium">{t('privacy.retentionTitle')}</Text>
+              <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
+                {t('privacy.retentionBody')}
+              </Text>
+            </View>
+            <View style={{ gap: 8 }}>
+              {DATA_RETENTION_POLICIES.map((policy) => (
+                <RetentionPolicyRow key={policy.id} policy={policy} language={language} />
+              ))}
+            </View>
+          </Card.Content>
+        </Card>
+
         <Button mode="contained" icon="check-circle-outline" onPress={acknowledge}>
           {t('privacy.accept')}
         </Button>
@@ -68,6 +86,69 @@ export default function PrivacyScreen() {
       <Snackbar visible={snackbarVisible} onDismiss={() => setSnackbarVisible(false)}>
         {t('privacy.accepted')}
       </Snackbar>
+    </View>
+  )
+}
+
+function RetentionPolicyRow({
+  policy,
+  language,
+}: {
+  policy: DataRetentionPolicy
+  language: 'en' | 'tl'
+}) {
+  const theme = useAppTheme()
+  const t = useT()
+  const isTagalog = language === 'tl'
+
+  return (
+    <View
+      style={{
+        borderColor: theme.colors.outline,
+        borderRadius: 8,
+        borderWidth: 1,
+        gap: 8,
+        padding: 10,
+      }}
+    >
+      <View style={{ flexDirection: 'row', gap: 8, justifyContent: 'space-between' }}>
+        <Text variant="labelLarge" style={{ flex: 1 }}>
+          {isTagalog ? policy.piiSurfaceTl : policy.piiSurface}
+        </Text>
+        <Text
+          variant="labelSmall"
+          style={{ color: theme.colors.primary, flexShrink: 0, textTransform: 'uppercase' }}
+        >
+          {policy.module ?? t('privacy.retentionCore')}
+        </Text>
+      </View>
+      <RetentionLine
+        label={t('privacy.retentionLocal')}
+        value={isTagalog ? policy.localRetentionTl : policy.localRetention}
+      />
+      <RetentionLine
+        label={t('privacy.retentionServer')}
+        value={isTagalog ? policy.serverRetentionTl : policy.serverRetention}
+      />
+      <RetentionLine
+        label={t('privacy.retentionCleanup')}
+        value={isTagalog ? policy.disabledModuleCleanupTl : policy.disabledModuleCleanup}
+      />
+    </View>
+  )
+}
+
+function RetentionLine({ label, value }: { label: string; value: string }) {
+  const theme = useAppTheme()
+
+  return (
+    <View style={{ gap: 2 }}>
+      <Text variant="labelSmall" style={{ color: theme.colors.onSurfaceVariant }}>
+        {label}
+      </Text>
+      <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+        {value}
+      </Text>
     </View>
   )
 }

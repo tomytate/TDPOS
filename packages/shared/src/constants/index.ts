@@ -52,6 +52,232 @@ export const DEFAULT_MODULE_STATE = {
   public_api: false,
 } as const
 
+export interface DataRetentionPolicy {
+  id: string
+  category: 'account' | 'customer' | 'sales' | 'sync' | 'support' | 'device' | 'tier_surface'
+  module: ModuleName | null
+  piiSurface: string
+  piiSurfaceTl: string
+  localRetention: string
+  localRetentionTl: string
+  serverRetention: string
+  serverRetentionTl: string
+  disabledModuleCleanup: string
+  disabledModuleCleanupTl: string
+}
+
+export const DATA_RETENTION_POLICIES = [
+  {
+    id: 'auth_phone',
+    category: 'account',
+    module: null,
+    piiSurface: 'Phone OTP identity',
+    piiSurfaceTl: 'Phone OTP identity',
+    localRetention: 'Cached in MMKV while signed in so offline gates can identify the user.',
+    localRetentionTl: 'Naka-cache sa MMKV habang signed in para makilala ang user kahit offline.',
+    serverRetention: 'Retained while the staff account is active; deactivation removes app access.',
+    serverRetentionTl:
+      'Nananatili habang active ang staff account; deactivation ang nag-aalis ng app access.',
+    disabledModuleCleanup: 'Cleared from the device on sign-out, device reset, or account removal.',
+    disabledModuleCleanupTl: 'Nililinis sa device kapag sign-out, device reset, o account removal.',
+  },
+  {
+    id: 'staff_identity',
+    category: 'account',
+    module: null,
+    piiSurface: 'Staff role and branch assignment',
+    piiSurfaceTl: 'Staff role at branch assignment',
+    localRetention: 'Cached locally for offline cashier routing and manager-only screens.',
+    localRetentionTl: 'Naka-cache para sa offline cashier routing at manager-only screens.',
+    serverRetention: 'Retained while the staff account is active for access control and audit.',
+    serverRetentionTl:
+      'Nananatili habang active ang staff account para sa access control at audit.',
+    disabledModuleCleanup: 'Cleared from the device on sign-out, device reset, or account removal.',
+    disabledModuleCleanupTl: 'Nililinis sa device kapag sign-out, device reset, o account removal.',
+  },
+  {
+    id: 'customer_profile',
+    category: 'customer',
+    module: 'utang',
+    piiSurface: 'Customer profile',
+    piiSurfaceTl: 'Customer profile',
+    localRetention:
+      'Downloaded only when customer-facing modules are enabled; cleared when all customer modules are off.',
+    localRetentionTl:
+      'Dina-download lang kapag naka-on ang customer-facing modules; nililinis kapag off lahat ng customer modules.',
+    serverRetention:
+      'Retained for active customer records; erasure blanks PII while preserving linked sales history.',
+    serverRetentionTl:
+      'Nananatili para sa active customer records; sa erasure, bine-blank ang PII pero iniingatan ang linked sales history.',
+    disabledModuleCleanup:
+      'When utang, customer SMS, and loyalty are all off, local customer rows are deleted.',
+    disabledModuleCleanupTl:
+      'Kapag off ang utang, customer SMS, at loyalty, dine-delete ang local customer rows.',
+  },
+  {
+    id: 'utang_ledger',
+    category: 'customer',
+    module: 'utang',
+    piiSurface: 'Utang ledger and balances',
+    piiSurfaceTl: 'Utang ledger at balances',
+    localRetention: 'Stored locally only while the utang module remains enabled.',
+    localRetentionTl: 'Naka-store lang locally habang naka-on ang utang module.',
+    serverRetention:
+      'Retained as business credit history while the module is active; settlements remain business records.',
+    serverRetentionTl:
+      'Nananatili bilang business credit history habang active ang module; ang settlements ay business records pa rin.',
+    disabledModuleCleanup: 'Turning utang off clears local balances and customer cache rows.',
+    disabledModuleCleanupTl:
+      'Kapag in-off ang utang, nililinis ang local balances at customer cache rows.',
+  },
+  {
+    id: 'customer_sms',
+    category: 'customer',
+    module: 'customer_sms',
+    piiSurface: 'Customer SMS phone numbers',
+    piiSurfaceTl: 'Customer SMS phone numbers',
+    localRetention: 'Stored locally only while customer SMS is enabled and consent exists.',
+    localRetentionTl: 'Naka-store lang locally habang naka-on ang customer SMS at may consent.',
+    serverRetention:
+      'Retained for messaging consent and delivery records until consent is withdrawn or the customer is erased.',
+    serverRetentionTl:
+      'Nananatili para sa messaging consent at delivery records hanggang bawiin ang consent o i-erase ang customer.',
+    disabledModuleCleanup: 'Turning customer SMS off nulls local customer phone fields.',
+    disabledModuleCleanupTl:
+      'Kapag in-off ang customer SMS, ginagawang null ang local customer phone fields.',
+  },
+  {
+    id: 'loyalty_points',
+    category: 'customer',
+    module: 'loyalty',
+    piiSurface: 'Loyalty points',
+    piiSurfaceTl: 'Loyalty points',
+    localRetention: 'Stored locally only while loyalty is enabled.',
+    localRetentionTl: 'Naka-store lang locally habang naka-on ang loyalty.',
+    serverRetention: 'Retained while the loyalty account is active or until customer erasure.',
+    serverRetentionTl: 'Nananatili habang active ang loyalty account o hanggang customer erasure.',
+    disabledModuleCleanup: 'Turning loyalty off resets local points cache to zero.',
+    disabledModuleCleanupTl: 'Kapag in-off ang loyalty, nire-reset sa zero ang local points cache.',
+  },
+  {
+    id: 'sales_records',
+    category: 'sales',
+    module: null,
+    piiSurface: 'Sales, sale items, and provisional receipt data',
+    piiSurfaceTl: 'Sales, sale items, at provisional receipt data',
+    localRetention: 'Stored locally for offline operation until sync and device lifecycle cleanup.',
+    localRetentionTl:
+      'Naka-store locally para sa offline operation hanggang sync at device lifecycle cleanup.',
+    serverRetention:
+      'Retained as immutable business and tax records; corrections use compensating rows.',
+    serverRetentionTl:
+      'Nananatili bilang immutable business at tax records; corrections ay compensating rows.',
+    disabledModuleCleanup: 'Never deleted by module toggles; not tied to optional modules.',
+    disabledModuleCleanupTl: 'Hindi dine-delete ng module toggles; hindi ito optional module data.',
+  },
+  {
+    id: 'sync_queue',
+    category: 'sync',
+    module: null,
+    piiSurface: 'Local sync queue payloads',
+    piiSurfaceTl: 'Local sync queue payloads',
+    localRetention: 'Retained until synced, failed for review, or manually resolved by support.',
+    localRetentionTl: 'Nananatili hanggang ma-sync, ma-flag for review, o ma-resolve ng support.',
+    serverRetention: 'Server stores idempotency and result metadata, not the mobile queue table.',
+    serverRetentionTl:
+      'Idempotency at result metadata ang nasa server, hindi ang mobile queue table.',
+    disabledModuleCleanup: 'Never cleared by module toggles; support review controls cleanup.',
+    disabledModuleCleanupTl:
+      'Hindi nililinis ng module toggles; support review ang cleanup control.',
+  },
+  {
+    id: 'audit_log',
+    category: 'sync',
+    module: null,
+    piiSurface: 'Audit log metadata',
+    piiSurfaceTl: 'Audit log metadata',
+    localRetention:
+      'Not kept as a standalone local table in v0.8; web reads tenant-scoped server audit.',
+    localRetentionTl:
+      'Wala pang standalone local table sa v0.8; ang web ay nagbabasa ng tenant-scoped server audit.',
+    serverRetention: 'Immutable append-only records; dashboard surfaces field names, not values.',
+    serverRetentionTl:
+      'Immutable append-only records; field names lang ang ipinapakita sa dashboard, hindi values.',
+    disabledModuleCleanup:
+      'Never cleared by module toggles; needed for security and accountability.',
+    disabledModuleCleanupTl:
+      'Hindi nililinis ng module toggles; kailangan para sa security at accountability.',
+  },
+  {
+    id: 'support_bundle',
+    category: 'support',
+    module: null,
+    piiSurface: 'Support diagnostics bundle',
+    piiSurfaceTl: 'Support diagnostics bundle',
+    localRetention:
+      'Generated only when a manager taps copy; not stored as a durable local record.',
+    localRetentionTl:
+      'Ginagawa lang kapag pinindot ng manager ang copy; hindi ito durable local record.',
+    serverRetention: 'Support copies are retained only for the support case lifecycle.',
+    serverRetentionTl:
+      'Support copies ay nananatili lang habang active ang support case lifecycle.',
+    disabledModuleCleanup: 'Bundle builder strips obvious phone numbers and emails before sharing.',
+    disabledModuleCleanupTl:
+      'Tinatanggal ng bundle builder ang obvious phone numbers at emails bago i-share.',
+  },
+  {
+    id: 'device_heartbeat',
+    category: 'device',
+    module: null,
+    piiSurface: 'Device install id and heartbeat',
+    piiSurfaceTl: 'Device install id at heartbeat',
+    localRetention:
+      'Install id persists locally until app data is cleared or the device is replaced.',
+    localRetentionTl:
+      'Nananatili ang install id locally hanggang app data clear o device replacement.',
+    serverRetention:
+      'Retained while the device is active; stale/deactivated rows support loss recovery.',
+    serverRetentionTl:
+      'Nananatili habang active ang device; stale/deactivated rows ay para sa loss recovery.',
+    disabledModuleCleanup: 'Never cleared by module toggles; device deactivation controls access.',
+    disabledModuleCleanupTl:
+      'Hindi nililinis ng module toggles; device deactivation ang access control.',
+  },
+  {
+    id: 'kiosk_orders',
+    category: 'tier_surface',
+    module: null,
+    piiSurface: 'Kiosk customer labels',
+    piiSurfaceTl: 'Kiosk customer labels',
+    localRetention:
+      'Stored only on Tier E kiosk devices until staff confirms or cancels the order.',
+    localRetentionTl:
+      'Naka-store lang sa Tier E kiosk devices hanggang i-confirm o i-cancel ng staff ang order.',
+    serverRetention: 'Retained with the resulting order/sale history when synced.',
+    serverRetentionTl: 'Nananatili kasama ng order/sale history kapag na-sync.',
+    disabledModuleCleanup:
+      'Not controlled by optional modules; Tier E surface access controls visibility.',
+    disabledModuleCleanupTl: 'Hindi optional module; Tier E surface access ang visibility control.',
+  },
+  {
+    id: 'return_requests',
+    category: 'tier_surface',
+    module: null,
+    piiSurface: 'Return and warranty request metadata',
+    piiSurfaceTl: 'Return at warranty request metadata',
+    localRetention: 'Stored on return-desk devices until synced and resolved by a manager.',
+    localRetentionTl:
+      'Naka-store sa return-desk devices hanggang ma-sync at ma-resolve ng manager.',
+    serverRetention:
+      'Retained as compensating transaction metadata; original sale rows remain immutable.',
+    serverRetentionTl:
+      'Nananatili bilang compensating transaction metadata; immutable pa rin ang original sale rows.',
+    disabledModuleCleanup:
+      'Not controlled by optional modules; Tier E surface access controls visibility.',
+    disabledModuleCleanupTl: 'Hindi optional module; Tier E surface access ang visibility control.',
+  },
+] as const satisfies readonly DataRetentionPolicy[]
+
 // BIR receipt copy — centralized so the language can flip in ONE place
 // the day a business + device pair becomes accredited. Until accreditation,
 // only "BIR-ready" / "Provisional receipt" wording is permitted.

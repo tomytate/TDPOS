@@ -86,6 +86,14 @@ export const translations = {
     'privacy.modulesTitle': 'Disabled modules',
     'privacy.modulesBody':
       'Modules start off. When a module is off, its screens stay hidden and its local customer-facing cache must be cleared before launch approval.',
+    'privacy.retentionTitle': 'Data retention table',
+    'privacy.retentionBody':
+      'Shared retention rules for local device storage, server records, and disabled-module cleanup.',
+    'privacy.retentionLocal': 'Local',
+    'privacy.retentionServer': 'Server',
+    'privacy.retentionCleanup': 'Cleanup',
+    'privacy.retentionModule': 'Module',
+    'privacy.retentionCore': 'Core',
     'privacy.accept': 'Acknowledge notice',
     'privacy.accepted': 'Privacy notice acknowledged',
     'tabs.sale': 'Sale',
@@ -177,6 +185,14 @@ export const translations = {
     'privacy.modulesTitle': 'Disabled modules',
     'privacy.modulesBody':
       'Naka-off muna ang modules. Kapag off ang module, nakatago ang screens nito at kailangang linisin ang local customer-facing cache bago launch approval.',
+    'privacy.retentionTitle': 'Data retention table',
+    'privacy.retentionBody':
+      'Shared retention rules para sa local device storage, server records, at disabled-module cleanup.',
+    'privacy.retentionLocal': 'Local',
+    'privacy.retentionServer': 'Server',
+    'privacy.retentionCleanup': 'Cleanup',
+    'privacy.retentionModule': 'Module',
+    'privacy.retentionCore': 'Core',
     'privacy.accept': 'I-acknowledge ang notice',
     'privacy.accepted': 'Na-acknowledge ang privacy notice',
     'tabs.sale': 'Benta',

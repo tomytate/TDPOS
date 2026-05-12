@@ -1768,7 +1768,7 @@ Purpose: every row in this phase blocks v1.0. Per the Release Pact, "enterprise-
 
 ### P11.5.6 Data Privacy (Philippine DPA / RA 10173)
 
-- [ ] Data retention table: list every PII surface (phones, customer names, utang ledger, audit log, sync_queue) and the retention rule for each.
+- [/] Data retention table: `DATA_RETENTION_POLICIES` in `@tdpos/shared` lists current PII surfaces, local retention, server retention, module linkage, and disabled-module cleanup; mobile `/privacy` renders it. Final legal review can still amend wording/windows.
 - [/] Disabled modules wipe their cached PII. Mobile `ModulePrivacyCleanupEffect` and sync-time entitlement refresh clear or narrow local `customers` rows when `utang`, `customer_sms`, or `loyalty` turn off; full module-by-module proof lands in the 0.9 test pass.
 - [ ] Right-to-export: business owner can export all of their tenant's data through one Edge Function call.
 - [ ] Right-to-erasure for end customers: store owner can soft-delete a customer; PII fields blanked, transactions remain (BIR retention requires sales records).
@@ -2123,6 +2123,7 @@ Use this section as releases progress.
 - [x] Security hardening update 2026-05-12: `check:secrets` scans tracked text/code/config files for real-looking committed secrets, and CI now runs the tier UI source check so hosted checks match the local foundation gate.
 - [x] Privacy scaffold update 2026-05-12: mobile `/privacy` exists, is reachable from Diagnostics, is EN/TL translated, and records a local acknowledgement timestamp in persisted settings for the 0.9 privacy/legal review.
 - [x] Disabled-module privacy update 2026-05-12: mobile entitlement refresh now clears local customer-facing caches when `utang`, `customer_sms`, or `loyalty` are turned off, preserving server history while removing no-longer-entitled PII from device storage.
+- [x] Data-retention scaffold update 2026-05-12: `@tdpos/shared` now owns `DATA_RETENTION_POLICIES`, and mobile `/privacy` renders the EN/TL retention table for account, customer, sales, sync, support, device, kiosk, and returns/warranty surfaces.
 - [x] Verification: `source scripts/use-toolchain.sh && bun run check:toolchain` passes with Node 24.15.0, Bun 1.3.13, Supabase CLI 2.98.2, and EAS CLI runner available.
 - [x] Verification: `source scripts/use-toolchain.sh && bun run check:foundation` passes end-to-end.
 - [x] Current code-testable count after the first 0.9 tier suite: 103 passing tests total — 32 shared + 71 mobile.
