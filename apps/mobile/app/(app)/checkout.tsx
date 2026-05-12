@@ -36,10 +36,12 @@ function describeCheckoutFailure(reason: string): string {
       return 'Not enough stock for one of the items. Refresh the cart or remove the item.'
     case 'empty_cart':
       return 'Cart is empty. Add a product first.'
-    case 'tendered_too_low':
+    case 'invalid_tendered':
       return 'Tendered amount is less than the total.'
-    case 'device_not_paired':
+    case 'missing_device_identity':
       return 'Device not paired. Ask the manager to re-pair this register.'
+    case 'clock_skew_detected':
+      return 'Set this device date and time, reconnect, then try again.'
     default:
       return `Checkout could not complete (${reason}). Try again or call support.`
   }
@@ -107,6 +109,7 @@ export default function CheckoutScreen() {
   const userId = useAuthStore((s) => s.userId)
   const businessId = useAuthStore((s) => s.businessId)
   const modules = useAuthStore((s) => s.modules)
+  const lastServerHandshakeAt = useAuthStore((s) => s.lastServerHandshakeAt)
 
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -167,6 +170,7 @@ export default function CheckoutScreen() {
           isUtang: isUtangPayment,
         },
         device: { branchId, branchCode, cashierCode, userId, businessId },
+        lastServerHandshakeAt,
       })
 
       if (!result.ok) {

@@ -81,6 +81,7 @@ export function buildSupportBundle(input: SupportBundleInput): string {
     `Tier: ${metadata.subscriptionTier ?? 'unknown'}`,
     `Enabled modules: ${metadata.enabledModuleCount}`,
     `Entitlements valid until: ${metadata.entitlementsValidUntil ?? 'none'}`,
+    `Last server handshake: ${metadata.lastServerHandshakeAt ?? 'none'}`,
     `MMKV: ${metadata.mmkvSizeBytes} bytes / ${metadata.mmkvKeyCount} keys`,
     `Disk: ${formatBytes(metadata.availableDiskBytes)} available / ${formatBytes(metadata.totalDiskBytes)} total`,
     '',

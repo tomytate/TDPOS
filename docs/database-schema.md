@@ -171,3 +171,4 @@ The Supabase entitlement scaffold lives in `20260510000001_entitlement_guards.sq
 | `20260512000000_customer_erasure.sql` | Customer PII erasure columns and owner/manager erasure RPC with sanitized audit logging. |
 | `20260512000001_tenant_export_audit.sql` | Owner-only tenant export audit marker with `client_operation_id` dedupe. |
 | `20260512000002_sale_clock_metadata.sql` | Device timezone, last-handshake placeholder, server `received_at`, and refreshed atomic sale RPC for skew detection. |
+| `20260512000003_server_clock_handshake.sql` | Read-only authenticated RPC returning server time for mobile receipt-date skew guards. |

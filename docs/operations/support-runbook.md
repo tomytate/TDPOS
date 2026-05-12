@@ -150,11 +150,11 @@ Symptoms:
 Steps:
 
 1. Ask the manager to check the device time, timezone, and automatic time setting.
-2. Copy diagnostics and note local wall-clock time.
-3. If the device is far out of sync, stop new sales until time is corrected.
+2. Copy diagnostics and note local wall-clock time plus the `Last server handshake` line.
+3. If checkout shows the set-device-time prompt, stop new receipts on that device until time is corrected and the app reconnects.
 4. Escalate as `SEV-2`; use `SEV-1` if receipts for active customers are affected.
 
-Clock-skew enforcement is tracked in Phase 11.5. Until then, support must document clock issues explicitly.
+The receipt guard blocks brand-new receipts when the device wall clock is more than 24 hours ahead of or behind the cached server handshake. Idempotent replay of an already-written sale remains allowed so recovery does not create a duplicate.
 
 ### 8. Low Disk Or Storage Pressure
 

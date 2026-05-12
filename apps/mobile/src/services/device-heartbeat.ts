@@ -48,12 +48,14 @@ function entitlementSnapshot(params: {
   subscriptionTier: SubscriptionTier
   modules: Record<ModuleName, boolean>
   entitlementsValidUntil: string | null
+  lastServerHandshakeAt: string | null
   cashierCode: string | null
 }) {
   return {
     subscription_tier: params.subscriptionTier,
     module_state: params.modules,
     entitlements_valid_until: params.entitlementsValidUntil,
+    last_server_handshake_at: params.lastServerHandshakeAt,
     cashier_code: params.cashierCode,
   }
 }
@@ -109,6 +111,7 @@ export async function upsertDeviceHeartbeat(params: {
         subscriptionTier: state.subscriptionTier,
         modules: state.modules,
         entitlementsValidUntil: state.entitlementsValidUntil,
+        lastServerHandshakeAt: state.lastServerHandshakeAt,
         cashierCode: state.cashierCode,
       }),
       sync_snapshot: buildSyncSnapshot(health),

@@ -101,6 +101,7 @@ describe('support bundle diagnostics', () => {
         subscriptionTier: 'tier_a_free',
         enabledModuleCount: 0,
         entitlementsValidUntil: null,
+        lastServerHandshakeAt: '2026-05-09T10:00:00.000Z',
         mmkvSizeBytes: 128,
         mmkvKeyCount: 2,
         availableDiskBytes: 2_048,
@@ -134,6 +135,7 @@ describe('support bundle diagnostics', () => {
 
     expect(bundle).toContain('TD POS Support Bundle')
     expect(bundle).toContain('Install ID: install-1')
+    expect(bundle).toContain('Last server handshake: 2026-05-09T10:00:00.000Z')
     expect(bundle).toContain('Disk: 2048 bytes available / 4096 bytes total')
     expect(bundle).toContain('Latest error: [email] failed')
     expect(bundle).toContain('#7 | ...00abc123 | sales | INSERT')

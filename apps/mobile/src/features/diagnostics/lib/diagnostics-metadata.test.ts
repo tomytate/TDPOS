@@ -59,6 +59,7 @@ describe('getDiagnosticsMetadata', () => {
         branchCode: 'QC01',
         branchName: 'Demo branch',
         cashierCode: 'C01',
+        lastServerHandshakeAt: '2026-05-09T10:00:00.000Z',
       },
       storage,
     )
@@ -70,6 +71,7 @@ describe('getDiagnosticsMetadata', () => {
       branchCode: 'QC01',
       branchName: 'Demo branch',
       cashierCode: 'C01',
+      lastServerHandshakeAt: '2026-05-09T10:00:00.000Z',
       mmkvKeyCount: 2,
       availableDiskBytes: null,
       totalDiskBytes: null,
@@ -78,6 +80,7 @@ describe('getDiagnosticsMetadata', () => {
       /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
     )
     expect(metadata.mmkvSizeBytes).toBeGreaterThan(0)
+    expect(metadata.lastServerHandshakeAt).toBe('2026-05-09T10:00:00.000Z')
   })
 
   test('includes optional device storage totals when provided by the native layer', async () => {

@@ -253,6 +253,10 @@ export default function DiagnosticsScreen() {
                   value={metadata.entitlementsValidUntil ?? t('diagnostics.never')}
                 />
                 <InfoRow
+                  label="Server clock"
+                  value={metadata.lastServerHandshakeAt ?? t('diagnostics.never')}
+                />
+                <InfoRow
                   label={t('diagnostics.mmkvSize')}
                   value={formatBytes(metadata.mmkvSizeBytes)}
                 />

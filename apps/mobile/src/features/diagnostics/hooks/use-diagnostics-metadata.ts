@@ -20,6 +20,7 @@ export function useDiagnosticsMetadata(options: UseDiagnosticsMetadataOptions = 
   const subscriptionTier = useAuthStore((state) => state.subscriptionTier)
   const modules = useAuthStore((state) => state.modules)
   const entitlementsValidUntil = useAuthStore((state) => state.entitlementsValidUntil)
+  const lastServerHandshakeAt = useAuthStore((state) => state.lastServerHandshakeAt)
 
   return useQuery({
     queryKey: [
@@ -31,6 +32,7 @@ export function useDiagnosticsMetadata(options: UseDiagnosticsMetadataOptions = 
       subscriptionTier,
       modules,
       entitlementsValidUntil,
+      lastServerHandshakeAt,
     ],
     queryFn: () =>
       getDiagnosticsMetadata(
@@ -43,6 +45,7 @@ export function useDiagnosticsMetadata(options: UseDiagnosticsMetadataOptions = 
           subscriptionTier,
           modules,
           entitlementsValidUntil,
+          lastServerHandshakeAt,
         },
         storage,
         getDeviceStorageSnapshot(),

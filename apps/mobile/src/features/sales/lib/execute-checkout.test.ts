@@ -209,6 +209,66 @@ describe('executeCheckout — required §14 tests (local-only subset)', () => {
     expect(sales).toHaveLength(0)
   })
 
+  test('rejects brand-new receipt when device clock is outside the handshake window', async () => {
+    const sqlite = await freshDb()
+    seedShampoo(sqlite)
+    const db = makeAdapter(sqlite)
+
+    const result = await executeCheckout({
+      db,
+      clientOperationId: '00000000-0000-4000-8000-000000000006',
+      cart: cashCart(1),
+      device,
+      lastServerHandshakeAt: '2026-05-09T10:00:00.000Z',
+      now: () => new Date('2026-05-11T10:01:00.000Z'),
+    })
+
+    expect(result.ok).toBe(false)
+    if (result.ok) return
+    expect(result.reason).toBe('clock_skew_detected')
+
+    const sales = sqlite.prepare(`SELECT id FROM sales`).all()
+    expect(sales).toHaveLength(0)
+  })
+
+  test('stores last server handshake metadata in sale and sync payload', async () => {
+    const sqlite = await freshDb()
+    seedShampoo(sqlite)
+    const db = makeAdapter(sqlite)
+    const lastServerHandshakeAt = '2026-05-09T09:30:00.000Z'
+
+    const result = await executeCheckout({
+      db,
+      clientOperationId: '00000000-0000-4000-8000-000000000007',
+      cart: cashCart(1),
+      device,
+      lastServerHandshakeAt,
+      now: () => new Date('2026-05-09T10:00:00.000Z'),
+    })
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+
+    const sale = sqlite
+      .prepare(
+        `SELECT synced_server_time_at_last_handshake
+         FROM sales
+         WHERE id = ?`,
+      )
+      .get('00000000-0000-4000-8000-000000000007') as {
+      synced_server_time_at_last_handshake: string
+    }
+    expect(sale.synced_server_time_at_last_handshake).toBe(lastServerHandshakeAt)
+
+    const queueRow = sqlite
+      .prepare(`SELECT payload FROM sync_queue WHERE table_name = 'sales'`)
+      .get() as { payload: string }
+    const payload = JSON.parse(queueRow.payload) as {
+      synced_server_time_at_last_handshake: string
+    }
+    expect(payload.synced_server_time_at_last_handshake).toBe(lastServerHandshakeAt)
+  })
+
   test('rejects empty cart and bad cash tender without writing rows', async () => {
     const sqlite = await freshDb()
     seedShampoo(sqlite)

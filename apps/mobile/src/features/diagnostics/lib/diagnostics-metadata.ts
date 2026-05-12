@@ -15,6 +15,7 @@ export interface DiagnosticsIdentitySnapshot {
   subscriptionTier?: SubscriptionTier | null
   modules?: Record<ModuleName, boolean> | null
   entitlementsValidUntil?: string | null
+  lastServerHandshakeAt?: string | null
 }
 
 export interface DiagnosticsStorage extends InstallIdStorage {
@@ -38,6 +39,7 @@ export interface DiagnosticsMetadata {
   subscriptionTier: SubscriptionTier | null
   enabledModuleCount: number
   entitlementsValidUntil: string | null
+  lastServerHandshakeAt: string | null
   mmkvSizeBytes: number
   mmkvKeyCount: number
   availableDiskBytes: number | null
@@ -71,6 +73,7 @@ export async function getDiagnosticsMetadata(
       ? Object.values(identity.modules).filter((enabled) => enabled).length
       : 0,
     entitlementsValidUntil: identity.entitlementsValidUntil ?? null,
+    lastServerHandshakeAt: identity.lastServerHandshakeAt ?? null,
     mmkvSizeBytes: metadataStorage.size,
     mmkvKeyCount: metadataStorage.getAllKeys().length,
     availableDiskBytes: deviceStorage.availableDiskBytes,

@@ -19,12 +19,18 @@ interface MaybeSingleResult {
   maybeSingle(): PromiseLike<{ data: unknown; error: { message: string } | null }>
 }
 
+interface RpcResult {
+  data: unknown
+  error: { message: string } | null
+}
+
 export interface SupabaseEntitlementsClient {
   from(table: string): {
     select(columns: string): {
       eq(column: string, value: string): MaybeSingleResult
     }
   }
+  rpc?(functionName: 'server_clock_handshake'): PromiseLike<RpcResult>
 }
 
 export type EntitlementsRefreshOutcome =
@@ -33,12 +39,29 @@ export type EntitlementsRefreshOutcome =
       subscriptionTier: SubscriptionTier
       modules: Record<ModuleName, boolean>
       entitlementsValidUntil: string | null
+      lastServerHandshakeAt: string | null
     }
   | {
       ok: false
       reason: 'signed_out' | 'query_failed' | 'business_not_found'
       message?: string
     }
+
+async function readServerClockHandshake(
+  supabase: SupabaseEntitlementsClient,
+): Promise<string | null> {
+  if (!supabase.rpc) return null
+
+  try {
+    const { data, error } = await supabase.rpc('server_clock_handshake')
+    if (error || typeof data !== 'string') return null
+
+    const parsed = Date.parse(data)
+    return Number.isFinite(parsed) ? data : null
+  } catch {
+    return null
+  }
+}
 
 export async function refreshEntitlementsFromSupabase(params: {
   supabase: SupabaseEntitlementsClient
@@ -61,6 +84,7 @@ export async function refreshEntitlementsFromSupabase(params: {
   const subscriptionTier = normalizeSubscriptionTier(row.subscription_tier)
   const modules = resolveTierModuleState(subscriptionTier, row.module_state)
   const entitlementsValidUntil = row.entitlements_valid_until ?? null
+  const lastServerHandshakeAt = await readServerClockHandshake(params.supabase)
   const previousModules = useAuthStore.getState().modules
 
   if (params.db) {
@@ -77,6 +101,7 @@ export async function refreshEntitlementsFromSupabase(params: {
     subscriptionTier,
     modules,
     entitlementsValidUntil,
+    lastServerHandshakeAt: lastServerHandshakeAt ?? undefined,
   })
 
   return {
@@ -84,5 +109,6 @@ export async function refreshEntitlementsFromSupabase(params: {
     subscriptionTier,
     modules,
     entitlementsValidUntil,
+    lastServerHandshakeAt,
   }
 }

@@ -25,12 +25,14 @@ interface AuthUserInput {
   subscriptionTier?: SubscriptionTier
   modules?: ModuleState
   entitlementsValidUntil?: string | null
+  lastServerHandshakeAt?: string | null
 }
 
 interface EntitlementsInput {
   subscriptionTier: SubscriptionTier
   modules: ModuleState
   entitlementsValidUntil?: string | null
+  lastServerHandshakeAt?: string | null
 }
 
 interface DeviceInput {
@@ -63,6 +65,7 @@ interface AuthState {
   subscriptionTier: SubscriptionTier
   modules: ModuleState
   entitlementsValidUntil: string | null
+  lastServerHandshakeAt: string | null
   // Ephemeral. Tracks the most recent auth-bootstrap result so (auth) screens
   // can render `account_not_provisioned` / `no_branches_configured` etc.
   // Excluded from MMKV persist via partialize — re-evaluated each session.
@@ -93,6 +96,7 @@ export const useAuthStore = create<AuthState>()(
       subscriptionTier: TIER_A_FREE,
       modules: TIER_A_DEFAULT_MODULES,
       entitlementsValidUntil: null,
+      lastServerHandshakeAt: null,
       bootstrapStatus: null,
       setAuth: ({
         userId,
@@ -102,6 +106,7 @@ export const useAuthStore = create<AuthState>()(
         subscriptionTier = TIER_A_FREE,
         modules = TIER_A_DEFAULT_MODULES,
         entitlementsValidUntil = null,
+        lastServerHandshakeAt = null,
       }) =>
         set({
           userId,
@@ -111,13 +116,23 @@ export const useAuthStore = create<AuthState>()(
           subscriptionTier,
           modules,
           entitlementsValidUntil,
+          lastServerHandshakeAt,
         }),
-      setEntitlements: ({ subscriptionTier, modules, entitlementsValidUntil = null }) =>
-        set({
+      setEntitlements: ({
+        subscriptionTier,
+        modules,
+        entitlementsValidUntil = null,
+        lastServerHandshakeAt,
+      }) =>
+        set((state) => ({
           subscriptionTier,
           modules,
           entitlementsValidUntil,
-        }),
+          lastServerHandshakeAt:
+            lastServerHandshakeAt === undefined
+              ? state.lastServerHandshakeAt
+              : lastServerHandshakeAt,
+        })),
       setDevice: ({
         branchId,
         branchCode,
@@ -153,6 +168,7 @@ export const useAuthStore = create<AuthState>()(
           subscriptionTier: TIER_A_FREE,
           modules: TIER_A_DEFAULT_MODULES,
           entitlementsValidUntil: null,
+          lastServerHandshakeAt: null,
           bootstrapStatus: null,
         }),
     }),
@@ -177,6 +193,7 @@ export const useAuthStore = create<AuthState>()(
         subscriptionTier: state.subscriptionTier,
         modules: state.modules,
         entitlementsValidUntil: state.entitlementsValidUntil,
+        lastServerHandshakeAt: state.lastServerHandshakeAt,
       }),
     },
   ),

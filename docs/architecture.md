@@ -257,3 +257,21 @@
 - New broad tier test suites are intentionally deferred to 0.9; existing tests must keep passing after scaffold commits.
 - v0.1alpha is not a shortcut around 0.9. It is the first real store after 0.9 proves the scaffold is safe enough to pilot.
 - Documentation must distinguish "scaffold exists" from "production/pilot acceptance complete."
+
+---
+
+## ADR-018: Receipt Date Uses Device Clock With Server-Handshake Guard
+
+**Decision:** A receipt date is derived from the device wall clock at local checkout time because cashier sales must work offline. The server stores comparison metadata (`received_at`) and mobile caches the last authenticated `server_clock_handshake()` value. Brand-new receipt creation is blocked when the current device time is more than 24 hours ahead of or behind that cached handshake; replay of an already-written sale remains allowed.
+
+**Why:**
+- Offline-first cashier mode cannot depend on a network call at checkout.
+- Receipt numbers are date-namespaced by branch/cashier/device, so the local date must remain deterministic before sync.
+- A stale or incorrect device clock can create confusing receipt dates and reports; a 24-hour guard catches the highest-risk cases without blocking same-day offline selling.
+- Replays must keep working even after the device clock is fixed, otherwise recovery could tempt a second sale write.
+
+**Consequences:**
+- `supabase/migrations/20260512000002_sale_clock_metadata.sql` stores device timezone, cached handshake time, and server `received_at` on remote sales.
+- `supabase/migrations/20260512000003_server_clock_handshake.sql` exposes a read-only authenticated server-time RPC for mobile cache refresh.
+- `executeCheckout()` rejects only new sale writes when the skew guard fails; an existing `client_operation_id` still returns the previous receipt.
+- Support diagnostics include the cached handshake so the runbook can explain why a device must reconnect after correcting date/time settings.

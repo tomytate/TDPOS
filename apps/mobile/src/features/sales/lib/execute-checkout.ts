@@ -45,6 +45,8 @@ export interface ExecuteCheckoutParams {
   clientOperationId: string
   cart: ExecuteCheckoutCart
   device: ExecuteCheckoutDevice
+  lastServerHandshakeAt?: string | null
+  maxClockSkewMs?: number
   now?: () => Date
 }
 
@@ -68,8 +70,11 @@ export type ExecuteCheckoutResult =
         | 'missing_device_identity'
         | 'insufficient_stock'
         | 'product_not_found'
+        | 'clock_skew_detected'
       details?: Record<string, unknown>
     }
+
+const DEFAULT_MAX_CLOCK_SKEW_MS = 24 * 60 * 60 * 1000
 
 function getDeviceTimezone(): string {
   try {
@@ -79,10 +84,24 @@ function getDeviceTimezone(): string {
   }
 }
 
+function parseHandshakeTime(lastServerHandshakeAt: string | null | undefined): number | null {
+  if (!lastServerHandshakeAt) return null
+  const parsed = Date.parse(lastServerHandshakeAt)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
 export async function executeCheckout(
   params: ExecuteCheckoutParams,
 ): Promise<ExecuteCheckoutResult> {
-  const { db, clientOperationId, cart, device, now = () => new Date() } = params
+  const {
+    db,
+    clientOperationId,
+    cart,
+    device,
+    lastServerHandshakeAt = null,
+    maxClockSkewMs = DEFAULT_MAX_CLOCK_SKEW_MS,
+    now = () => new Date(),
+  } = params
 
   if (cart.items.length === 0) {
     return { ok: false, reason: 'empty_cart' }
@@ -95,6 +114,8 @@ export async function executeCheckout(
   if (!device.branchId || !device.branchCode || !device.cashierCode) {
     return { ok: false, reason: 'missing_device_identity' }
   }
+
+  const saleDate = now()
 
   // Local idempotency: if a sale row already has this id, return it.
   const existing = await db.getFirstAsync<{
@@ -116,6 +137,21 @@ export async function executeCheckout(
       change: Math.max(0, cart.tendered - existing.total_amount),
       replayed: true,
       createdAt: Number(existing.created_at),
+    }
+  }
+
+  const handshakeTime = parseHandshakeTime(lastServerHandshakeAt)
+  const clockDeltaMs = handshakeTime === null ? 0 : saleDate.getTime() - handshakeTime
+  if (handshakeTime !== null && Math.abs(clockDeltaMs) > maxClockSkewMs) {
+    return {
+      ok: false,
+      reason: 'clock_skew_detected',
+      details: {
+        lastServerHandshakeAt,
+        deviceTime: saleDate.toISOString(),
+        skewMs: clockDeltaMs,
+        maxClockSkewMs,
+      },
     }
   }
 
@@ -144,11 +180,10 @@ export async function executeCheckout(
     }
   }
 
-  const saleDate = now()
   const dateLocal = formatReceiptDate(saleDate)
   const createdAtSeconds = Math.floor(saleDate.getTime() / 1000)
   const deviceTimezone = getDeviceTimezone()
-  const syncedServerTimeAtLastHandshake: string | null = null
+  const syncedServerTimeAtLastHandshake = handshakeTime === null ? null : lastServerHandshakeAt
   const total = cart.items.reduce((sum, item) => sum + item.lineTotal, 0)
   const change = cart.isUtang ? 0 : Math.max(0, cart.tendered - total)
   const persistedPaymentMethod: PaymentMethod = cart.isUtang ? 'cash' : cart.paymentMethod

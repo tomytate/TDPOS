@@ -819,7 +819,7 @@ Acceptance:
 - [x] Add Zod validators for Philippine phone numbers. (`phPhoneSchema` using `z.e164`)
 - [x] Use Zod 4 `error:` or shorthand strings.
 - [x] Avoid deprecated `message:` param.
-- [ ] Re-export validators from `@tdpos/db` so server-side code can import the same schemas.
+- [x] Re-export validators from `@tdpos/db` so server-side code can import the same schemas. (`packages/db/src/validators.ts` is exported from the package entry point.)
 
 Acceptance:
 
@@ -1739,11 +1739,11 @@ Purpose: every row in this phase blocks v1.0. Per the Release Pact, "enterprise-
 ### P11.5.2 Clock Skew And Receipt Date Safety
 
 - [x] Decide the canonical sale clock: device wall-clock at the moment of local checkout transaction creation; server `received_at` is comparison metadata, not the receipt clock.
-- [/] Capture `device_local_time` AND `device_timezone` AND `synced_server_time_at_last_handshake` per sale. Mobile checkout now stores local epoch seconds and device timezone in SQLite + sync payloads, and the schema has the last-handshake placeholder; real handshake capture remains pending.
-- [ ] Reject device clocks that are >24h ahead/behind last server handshake from issuing new receipts; show "Set device time" prompt instead.
+- [x] Capture `device_local_time` AND `device_timezone` AND `synced_server_time_at_last_handshake` per sale. Mobile checkout now stores local epoch seconds, device timezone, and cached server-handshake time in SQLite + sync payloads.
+- [x] Reject device clocks that are >24h ahead/behind last server handshake from issuing new receipts; show "Set device time" prompt instead. Idempotent sale replay remains allowed.
 - [x] Server stores both `device_local_time` and server-side `received_at` so reports can detect skew. `create_sale_atomic(jsonb)` writes `created_at` from `device_local_time` and `received_at = now()`.
 - [x] Receipt `DATE` segment uses local sale date — not server date — to keep receipts unambiguous offline.
-- [ ] Document the skew tolerance in the ops runbook so support can explain "why my receipt date is yesterday."
+- [x] Document the skew tolerance in the ops runbook so support can explain receipt-date surprises.
 
 ### P11.5.3 Cycle Count And Stock Adjustment
 
@@ -2135,9 +2135,10 @@ Use this section as releases progress.
 - [x] Production log gate update 2026-05-12: the forbidden-pattern scanner now fails app/package/Supabase source if `console.log(...)` is introduced, keeping CLI checker output separate from production bundles.
 - [x] Receipt recovery update 2026-05-12: mobile Sale now shows a last-receipt action in the app bar when `lastSaleResult` exists, and the cart store persists that last receipt summary in MMKV while keeping payment/tender state ephemeral.
 - [x] Sale clock metadata update 2026-05-12: local SQLite sales, sync sale payloads, Supabase sales, and `create_sale_atomic(jsonb)` now carry device timezone / last-server-handshake scaffolding and server `received_at` for future skew detection while preserving the local receipt date namespace. Migration `20260512000002_sale_clock_metadata.sql` was applied to local Supabase and column/RPC presence was smoke-checked.
+- [x] Clock skew guard update 2026-05-12: `server_clock_handshake()` caches authenticated server time during entitlement refresh, checkout blocks brand-new receipts more than 24h away from that handshake, diagnostics/support bundles show the cached handshake, and the support runbook documents the recovery path.
 - [x] Verification: `source scripts/use-toolchain.sh && bun run check:toolchain` passes with Node 24.15.0, Bun 1.3.13, Supabase CLI 2.98.2, and EAS CLI runner available.
 - [x] Verification: `source scripts/use-toolchain.sh && bun run check:foundation` passes end-to-end.
-- [x] Current code-testable count after the first 0.9 tier suite: 103 passing tests total — 32 shared + 71 mobile.
+- [x] Current code-testable count after the first 0.9 tier suite: 105 passing tests total — 32 shared + 73 mobile.
 - [x] Mobile scaffold evidence: every registered `mobile.*` TierSurface now renders a native preview panel under `apps/mobile/src/features/tier-surfaces/surface-preview.tsx`; this keeps B-E routes visible without starting 0.9 polish.
 - [x] Backend scaffold evidence: `20260511000000_tier_surface_scaffold.sql` adds tenant-scoped RLS tables for devices, shifts, manager approvals, PLUs, kiosks, and returns; `/sync` reads device status from the new scaffold.
 - [x] Device heartbeat evidence: mobile foreground sync calls `upsertDeviceHeartbeat()` after entitlement refresh; the database trigger allows same-install refreshes while blocking a second active install over `max_devices`; heartbeat includes sanitized local sync-count snapshots only.
