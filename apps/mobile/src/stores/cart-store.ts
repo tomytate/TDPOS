@@ -1,6 +1,7 @@
-// Cart store — Zustand 5 (ephemeral, no persistence).
-// Manages current transaction items, totals, tender, and change.
-// Cleared on checkout completion or explicit discard.
+// Cart store — Zustand 5 + MMKV persistence.
+// Current cart items survive accidental navigation; the last sale result is
+// also retained so cashiers can re-open the latest receipt after leaving the
+// receipt screen or restarting the app. Payment/tender state stays ephemeral.
 
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
@@ -146,7 +147,10 @@ export const useCartStore = create<CartState>()(
     {
       name: 'cart-storage',
       storage: createJSONStorage(() => mmkvStorage),
-      partialize: (state) => ({ items: state.items }),
+      partialize: (state) => ({
+        items: state.items,
+        lastSaleResult: state.lastSaleResult,
+      }),
     },
   ),
 )

@@ -122,6 +122,7 @@ export default function SaleScreen() {
   const insets = useSafeAreaInsets()
   const branchName = useAuthStore((state) => state.branchName) ?? 'Demo branch'
   const items = useCartStore((state) => state.items)
+  const lastSaleResult = useCartStore((state) => state.lastSaleResult)
   const addItem = useCartStore((state) => state.addItem)
 
   const [activeCategory, setActiveCategory] = useState<string>(ALL_CATEGORY)
@@ -187,6 +188,14 @@ export default function SaleScreen() {
           accessibilityLabel="Open subscription"
           onPress={() => router.push('/(app)/subscription')}
         />
+        {lastSaleResult ? (
+          <Appbar.Action
+            icon="receipt-text-outline"
+            color={theme.colors.onPrimary}
+            accessibilityLabel={`Open last receipt ${lastSaleResult.receiptNumber}`}
+            onPress={() => router.push('/(app)/receipt')}
+          />
+        ) : null}
         <Appbar.Action
           icon="barcode-scan"
           color={theme.colors.onPrimary}

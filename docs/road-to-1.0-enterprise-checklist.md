@@ -1809,7 +1809,7 @@ Purpose: every row in this phase blocks v1.0. Per the Release Pact, "enterprise-
 
 ### P11.5.11 Receipt Hardening
 
-- [ ] Re-print last receipt: cashier can re-show the latest sale's receipt screen even after navigating away.
+- [x] Re-print last receipt: cashier can re-show the latest sale's receipt screen even after navigating away. The cart store now persists `lastSaleResult`, and the Sale app bar exposes a receipt action when a last sale exists.
 - [ ] Print receipt for any past sale within the void window from the EOD screen.
 - [ ] BIR-ready footer copy is centralized in one constant so accreditation language can flip in one place.
 - [ ] Receipt PDF generator (uses store name/address/TIN and the stored receipt rows) — used by exports and by the web dashboard later.
@@ -2133,6 +2133,7 @@ Use this section as releases progress.
 - [x] Tenant export scaffold update 2026-05-12: Edge Function `tenant-data-export` validates `client_operation_id`, calls `record_tenant_export(uuid)` for owner-only idempotent audit logging, and returns a single JSON document containing tenant-scoped business, user, product, customer, sale, payment, audit, invite, device, shift, approval, PLU, kiosk, and return tables. The web dashboard now has a browser-side export button that packages that response as a local JSON download without adding service-role secrets to Next.js.
 - [x] Safe logging scaffold update 2026-05-12: mobile service catch paths and web management audit-log warning paths now route through `warnSafe()`, logging only a sanitized error kind/class instead of raw Error objects or messages that could contain customer/store data.
 - [x] Production log gate update 2026-05-12: the forbidden-pattern scanner now fails app/package/Supabase source if `console.log(...)` is introduced, keeping CLI checker output separate from production bundles.
+- [x] Receipt recovery update 2026-05-12: mobile Sale now shows a last-receipt action in the app bar when `lastSaleResult` exists, and the cart store persists that last receipt summary in MMKV while keeping payment/tender state ephemeral.
 - [x] Verification: `source scripts/use-toolchain.sh && bun run check:toolchain` passes with Node 24.15.0, Bun 1.3.13, Supabase CLI 2.98.2, and EAS CLI runner available.
 - [x] Verification: `source scripts/use-toolchain.sh && bun run check:foundation` passes end-to-end.
 - [x] Current code-testable count after the first 0.9 tier suite: 103 passing tests total — 32 shared + 71 mobile.
