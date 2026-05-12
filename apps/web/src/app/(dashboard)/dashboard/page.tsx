@@ -3,6 +3,9 @@
 // Server Component that runs RLS-protected queries against the same Supabase
 // schema mobile writes to. Accepts ?date=YYYY-MM-DD and ?range=today|week|month.
 // Renders an inline SVG hourly-gross histogram alongside the KPI tiles.
+// Sections grouped under labelled headers for visual organisation.
+
+import Link from 'next/link'
 
 import {
   getLowStockProducts,
@@ -14,6 +17,24 @@ import {
 } from '@/lib/queries/dashboard'
 import { getBusinessEntitlements } from '@/lib/queries/management'
 import { formatMoney } from '@tdpos/shared'
+
+// Small uppercase eyebrow used to group sibling cards under a labelled
+// section. Pulls visual hierarchy through the dense dashboard without
+// adding row breaks or full chrome between groups.
+function SectionGroupHeader({ title, eyebrow }: { title: string; eyebrow?: string }) {
+  return (
+    <header className="flex items-baseline justify-between gap-3">
+      <div className="flex flex-col">
+        {eyebrow ? (
+          <p className="m-0 text-[11px] font-semibold uppercase tracking-[1.5px] text-ink-400">
+            {eyebrow}
+          </p>
+        ) : null}
+        <h2 className="m-0 text-base font-semibold text-ink-900">{title}</h2>
+      </div>
+    </header>
+  )
+}
 
 type DashboardRange = 'today' | 'week' | 'month'
 
@@ -280,9 +301,14 @@ export default async function DashboardHome({
               </a>
             </>
           ) : (
-            <span className="rounded-lg border border-ink-200 bg-ink-50 px-3 py-1.5 text-[13px] font-semibold text-ink-500">
+            <Link
+              href="/pricing"
+              className="inline-flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-[13px] font-semibold text-amber-700 no-underline transition-colors hover:bg-amber-100"
+              title="Compare tiers to unlock CSV + PDF exports"
+            >
+              <span aria-hidden>🔒</span>
               Exports unlock at Plus
-            </span>
+            </Link>
           )}
         </form>
       </header>
@@ -303,6 +329,8 @@ export default async function DashboardHome({
           to load real data.
         </div>
       ) : null}
+
+      <SectionGroupHeader eyebrow="Today's snapshot" title="Headline numbers" />
 
       {/* KPI tiles */}
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -399,6 +427,8 @@ export default async function DashboardHome({
           )}
         </article>
       </section>
+
+      <SectionGroupHeader eyebrow="Breakdowns" title="Where the sales came from" />
 
       {/* Per-branch + per-cashier breakdown */}
       <section className="grid grid-cols-1 gap-3 lg:grid-cols-2">
@@ -554,6 +584,8 @@ export default async function DashboardHome({
           )}
         </article>
       </section>
+
+      <SectionGroupHeader eyebrow="Watch list" title="What needs attention" />
 
       {/* Low stock + recent sales */}
       <section className="grid grid-cols-1 gap-3 lg:grid-cols-2">
