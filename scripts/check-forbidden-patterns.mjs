@@ -45,6 +45,7 @@ const checks = [
   ['legacy Supabase anon env key', /\b(?:EXPO_PUBLIC_|NEXT_PUBLIC_)?SUPABASE_ANON_KEY\b/],
   ['classic Expo build command', /\bexpo build(?::(?:ios|android))?\b/],
   ['unneeded uuid extension', /uuid-ossp/],
+  ['production console.log', /console\.log\s*\(/],
   ['BIR compliance claim before accreditation', /BIR-(?:compliant|certified|approved)/i],
   ['Official Receipt wording before accreditation', /Official Receipts?/],
   ['Sales Invoice wording without qualifier', /\bSales Invoice\b/],

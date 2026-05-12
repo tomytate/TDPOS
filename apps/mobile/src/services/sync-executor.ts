@@ -4,6 +4,7 @@ import {
   refreshEntitlementsFromSupabase,
   type SupabaseEntitlementsClient,
 } from './entitlements-refresh'
+import { warnSafe } from './safe-logger'
 import { upsertDeviceHeartbeat, type SupabaseDeviceHeartbeatClient } from './device-heartbeat'
 import { createSyncCallables, type SupabaseRpcLike } from './sync-callables'
 import { createSyncRunner, type SyncRunnerOutcome } from './sync-runner'
@@ -25,18 +26,14 @@ export async function runSyncQueueOnce(db: AsyncSqliteLike): Promise<SyncExecuto
     supabase: supabase as unknown as SupabaseEntitlementsClient,
     db,
   }).catch((err) => {
-    if (typeof console !== 'undefined') {
-      console.warn('[SyncExecutor] entitlement refresh failed', err)
-    }
+    warnSafe('[SyncExecutor] entitlement refresh failed', err)
   })
 
   await upsertDeviceHeartbeat({
     supabase: supabase as unknown as SupabaseDeviceHeartbeatClient,
     db,
   }).catch((err) => {
-    if (typeof console !== 'undefined') {
-      console.warn('[SyncExecutor] device heartbeat failed', err)
-    }
+    warnSafe('[SyncExecutor] device heartbeat failed', err)
   })
 
   return outcome

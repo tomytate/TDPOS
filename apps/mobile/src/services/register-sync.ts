@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 
 import { useAuthStore } from '@/stores/auth-store'
 
+import { warnSafe } from './safe-logger'
 import { supabase } from './supabase'
 import { SYNC_TASK_NAME } from './sync-task'
 
@@ -52,9 +53,7 @@ export function useBackgroundSyncRegistration() {
       isSignedIn && supabase ? registerBackgroundSync : unregisterBackgroundSync
 
     void syncRegistration().catch((err) => {
-      if (typeof console !== 'undefined') {
-        console.warn('[BackgroundSync] registration failed', err)
-      }
+      warnSafe('[BackgroundSync] registration failed', err)
     })
   }, [isSignedIn])
 }

@@ -22,6 +22,7 @@ import {
   refreshEntitlementsFromSupabase,
   type SupabaseEntitlementsClient,
 } from './entitlements-refresh'
+import { warnSafe } from './safe-logger'
 import { useAuthStore } from '@/stores/auth-store'
 
 export function useAuthStateListener() {
@@ -67,17 +68,17 @@ export function useAuthStateListener() {
               supabase: supabase as unknown as SupabaseEntitlementsClient,
               businessId: outcome.auth.businessId,
             }).catch((err) => {
-              console.warn('[AuthListener] entitlements refresh failed', err)
+              warnSafe('[AuthListener] entitlements refresh failed', err)
             }),
             upsertDeviceHeartbeat({
               supabase: supabase as unknown as SupabaseDeviceHeartbeatClient,
             }).catch((err) => {
-              console.warn('[AuthListener] device heartbeat failed', err)
+              warnSafe('[AuthListener] device heartbeat failed', err)
             }),
           ])
         }
       } catch (err) {
-        console.warn('[AuthListener] bootstrap failed', err)
+        warnSafe('[AuthListener] bootstrap failed', err)
         setBootstrapStatus({
           ok: false,
           reason: 'query_failed',

@@ -6,6 +6,7 @@ import { useEffect, useRef } from 'react'
 import { useSQLiteContext } from 'expo-sqlite'
 
 import { clearLocalCachesForDisabledModules } from '@/services/module-privacy'
+import { warnSafe } from '@/services/safe-logger'
 import { useAuthStore } from '@/stores/auth-store'
 
 export function ModulePrivacyCleanupEffect() {
@@ -22,9 +23,7 @@ export function ModulePrivacyCleanupEffect() {
       previousModules,
       nextModules: modules,
     }).catch((err) => {
-      if (typeof console !== 'undefined') {
-        console.warn('[ModulePrivacy] local cleanup failed', err)
-      }
+      warnSafe('[ModulePrivacy] local cleanup failed', err)
     })
   }, [db, modules])
 

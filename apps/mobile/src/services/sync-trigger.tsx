@@ -17,6 +17,7 @@ import { useSQLiteContext } from 'expo-sqlite'
 
 import { useAuthStore } from '@/stores/auth-store'
 
+import { warnSafe } from './safe-logger'
 import { runSyncQueueOnce } from './sync-executor'
 import { supabase } from './supabase'
 
@@ -31,9 +32,7 @@ export function useForegroundSyncTrigger() {
       void runSyncQueueOnce(db).catch((err) => {
         // Swallow — sync_queue retains failed rows; the next trigger retries.
         // Real diagnostics will surface this on the P10.3 screen.
-        if (typeof console !== 'undefined') {
-          console.warn('[SyncTrigger] runner failed', err)
-        }
+        warnSafe('[SyncTrigger] runner failed', err)
       })
     }
 

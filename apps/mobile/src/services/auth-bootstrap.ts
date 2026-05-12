@@ -16,6 +16,8 @@ import {
   type UserRole,
 } from '@tdpos/shared'
 
+import { warnSafe } from './safe-logger'
+
 export interface BootstrapAuthInput {
   userId: string
   businessId: string
@@ -209,7 +211,7 @@ export async function bootstrapAuthFromSession(params: {
         userRow = userRes.data as SupabaseUserRow | null
       }
     } catch (err) {
-      console.warn('[Bootstrap] consume_pending_invite failed', err)
+      warnSafe('[Bootstrap] consume_pending_invite failed', err)
     }
   }
 

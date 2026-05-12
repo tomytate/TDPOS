@@ -5,6 +5,7 @@ import * as TaskManager from 'expo-task-manager'
 import { initializeDatabase } from '@/db/init'
 import { useAuthStore } from '@/stores/auth-store'
 
+import { warnSafe } from './safe-logger'
 import { runSyncQueueOnce } from './sync-executor'
 import { supabase } from './supabase'
 
@@ -22,9 +23,7 @@ TaskManager.defineTask(SYNC_TASK_NAME, async () => {
     await runSyncQueueOnce(db)
     return BackgroundTask.BackgroundTaskResult.Success
   } catch (err) {
-    if (typeof console !== 'undefined') {
-      console.warn('[BackgroundSync] task failed', err)
-    }
+    warnSafe('[BackgroundSync] task failed', err)
     return BackgroundTask.BackgroundTaskResult.Failed
   }
 })

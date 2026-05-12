@@ -1,6 +1,7 @@
 import type { AsyncSqliteLike } from '@/db/async-sqlite'
 import { clearLocalCachesForDisabledModules } from '@/services/module-privacy'
 import { useAuthStore } from '@/stores/auth-store'
+import { warnSafe } from './safe-logger'
 import {
   normalizeSubscriptionTier,
   resolveTierModuleState,
@@ -68,9 +69,7 @@ export async function refreshEntitlementsFromSupabase(params: {
       previousModules,
       nextModules: modules,
     }).catch((err) => {
-      if (typeof console !== 'undefined') {
-        console.warn('[Entitlements] module privacy cleanup failed', err)
-      }
+      warnSafe('[Entitlements] module privacy cleanup failed', err)
     })
   }
 
