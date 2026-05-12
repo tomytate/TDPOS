@@ -1747,10 +1747,10 @@ Purpose: every row in this phase blocks v1.0. Per the Release Pact, "enterprise-
 
 ### P11.5.3 Cycle Count And Stock Adjustment
 
-- [ ] Inventory screen exposes a "Stock take" entry (manager+ only).
-- [ ] Stock take produces an `inventory_logs` row with `type = 'adjustment'` and a positive or negative `pieces_delta`.
-- [ ] Adjustment requires a `reason` enum: `count_correction`, `damage`, `theft`, `expiry`, `other` (free text).
-- [ ] Stock take goes through `apply_inventory_delta` so the same idempotent path covers physical counts.
+- [x] Inventory screen exposes a "Stock take" entry (manager+ only).
+- [x] Stock take produces an `inventory_logs` row with `type = 'adjustment'` and a positive or negative `pieces_delta`.
+- [x] Adjustment requires a `reason` enum: `count_correction`, `damage`, `theft`, `expiry`, `other` (free text).
+- [x] Stock take goes through `apply_inventory_delta` so the same idempotent path covers physical counts. Mobile queues a `DELTA` with `log_type='adjustment'`; the refreshed RPC preserves the audit log type while storing the manager-entered reason.
 - [ ] Stock Accuracy Score (SAS) compares last stock take vs current `stock_pieces`. Used as the marketing metric in CLAUDE.md.
 
 ### P11.5.4 Refund / Void Workflow
@@ -2136,9 +2136,10 @@ Use this section as releases progress.
 - [x] Receipt recovery update 2026-05-12: mobile Sale now shows a last-receipt action in the app bar when `lastSaleResult` exists, and the cart store persists that last receipt summary in MMKV while keeping payment/tender state ephemeral.
 - [x] Sale clock metadata update 2026-05-12: local SQLite sales, sync sale payloads, Supabase sales, and `create_sale_atomic(jsonb)` now carry device timezone / last-server-handshake scaffolding and server `received_at` for future skew detection while preserving the local receipt date namespace. Migration `20260512000002_sale_clock_metadata.sql` was applied to local Supabase and column/RPC presence was smoke-checked.
 - [x] Clock skew guard update 2026-05-12: `server_clock_handshake()` caches authenticated server time during entitlement refresh, checkout blocks brand-new receipts more than 24h away from that handshake, diagnostics/support bundles show the cached handshake, and the support runbook documents the recovery path.
+- [x] Stock take scaffold update 2026-05-12: manager/owner inventory rows expose a stock-take dialog, `executeStockTake()` writes local product stock + append-only adjustment log + sync `DELTA`, and `20260512000004_inventory_adjustment_reason.sql` refreshes the remote delta RPC to carry adjustment reasons without breaking `inventory_logs.type`.
 - [x] Verification: `source scripts/use-toolchain.sh && bun run check:toolchain` passes with Node 24.15.0, Bun 1.3.13, Supabase CLI 2.98.2, and EAS CLI runner available.
 - [x] Verification: `source scripts/use-toolchain.sh && bun run check:foundation` passes end-to-end.
-- [x] Current code-testable count after the first 0.9 tier suite: 105 passing tests total — 32 shared + 73 mobile.
+- [x] Current code-testable count after the first 0.9 tier suite: 110 passing tests total — 32 shared + 78 mobile.
 - [x] Mobile scaffold evidence: every registered `mobile.*` TierSurface now renders a native preview panel under `apps/mobile/src/features/tier-surfaces/surface-preview.tsx`; this keeps B-E routes visible without starting 0.9 polish.
 - [x] Backend scaffold evidence: `20260511000000_tier_surface_scaffold.sql` adds tenant-scoped RLS tables for devices, shifts, manager approvals, PLUs, kiosks, and returns; `/sync` reads device status from the new scaffold.
 - [x] Device heartbeat evidence: mobile foreground sync calls `upsertDeviceHeartbeat()` after entitlement refresh; the database trigger allows same-install refreshes while blocking a second active install over `max_devices`; heartbeat includes sanitized local sync-count snapshots only.

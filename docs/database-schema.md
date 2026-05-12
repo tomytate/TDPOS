@@ -172,3 +172,4 @@ The Supabase entitlement scaffold lives in `20260510000001_entitlement_guards.sq
 | `20260512000001_tenant_export_audit.sql` | Owner-only tenant export audit marker with `client_operation_id` dedupe. |
 | `20260512000002_sale_clock_metadata.sql` | Device timezone, last-handshake placeholder, server `received_at`, and refreshed atomic sale RPC for skew detection. |
 | `20260512000003_server_clock_handshake.sql` | Read-only authenticated RPC returning server time for mobile receipt-date skew guards. |
+| `20260512000004_inventory_adjustment_reason.sql` | Refreshes `apply_inventory_delta` so stock takes log type `adjustment` while preserving manager-entered reason codes. |

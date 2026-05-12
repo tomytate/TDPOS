@@ -56,6 +56,8 @@ export interface SyncCallables {
     p_branch_id: string
     p_delta: number
     p_reason: string
+    p_log_type?: string
+    p_reason_note?: string
     p_sale_id?: string
   }): Promise<{ data: SyncRpcResponse | null; error: { message: string } | null }>
   createSale(
@@ -141,6 +143,8 @@ export async function processSyncQueue(params: SyncProcessorParams): Promise<Syn
           p_branch_id: payload.branch_id,
           p_delta: payload.delta,
           p_reason: payload.reason,
+          p_log_type: payload.log_type,
+          p_reason_note: payload.reason_note,
           p_sale_id: payload.sale_id,
         })
       } else {

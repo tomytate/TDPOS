@@ -5,7 +5,7 @@
 import { z } from 'zod'
 
 import { DEFAULT_MODULE_STATE, LEGACY_TIER_MAP, SUBSCRIPTION_TIERS } from '../constants/index'
-import type { LegacySubscriptionTier, ModuleName } from '../types/index'
+import type { LegacySubscriptionTier, ModuleName, StockAdjustmentReason } from '../types/index'
 
 const LEGACY_SUBSCRIPTION_TIERS = Object.keys(LEGACY_TIER_MAP) as [
   LegacySubscriptionTier,
@@ -119,8 +119,30 @@ export const inventoryDeltaSchema = z.object({
   product_id: z.uuid(),
   branch_id: z.uuid(),
   delta: z.int({ error: 'Delta must be an integer' }),
-  reason: z.string().default('sale'),
+  reason: z
+    .enum([
+      'sale',
+      'stock_in',
+      'transfer',
+      'adjustment',
+      'count_correction',
+      'damage',
+      'theft',
+      'expiry',
+      'other',
+    ])
+    .default('sale'),
+  log_type: z.enum(['stock_in', 'sale', 'adjustment', 'transfer']).optional(),
+  reason_note: optionalTextSchema,
 })
+
+export const stockAdjustmentReasonSchema = z.enum([
+  'count_correction',
+  'damage',
+  'theft',
+  'expiry',
+  'other',
+] satisfies [StockAdjustmentReason, ...StockAdjustmentReason[]])
 
 // Receipt number format BRANCH-CASHIER-DATE-SEQUENCE
 const RECEIPT_NUMBER_PATTERN = /^[A-Z0-9]{3,5}-[A-Z0-9]{2,5}-\d{8}-\d{6}$/
@@ -206,6 +228,7 @@ export type CustomerErasureDraft = z.infer<typeof customerErasureDraftSchema>
 export type TenantDataExportRequest = z.infer<typeof tenantDataExportRequestSchema>
 export type SaleItem = z.infer<typeof saleItemSchema>
 export type InventoryDelta = z.infer<typeof inventoryDeltaSchema>
+export type StockAdjustmentReasonInput = z.infer<typeof stockAdjustmentReasonSchema>
 export type Sale = z.infer<typeof saleSchema>
 export type BusinessEntitlements = z.infer<typeof businessEntitlementsSchema>
 export type SyncSalePayload = z.infer<typeof syncSalePayloadSchema>

@@ -3,18 +3,48 @@
 // empty states, KPI tiles with tone-coded values, haptic chip selection,
 // and a refresh affordance baked into both empty and populated states.
 
+import { useQueryClient } from '@tanstack/react-query'
+import { useSQLiteContext } from 'expo-sqlite'
 import { useState } from 'react'
 import { ScrollView, View } from 'react-native'
-import { Appbar, Button, Card, Chip, Divider, Text } from 'react-native-paper'
+import {
+  Appbar,
+  Button,
+  Card,
+  Chip,
+  Dialog,
+  Divider,
+  HelperText,
+  Portal,
+  Snackbar,
+  Text,
+  TextInput,
+} from 'react-native-paper'
 
 import { useAppTheme } from '@/constants/theme'
+import { executeStockTake } from '@/features/inventory/lib/execute-stock-take'
 import { useCategories } from '@/features/products/hooks/use-categories'
 import { useProducts } from '@/features/products/hooks/use-products'
 import { useHaptics } from '@/hooks/use-haptics'
 import { useT } from '@/i18n/translations'
-import { displayStock, formatMoney } from '@tdpos/shared'
+import { useAuthStore } from '@/stores/auth-store'
+import {
+  createClientOperationId,
+  displayStock,
+  formatMoney,
+  type StockAdjustmentReason,
+} from '@tdpos/shared'
+import type { DbProduct } from '@tdpos/db'
 
 const ALL_CATEGORY = 'all'
+
+const STOCK_TAKE_REASONS: Array<{ value: StockAdjustmentReason; label: string }> = [
+  { value: 'count_correction', label: 'Count' },
+  { value: 'damage', label: 'Damage' },
+  { value: 'theft', label: 'Theft' },
+  { value: 'expiry', label: 'Expiry' },
+  { value: 'other', label: 'Other' },
+]
 
 type MetricTone = 'neutral' | 'good' | 'warn' | 'danger'
 
@@ -123,7 +153,19 @@ export default function InventoryScreen() {
   const theme = useAppTheme()
   const t = useT()
   const haptics = useHaptics()
+  const db = useSQLiteContext()
+  const queryClient = useQueryClient()
+  const role = useAuthStore((state) => state.role)
+  const branchId = useAuthStore((state) => state.branchId)
+  const userId = useAuthStore((state) => state.userId)
   const [activeCategory, setActiveCategory] = useState<string>(ALL_CATEGORY)
+  const [stockTakeProduct, setStockTakeProduct] = useState<DbProduct | null>(null)
+  const [countedPieces, setCountedPieces] = useState('')
+  const [stockTakeReason, setStockTakeReason] = useState<StockAdjustmentReason>('count_correction')
+  const [stockTakeNote, setStockTakeNote] = useState('')
+  const [stockTakeSubmitting, setStockTakeSubmitting] = useState(false)
+  const [stockTakeError, setStockTakeError] = useState<string | null>(null)
+  const [snackbar, setSnackbar] = useState<string | null>(null)
   const { data: categories = [] } = useCategories()
   const {
     data: products = [],
@@ -143,10 +185,84 @@ export default function InventoryScreen() {
       product.stock_pieces <= product.reorder_point_pieces,
   ).length
   const outCount = products.filter((product) => product.stock_pieces <= 0).length
+  const canStockTake = role === 'owner' || role === 'manager'
+  const countedPiecesNumber = Number.parseInt(countedPieces, 10)
+  const countedPiecesInvalid =
+    countedPieces.trim().length > 0 &&
+    (!Number.isInteger(countedPiecesNumber) || countedPiecesNumber < 0)
 
   const handleCategorySelect = (id: string) => {
     if (id !== activeCategory) void haptics.tapLight()
     setActiveCategory(id)
+  }
+
+  const openStockTake = (product: DbProduct) => {
+    void haptics.tapLight()
+    setStockTakeProduct(product)
+    setCountedPieces(String(product.stock_pieces))
+    setStockTakeReason('count_correction')
+    setStockTakeNote('')
+    setStockTakeError(null)
+  }
+
+  const closeStockTake = () => {
+    if (stockTakeSubmitting) return
+    setStockTakeProduct(null)
+    setStockTakeError(null)
+  }
+
+  const submitStockTake = async () => {
+    if (!stockTakeProduct || stockTakeSubmitting) return
+    if (!branchId) {
+      setStockTakeError('Device not paired. Ask a manager to re-pair this register.')
+      void haptics.error()
+      return
+    }
+    if (!Number.isInteger(countedPiecesNumber) || countedPiecesNumber < 0) {
+      setStockTakeError('Enter a whole-piece count.')
+      void haptics.error()
+      return
+    }
+
+    setStockTakeSubmitting(true)
+    setStockTakeError(null)
+
+    const result = await executeStockTake({
+      db,
+      clientOperationId: createClientOperationId(),
+      productId: stockTakeProduct.id,
+      branchId,
+      countedStockPieces: countedPiecesNumber,
+      reason: stockTakeReason,
+      reasonNote: stockTakeNote,
+      userId,
+    })
+
+    setStockTakeSubmitting(false)
+
+    if (!result.ok) {
+      const message =
+        result.reason === 'no_adjustment_needed'
+          ? 'Stock already matches the counted pieces.'
+          : result.reason === 'invalid_count'
+            ? 'Enter a whole-piece count.'
+            : result.reason === 'product_not_found'
+              ? 'Product is no longer active. Refresh inventory.'
+              : 'Stock take could not be recorded.'
+      setStockTakeError(message)
+      void haptics.error()
+      return
+    }
+
+    await queryClient.invalidateQueries({ queryKey: ['products'] })
+    await refetch()
+    setStockTakeProduct(null)
+    setSnackbar(
+      `Stock adjusted by ${result.delta > 0 ? '+' : ''}${result.delta} piece${
+        Math.abs(result.delta) === 1 ? '' : 's'
+      }.`,
+    )
+    void haptics.success()
   }
 
   return (
@@ -347,6 +463,17 @@ export default function InventoryScreen() {
                             {isOut ? t('inventory.out') : t('inventory.low')}
                           </Chip>
                         ) : null}
+                        {canStockTake ? (
+                          <Button
+                            compact
+                            mode="text"
+                            icon="clipboard-edit-outline"
+                            onPress={() => openStockTake(product)}
+                            accessibilityLabel={`Stock take for ${product.name}`}
+                          >
+                            {t('inventory.stockTake')}
+                          </Button>
+                        ) : null}
                       </View>
                     </View>
                   </View>
@@ -356,6 +483,89 @@ export default function InventoryScreen() {
           </Card>
         </ScrollView>
       )}
+
+      <Portal>
+        <Dialog visible={stockTakeProduct !== null} onDismiss={closeStockTake}>
+          <Dialog.Title>{t('inventory.stockTake')}</Dialog.Title>
+          <Dialog.Content style={{ gap: 12 }}>
+            <Text variant="bodyMedium">
+              {stockTakeProduct?.name ?? 'Product'} · current{' '}
+              {stockTakeProduct
+                ? displayStock(
+                    stockTakeProduct.stock_pieces,
+                    stockTakeProduct.pieces_per_pack,
+                    stockTakeProduct.unit_label ?? 'pc',
+                  )
+                : ''}
+            </Text>
+            <TextInput
+              mode="outlined"
+              label={t('inventory.countedPieces')}
+              value={countedPieces}
+              keyboardType="number-pad"
+              onChangeText={(value) => {
+                setCountedPieces(value.replace(/[^\d]/g, ''))
+                setStockTakeError(null)
+              }}
+              error={countedPiecesInvalid}
+              accessibilityLabel="Counted stock pieces"
+            />
+            <HelperText type={countedPiecesInvalid ? 'error' : 'info'} visible>
+              {countedPiecesInvalid
+                ? t('inventory.wholePieceCount')
+                : t('inventory.countCanonical')}
+            </HelperText>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+              {STOCK_TAKE_REASONS.map((reason) => (
+                <Chip
+                  key={reason.value}
+                  selected={stockTakeReason === reason.value}
+                  onPress={() => {
+                    setStockTakeReason(reason.value)
+                    setStockTakeError(null)
+                  }}
+                >
+                  {reason.label}
+                </Chip>
+              ))}
+            </View>
+            <TextInput
+              mode="outlined"
+              label={
+                stockTakeReason === 'other'
+                  ? t('inventory.reasonNote')
+                  : t('inventory.optionalNote')
+              }
+              value={stockTakeNote}
+              onChangeText={setStockTakeNote}
+              multiline
+              accessibilityLabel="Stock take reason note"
+            />
+            {stockTakeError ? (
+              <HelperText type="error" visible>
+                {stockTakeError}
+              </HelperText>
+            ) : null}
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={closeStockTake} disabled={stockTakeSubmitting}>
+              {t('inventory.cancel')}
+            </Button>
+            <Button
+              mode="contained"
+              loading={stockTakeSubmitting}
+              disabled={stockTakeSubmitting || countedPieces.trim().length === 0}
+              onPress={() => void submitStockTake()}
+            >
+              {t('inventory.record')}
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
+
+      <Snackbar visible={snackbar !== null} onDismiss={() => setSnackbar(null)} duration={3000}>
+        {snackbar}
+      </Snackbar>
     </View>
   )
 }

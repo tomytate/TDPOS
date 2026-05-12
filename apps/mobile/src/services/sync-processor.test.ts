@@ -208,6 +208,46 @@ describe('processSyncQueue', () => {
     expect(deltaRow.last_error).toBeNull()
   })
 
+  test('forwards stock-take adjustment metadata to the inventory delta callable', async () => {
+    const sqlite = await freshDb()
+    const db = makeAdapter(sqlite)
+    const payload = {
+      client_operation_id: testUuid(61_001),
+      product_id: PRODUCT_ID,
+      branch_id: BRANCH_ID,
+      delta: -2,
+      reason: 'damage',
+      reason_note: 'broken display pack',
+      log_type: 'adjustment',
+    }
+    sqlite
+      .prepare(
+        `INSERT INTO sync_queue (client_operation_id, table_name, record_id, operation, payload, created_at)
+         VALUES (?, 'products', ?, 'DELTA', ?, ?)`,
+      )
+      .run(payload.client_operation_id, PRODUCT_ID, JSON.stringify(payload), 1_777_980_000)
+
+    const forwarded: Array<Record<string, unknown>> = []
+    const sync = await processSyncQueue({
+      db,
+      callables: makeCallables({
+        applyInventoryDelta: async (params) => {
+          forwarded.push(params)
+          return { data: { ok: true, new_stock_pieces: 8 }, error: null }
+        },
+      }),
+    })
+
+    expect(sync.synced).toBe(1)
+    expect(forwarded).toHaveLength(1)
+    expect(forwarded[0]).toMatchObject({
+      p_delta: -2,
+      p_reason: 'damage',
+      p_reason_note: 'broken display pack',
+      p_log_type: 'adjustment',
+    })
+  })
+
   test('increments retry_count and stores last_error on transport error', async () => {
     const sqlite = await freshDb()
     seedShampoo(sqlite)

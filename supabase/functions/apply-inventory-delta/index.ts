@@ -59,7 +59,16 @@ export default {
       )
     }
 
-    const { client_operation_id, product_id, branch_id, delta, reason, sale_id } = parsed.data
+    const {
+      client_operation_id,
+      product_id,
+      branch_id,
+      delta,
+      reason,
+      log_type,
+      reason_note,
+      sale_id,
+    } = parsed.data
 
     const { data, error } = await ctx.supabase.rpc('apply_inventory_delta', {
       p_client_operation_id: client_operation_id,
@@ -67,6 +76,8 @@ export default {
       p_branch_id: branch_id,
       p_delta: delta,
       p_reason: reason,
+      p_log_type: log_type ?? null,
+      p_reason_note: reason_note ?? null,
       p_sale_id: sale_id ?? null,
     })
 

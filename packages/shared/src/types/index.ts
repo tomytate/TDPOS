@@ -11,6 +11,8 @@ export type SyncOperation = 'INSERT' | 'UPDATE' | 'DELETE' | 'DELTA'
 
 export type InventoryLogType = 'stock_in' | 'sale' | 'adjustment' | 'transfer'
 
+export type StockAdjustmentReason = 'count_correction' | 'damage' | 'theft' | 'expiry' | 'other'
+
 export type UserRole = 'owner' | 'manager' | 'cashier' | 'tindera'
 
 export type SubscriptionTier =
