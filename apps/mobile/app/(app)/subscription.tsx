@@ -1,23 +1,23 @@
-// Mobile subscription / entitlements screen.
-// Reads tier identity from auth-store (populated by auth-bootstrap on
-// every INITIAL_SESSION + SIGNED_IN). For tier comparison the user is
-// pointed at the web /pricing page so the marketing copy lives in one
-// place. Mutations (upgrade flow) ship later — this screen is read-only
-// scaffold for now.
+// Mobile subscription / entitlements screen. Polished for v0.9 visual QA:
+// owner-facing wording (no dev-only `UI mode` / `UI source` rows on the
+// happy path), safe-area-aware bottom CTAs, surfaces grouped into
+// unlocked / locked sections, and a compact limits chip-row for
+// at-a-glance entitlement summary.
 
 import { router } from 'expo-router'
 import { Linking, ScrollView, View } from 'react-native'
-import { Appbar, Button, Card, Chip, Text } from 'react-native-paper'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { Appbar, Button, Card, Chip, Divider, Surface, Text } from 'react-native-paper'
 
 import { useAppTheme } from '@/constants/theme'
 import { useAuthStore } from '@/stores/auth-store'
 import {
+  SURFACE_LABELS,
   formatTierPrice,
   getMinimumTierForSurface,
   getTierDefinition,
   getTierSurfaces,
   isTierSurfaceEnabled,
-  SURFACE_LABELS,
   type ModuleName,
   type SubscriptionTier,
 } from '@tdpos/shared'
@@ -43,6 +43,7 @@ function formatLimit(limit: number | null, suffix: string): string {
 
 export default function SubscriptionScreen() {
   const theme = useAppTheme()
+  const insets = useSafeAreaInsets()
   const tier = useAuthStore((state) => state.subscriptionTier) as SubscriptionTier
   const modules = useAuthStore((state) => state.modules)
   const entitlementsValidUntil = useAuthStore((state) => state.entitlementsValidUntil)
@@ -50,6 +51,9 @@ export default function SubscriptionScreen() {
 
   const definition = getTierDefinition(tier)
   const enabledModuleKeys = (Object.keys(modules) as ModuleName[]).filter((key) => modules[key])
+
+  const unlockedSurfaces = MOBILE_SURFACES.filter((surface) => isTierSurfaceEnabled(tier, surface))
+  const lockedSurfaces = MOBILE_SURFACES.filter((surface) => !isTierSurfaceEnabled(tier, surface))
 
   const expiresAt = entitlementsValidUntil
     ? new Date(entitlementsValidUntil).toLocaleDateString('en-PH', {
@@ -66,23 +70,37 @@ export default function SubscriptionScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <Appbar.Header style={{ backgroundColor: theme.colors.primary }}>
-        <Appbar.BackAction color={theme.colors.onPrimary} onPress={() => router.back()} />
+        <Appbar.BackAction
+          color={theme.colors.onPrimary}
+          onPress={() => router.back()}
+          accessibilityLabel="Back"
+        />
         <Appbar.Content title="Subscription" color={theme.colors.onPrimary} />
       </Appbar.Header>
 
-      <ScrollView contentContainerStyle={{ gap: 12, padding: 16, paddingBottom: 32 }}>
+      <ScrollView
+        contentContainerStyle={{ gap: 12, padding: 16, paddingBottom: 168 + insets.bottom }}
+      >
+        {/* Current tier hero card */}
         <Card mode="contained">
           <Card.Content style={{ gap: 8 }}>
             <Text variant="labelLarge" style={{ color: theme.colors.onSurfaceVariant }}>
               {storeName ?? 'Your business'}
             </Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <Text variant="headlineSmall">{definition.publicName}</Text>
-              <Chip mode="flat" compact>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <Text variant="headlineSmall" style={{ fontWeight: '700' }}>
+                {definition.publicName}
+              </Text>
+              <Chip
+                mode="flat"
+                compact
+                style={{ backgroundColor: theme.tdpos.teal[100] }}
+                textStyle={{ color: theme.tdpos.teal[800] }}
+              >
                 {definition.segment}
               </Chip>
             </View>
-            <Text variant="titleMedium" style={{ color: theme.colors.primary }}>
+            <Text variant="titleMedium" style={{ color: theme.colors.primary, fontWeight: '600' }}>
               {formatTierPrice(definition.pricePhpMonthly)}
             </Text>
             <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
@@ -96,21 +114,30 @@ export default function SubscriptionScreen() {
           </Card.Content>
         </Card>
 
+        {/* Limits compact chip row */}
         <Card mode="contained">
-          <Card.Content style={{ gap: 8 }}>
+          <Card.Content style={{ gap: 10 }}>
             <Text variant="labelLarge" style={{ color: theme.colors.onSurfaceVariant }}>
-              Tier contract
+              Limits at this tier
             </Text>
-            <LimitRow label="Billing" value={definition.billing} />
-            <LimitRow label="UI mode" value={definition.uiMode.replace(/_/g, ' ')} />
-            <LimitRow label="UI source" value={definition.uiSource} />
-            <LimitRow label="Products" value={formatLimit(definition.maxProducts, '')} />
-            <LimitRow label="Branches" value={formatLimit(definition.maxBranches, '')} />
-            <LimitRow label="Devices" value={formatLimit(definition.maxDevices, '')} />
-            <LimitRow label="Users" value={formatLimit(definition.maxUsers, '')} />
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+              <Chip compact mode="outlined" icon="package-variant">
+                {formatLimit(definition.maxProducts, 'products')}
+              </Chip>
+              <Chip compact mode="outlined" icon="storefront-outline">
+                {formatLimit(definition.maxBranches, 'branches')}
+              </Chip>
+              <Chip compact mode="outlined" icon="cellphone-link">
+                {formatLimit(definition.maxDevices, 'devices')}
+              </Chip>
+              <Chip compact mode="outlined" icon="account-multiple-outline">
+                {formatLimit(definition.maxUsers, 'users')}
+              </Chip>
+            </View>
           </Card.Content>
         </Card>
 
+        {/* Modules */}
         <Card mode="contained">
           <Card.Content style={{ gap: 8 }}>
             <Text variant="labelLarge" style={{ color: theme.colors.onSurfaceVariant }}>
@@ -118,12 +145,12 @@ export default function SubscriptionScreen() {
             </Text>
             {enabledModuleKeys.length === 0 ? (
               <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
-                Core only. Upgrade to unlock optional modules.
+                Core only. Upgrade to unlock optional modules like utang, loyalty, and SMS.
               </Text>
             ) : (
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
                 {enabledModuleKeys.map((key) => (
-                  <Chip key={key} mode="outlined" compact>
+                  <Chip key={key} mode="flat" compact icon="check">
                     {MODULE_LABELS[key]}
                   </Chip>
                 ))}
@@ -132,69 +159,112 @@ export default function SubscriptionScreen() {
           </Card.Content>
         </Card>
 
+        {/* Surfaces — grouped */}
         <Card mode="contained">
-          <Card.Content style={{ gap: 8 }}>
+          <Card.Content style={{ gap: 12 }}>
             <Text variant="labelLarge" style={{ color: theme.colors.onSurfaceVariant }}>
-              Mobile tier surfaces
+              Mobile surfaces
             </Text>
-            <View style={{ gap: 8 }}>
-              {MOBILE_SURFACES.map((surface) => {
-                const meta = SURFACE_LABELS[surface]
-                const unlocked = isTierSurfaceEnabled(tier, surface)
-                const required = getTierDefinition(getMinimumTierForSurface(surface))
 
-                return (
-                  <Button
-                    key={surface}
-                    mode={unlocked ? 'contained-tonal' : 'outlined'}
-                    icon={unlocked ? 'check-circle-outline' : 'lock-outline'}
-                    contentStyle={{ justifyContent: 'flex-start' }}
-                    onPress={() =>
-                      router.push({
-                        pathname: '/(app)/surfaces/[surface]',
-                        params: { surface },
-                      })
-                    }
-                  >
-                    {meta.label} · {unlocked ? 'Available' : required.shortLabel}
-                  </Button>
-                )
-              })}
-            </View>
+            {unlockedSurfaces.length > 0 ? (
+              <View style={{ gap: 6 }}>
+                <Text
+                  variant="labelMedium"
+                  style={{ color: theme.tdpos.semantic.green600, fontWeight: '600' }}
+                >
+                  Available now ({unlockedSurfaces.length})
+                </Text>
+                {unlockedSurfaces.map((surface) => {
+                  const meta = SURFACE_LABELS[surface]
+                  return (
+                    <Button
+                      key={surface}
+                      mode="contained-tonal"
+                      icon="check-circle-outline"
+                      contentStyle={{ justifyContent: 'flex-start' }}
+                      onPress={() =>
+                        router.push({
+                          pathname: '/(app)/surfaces/[surface]',
+                          params: { surface },
+                        })
+                      }
+                      accessibilityLabel={`Open ${meta.label} surface`}
+                    >
+                      {meta.label}
+                    </Button>
+                  )
+                })}
+              </View>
+            ) : null}
+
+            {unlockedSurfaces.length > 0 && lockedSurfaces.length > 0 ? <Divider /> : null}
+
+            {lockedSurfaces.length > 0 ? (
+              <View style={{ gap: 6 }}>
+                <Text
+                  variant="labelMedium"
+                  style={{ color: theme.tdpos.amber[700], fontWeight: '600' }}
+                >
+                  Unlock by upgrading ({lockedSurfaces.length})
+                </Text>
+                {lockedSurfaces.map((surface) => {
+                  const meta = SURFACE_LABELS[surface]
+                  const required = getTierDefinition(getMinimumTierForSurface(surface))
+                  return (
+                    <Button
+                      key={surface}
+                      mode="outlined"
+                      icon="lock-outline"
+                      contentStyle={{ justifyContent: 'flex-start' }}
+                      onPress={() =>
+                        router.push({
+                          pathname: '/(app)/surfaces/[surface]',
+                          params: { surface },
+                        })
+                      }
+                      accessibilityLabel={`Preview ${meta.label}, unlocks at ${required.shortLabel}`}
+                    >
+                      {meta.label} · {required.shortLabel}
+                    </Button>
+                  )
+                })}
+              </View>
+            ) : null}
           </Card.Content>
         </Card>
+      </ScrollView>
 
+      {/* Docked CTAs */}
+      <Surface
+        mode="elevated"
+        elevation={4}
+        style={{
+          paddingHorizontal: 16,
+          paddingTop: 12,
+          paddingBottom: 12 + insets.bottom,
+          gap: 8,
+          backgroundColor: theme.colors.surface,
+        }}
+      >
         <Button
           mode="contained-tonal"
           icon="lock-open-outline"
           onPress={() => router.push('/(app)/upgrade')}
+          accessibilityLabel="See what other tiers unlock"
         >
           See what other tiers unlock
         </Button>
-
         <Button
           mode="contained"
           icon="open-in-new"
           onPress={openPricing}
           buttonColor={theme.colors.primary}
+          accessibilityLabel="Compare tiers on the web"
+          accessibilityHint="Opens the pricing page in your browser"
         >
           Compare tiers
         </Button>
-      </ScrollView>
-    </View>
-  )
-}
-
-function LimitRow({ label, value }: { label: string; value: string }) {
-  const theme = useAppTheme()
-  return (
-    <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12 }}>
-      <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant, flex: 1 }}>
-        {label}
-      </Text>
-      <Text variant="bodyMedium" style={{ flex: 1, textAlign: 'right' }}>
-        {value}
-      </Text>
+      </Surface>
     </View>
   )
 }

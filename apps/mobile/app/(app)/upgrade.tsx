@@ -1,7 +1,8 @@
 // Mobile upgrade explorer — lists every mobile.* TierSurface that the
 // current tier does NOT unlock, grouped by which tier would unlock it.
 // Read-only scaffold: each card uses LockedSurfaceCard so the locked
-// presentation stays consistent across the app.
+// presentation stays consistent across the app. Polished for v0.9 visual
+// QA: safe-area-aware docked footer + haptic taps on tier section taps.
 //
 // Adding a new TierSurface to the union in `@tdpos/shared` automatically
 // shows up here (as long as a SURFACE_LABELS entry exists), so the
@@ -9,10 +10,12 @@
 
 import { router } from 'expo-router'
 import { Linking, ScrollView, View } from 'react-native'
-import { Appbar, Button, Card, Text } from 'react-native-paper'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { Appbar, Button, Card, Surface, Text } from 'react-native-paper'
 
 import { LockedSurfaceCard } from '@/components/ui/locked-surface-card'
 import { useAppTheme } from '@/constants/theme'
+import { useHaptics } from '@/hooks/use-haptics'
 import { useAuthStore } from '@/stores/auth-store'
 import {
   SUBSCRIPTION_TIERS,
@@ -27,12 +30,12 @@ const PRICING_URL = 'https://tdpos.app/pricing'
 
 export default function UpgradeScreen() {
   const theme = useAppTheme()
+  const insets = useSafeAreaInsets()
+  const haptics = useHaptics()
   const tier = useAuthStore((state) => state.subscriptionTier) as SubscriptionTier
 
   // Mobile-only surfaces, locked at the current tier, indexed by the tier
-  // that unlocks them. Iterating the SURFACE_LABELS registry means new
-  // surfaces don't need explicit wiring — TypeScript exhaustiveness keeps
-  // this list in sync with the `TierSurface` union.
+  // that unlocks them.
   const lockedByTier = getLockedTierSurfaces(tier, 'mobile').reduce(
     (acc, surface) => {
       const required = getMinimumTierForSurface(surface)
@@ -45,71 +48,121 @@ export default function UpgradeScreen() {
   )
 
   const orderedTiers = SUBSCRIPTION_TIERS.filter((t) => lockedByTier[t]?.length)
+  const totalLocked = orderedTiers.reduce(
+    (sum, unlockTier) => sum + (lockedByTier[unlockTier]?.length ?? 0),
+    0,
+  )
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <Appbar.Header style={{ backgroundColor: theme.colors.primary }}>
-        <Appbar.BackAction color={theme.colors.onPrimary} onPress={() => router.back()} />
+        <Appbar.BackAction
+          color={theme.colors.onPrimary}
+          onPress={() => router.back()}
+          accessibilityLabel="Back to subscription"
+        />
         <Appbar.Content title="Upgrade explorer" color={theme.colors.onPrimary} />
       </Appbar.Header>
 
-      <ScrollView contentContainerStyle={{ gap: 16, padding: 16, paddingBottom: 32 }}>
+      <ScrollView
+        contentContainerStyle={{ gap: 16, padding: 16, paddingBottom: 96 + insets.bottom }}
+      >
         {orderedTiers.length === 0 ? (
           <Card mode="contained">
             <Card.Content style={{ gap: 8 }}>
               <Text variant="titleMedium">All mobile surfaces unlocked</Text>
               <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
-                You're on the highest tier — every mobile surface is available on this device.
+                You&rsquo;re on the highest tier — every mobile surface is available on this device.
               </Text>
             </Card.Content>
           </Card>
         ) : (
-          orderedTiers.map((unlockTier) => {
-            const definition = getTierDefinition(unlockTier)
-            const surfaces = lockedByTier[unlockTier] ?? []
+          <>
+            <Card mode="contained" style={{ backgroundColor: theme.tdpos.amber[50] }}>
+              <Card.Content style={{ gap: 4 }}>
+                <Text
+                  variant="labelLarge"
+                  style={{ color: theme.tdpos.amber[700], fontWeight: '600' }}
+                >
+                  {totalLocked} {totalLocked === 1 ? 'surface' : 'surfaces'} waiting
+                </Text>
+                <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
+                  Tap a card to preview the surface, or compare tiers on the web to upgrade.
+                </Text>
+              </Card.Content>
+            </Card>
 
-            return (
-              <View key={unlockTier} style={{ gap: 8 }}>
-                <View style={{ gap: 2 }}>
-                  <Text variant="labelLarge" style={{ color: theme.colors.onSurfaceVariant }}>
-                    {definition.label}
-                  </Text>
-                  <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-                    {definition.description}
-                  </Text>
+            {orderedTiers.map((unlockTier) => {
+              const definition = getTierDefinition(unlockTier)
+              const surfaces = lockedByTier[unlockTier] ?? []
+
+              return (
+                <View key={unlockTier} style={{ gap: 8 }}>
+                  <View style={{ gap: 2 }}>
+                    <Text
+                      variant="labelMedium"
+                      style={{
+                        color: theme.colors.primary,
+                        fontWeight: '600',
+                        textTransform: 'uppercase',
+                        letterSpacing: 1,
+                      }}
+                    >
+                      {definition.shortLabel}
+                    </Text>
+                    <Text variant="titleMedium">{definition.label}</Text>
+                    <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                      {definition.description}
+                    </Text>
+                  </View>
+                  <View style={{ gap: 8 }}>
+                    {surfaces.map((surface) => (
+                      <LockedSurfaceCard
+                        key={surface}
+                        surface={surface}
+                        unlocksAt={definition}
+                        actionLabel="Open scaffold"
+                        onAction={() => {
+                          void haptics.tapLight()
+                          router.push({
+                            pathname: '/(app)/surfaces/[surface]',
+                            params: { surface },
+                          })
+                        }}
+                      />
+                    ))}
+                  </View>
                 </View>
-                <View style={{ gap: 8 }}>
-                  {surfaces.map((surface) => (
-                    <LockedSurfaceCard
-                      key={surface}
-                      surface={surface}
-                      unlocksAt={definition}
-                      actionLabel="Open scaffold"
-                      onAction={() =>
-                        router.push({
-                          pathname: '/(app)/surfaces/[surface]',
-                          params: { surface },
-                        })
-                      }
-                    />
-                  ))}
-                </View>
-              </View>
-            )
-          })
+              )
+            })}
+          </>
         )}
+      </ScrollView>
 
+      <Surface
+        mode="elevated"
+        elevation={4}
+        style={{
+          paddingHorizontal: 16,
+          paddingTop: 12,
+          paddingBottom: 12 + insets.bottom,
+          backgroundColor: theme.colors.surface,
+        }}
+      >
         <Button
           mode="contained"
           icon="open-in-new"
           onPress={() => {
+            void haptics.tapLight()
             void Linking.openURL(PRICING_URL)
           }}
           buttonColor={theme.colors.primary}
+          accessibilityLabel="Compare tiers on the web"
+          accessibilityHint="Opens the pricing page in your browser"
         >
           Compare tiers on the web
         </Button>
-      </ScrollView>
+      </Surface>
     </View>
   )
 }
