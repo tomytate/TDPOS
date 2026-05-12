@@ -552,3 +552,85 @@ export async function getModuleManagementRows(): Promise<ModuleManagementResult>
     }
   })
 }
+
+// ----- Customer Privacy -------------------------------------------------------
+
+interface CustomerPrivacyRowRaw {
+  id: string
+  name: string
+  phone: string | null
+  barangay: string | null
+  points_balance: number | null
+  total_utang: number | string | null
+  pii_erased: boolean | null
+  erased_at: string | null
+  created_at: string
+}
+
+export interface CustomerPrivacyRow {
+  id: string
+  name: string
+  phoneSuffix: string
+  barangay: string | null
+  pointsBalance: number
+  formattedUtang: string
+  piiErased: boolean
+  erasedAt: string | null
+  createdAt: string
+}
+
+export type CustomerPrivacyResult = QueryResult<{
+  canErase: boolean
+  customers: CustomerPrivacyRow[]
+}>
+
+function phoneSuffix(value: string | null): string {
+  if (!value) return '--'
+  const digits = value.replace(/\D/g, '')
+  const tail = digits.slice(-4)
+
+  return tail ? `***${tail}` : '--'
+}
+
+export async function getCustomerPrivacyRows(limit = 100): Promise<CustomerPrivacyResult> {
+  return withSupabase<{ canErase: boolean; customers: CustomerPrivacyRow[] }>(async (supabase) => {
+    const { data: userRow, error: userError } = await supabase
+      .from('users')
+      .select('role')
+      .limit(1)
+      .maybeSingle()
+
+    if (userError) return { ready: false, reason: 'query_failed', message: userError.message }
+
+    const role = (userRow as { role?: string } | null)?.role
+    if (role !== 'owner' && role !== 'manager') {
+      return { ready: true, canErase: false, customers: [] }
+    }
+
+    const { data, error } = await supabase
+      .from('customers')
+      .select(
+        'id, name, phone, barangay, points_balance, total_utang, pii_erased, erased_at, created_at',
+      )
+      .order('created_at', { ascending: false })
+      .limit(limit)
+
+    if (error) return { ready: false, reason: 'query_failed', message: error.message }
+
+    return {
+      ready: true,
+      canErase: true,
+      customers: ((data ?? []) as CustomerPrivacyRowRaw[]).map((row) => ({
+        id: row.id,
+        name: row.pii_erased ? 'Erased customer' : row.name,
+        phoneSuffix: row.pii_erased ? '--' : phoneSuffix(row.phone),
+        barangay: row.pii_erased ? null : row.barangay,
+        pointsBalance: row.pii_erased ? 0 : (row.points_balance ?? 0),
+        formattedUtang: formatMoney(row.pii_erased ? 0 : Number(row.total_utang ?? 0)),
+        piiErased: row.pii_erased ?? false,
+        erasedAt: row.erased_at,
+        createdAt: row.created_at,
+      })),
+    }
+  })
+}

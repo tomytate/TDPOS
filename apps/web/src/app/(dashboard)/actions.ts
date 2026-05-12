@@ -6,6 +6,7 @@ import {
   DEFAULT_MODULE_STATE,
   branchManagementDraftSchema,
   categoryManagementDraftSchema,
+  customerErasureDraftSchema,
   deviceManagementDraftSchema,
   moduleManagementDraftSchema,
   normalizePhPhone,
@@ -30,6 +31,7 @@ export type ScaffoldActionResult =
       reason:
         | 'tier_locked'
         | 'unauthenticated'
+        | 'forbidden'
         | 'supabase_unconfigured'
         | 'query_failed'
         | 'invalid_input'
@@ -85,6 +87,19 @@ function invalidInput(message: string): ScaffoldActionResult {
 
 function firstIssueMessage(result: { error: { issues: Array<{ message: string }> } }): string {
   return result.error.issues[0]?.message ?? 'Check the form fields and try again.'
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
+function customerErasureMessage(reason: string | null): string {
+  if (reason === 'forbidden') return 'Only an owner or manager can erase customer PII.'
+  if (reason === 'unauthenticated') return 'Sign in to erase customer PII.'
+  if (reason === 'account_not_provisioned') return 'Your account is not connected to a business.'
+  if (reason === 'not_found') return 'Customer was not found for this business.'
+
+  return 'Could not erase customer PII.'
 }
 
 // Resolves the caller's auth.uid + business_id for management actions. The
@@ -449,6 +464,62 @@ export async function inviteUserScaffoldAction(
     ok: true,
     message: `Invited ${draft.data.role} ${draft.data.phone}.`,
     resourceId: inserted.id as string,
+  }
+}
+
+export async function eraseCustomerPiiScaffoldAction(
+  _previousState: ScaffoldActionState,
+  formData: FormData,
+): Promise<ScaffoldActionResult> {
+  const draft = customerErasureDraftSchema.safeParse({
+    customer_id: textField(formData, 'customer_id'),
+    reason: optionalTextField(formData, 'reason'),
+  })
+
+  if (!draft.success) return invalidInput(firstIssueMessage(draft))
+
+  let supabase
+  try {
+    supabase = await getServerSupabase()
+  } catch {
+    return { ok: false, reason: 'supabase_unconfigured', message: 'Supabase is not configured.' }
+  }
+
+  const ctx = await resolveCallerContext(supabase)
+  if (!ctx.ok) return ctx.result
+
+  const { data, error } = await supabase.rpc('erase_customer_pii', {
+    p_customer_id: draft.data.customer_id,
+    p_reason: draft.data.reason ?? null,
+  })
+
+  if (error) {
+    return {
+      ok: false,
+      reason: 'query_failed',
+      message: 'Could not erase customer PII.',
+    }
+  }
+
+  const rpcReason = isRecord(data) && typeof data.reason === 'string' ? data.reason : null
+  if (!isRecord(data) || data.ok !== true) {
+    return {
+      ok: false,
+      reason:
+        rpcReason === 'forbidden' || rpcReason === 'unauthenticated' ? rpcReason : 'query_failed',
+      message: customerErasureMessage(rpcReason),
+    }
+  }
+
+  revalidatePath('/modules')
+  revalidatePath('/audit')
+
+  return {
+    ok: true,
+    message: data.already_erased
+      ? 'Customer PII was already erased.'
+      : 'Customer PII erased; transaction references were retained.',
+    resourceId: draft.data.customer_id,
   }
 }
 
