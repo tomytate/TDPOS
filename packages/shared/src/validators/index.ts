@@ -94,6 +94,10 @@ export const deviceManagementDraftSchema = z.object({
   status: z.enum(['active', 'inactive', 'lost']),
 })
 
+export const tenantDataExportRequestSchema = z.object({
+  client_operation_id: z.uuid({ error: 'client_operation_id must be a valid UUID' }),
+})
+
 export const saleItemSchema = z.object({
   id: z.uuid(),
   sale_id: z.uuid(),
@@ -191,6 +195,7 @@ export type CategoryManagementDraft = z.infer<typeof categoryManagementDraftSche
 export type UserInviteDraft = z.infer<typeof userInviteDraftSchema>
 export type ModuleManagementDraft = z.infer<typeof moduleManagementDraftSchema>
 export type DeviceManagementDraft = z.infer<typeof deviceManagementDraftSchema>
+export type TenantDataExportRequest = z.infer<typeof tenantDataExportRequestSchema>
 export type SaleItem = z.infer<typeof saleItemSchema>
 export type InventoryDelta = z.infer<typeof inventoryDeltaSchema>
 export type Sale = z.infer<typeof saleSchema>

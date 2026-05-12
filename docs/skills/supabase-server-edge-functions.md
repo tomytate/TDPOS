@@ -176,6 +176,7 @@ The new auth key system uses **plural-form** env vars:
 | `apply-inventory-delta` | `user` | Validates payload with `syncInventoryDeltaPayloadSchema`, calls the existing race-safe `apply_inventory_delta` Postgres RPC | shell exists, deploy pending P7 staging Supabase |
 | `create-sale` | `user` | Validates payload with `syncSalePayloadSchema`, idempotent on `sales.id`, inserts sale + sale_items; per-item deltas handled via the apply-inventory-delta queue path | shell exists, deploy pending P7 staging Supabase |
 | `eod-report` | `['user', 'secret']` | End-of-day report (cashier-triggered or scheduled via cron) | report scaffold exists; SMS delivery pending P11.5.8 |
+| `tenant-data-export` | `user` | Owner-only JSON export of tenant-scoped tables; requires `client_operation_id` because `record_tenant_export` writes an idempotent audit marker | scaffold exists; hosted exercise pending P11.5.6 |
 
 ## ❌ DO NOT USE
 

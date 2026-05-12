@@ -1772,7 +1772,7 @@ Purpose: every row in this phase blocks v1.0. Per the Release Pact, "enterprise-
 
 - [/] Data retention table: `DATA_RETENTION_POLICIES` in `@tdpos/shared` lists current PII surfaces, local retention, server retention, module linkage, and disabled-module cleanup; mobile `/privacy` renders it. Final legal review can still amend wording/windows.
 - [/] Disabled modules wipe their cached PII. Mobile `ModulePrivacyCleanupEffect` and sync-time entitlement refresh clear or narrow local `customers` rows when `utang`, `customer_sms`, or `loyalty` turn off; full module-by-module proof lands in the 0.9 test pass.
-- [ ] Right-to-export: business owner can export all of their tenant's data through one Edge Function call.
+- [/] Right-to-export: `tenant-data-export` returns one owner-only JSON export for tenant-scoped tables and records an idempotent `tenant.exported` audit marker through `record_tenant_export(uuid)`. Hosted Supabase exercise, UI trigger, and file packaging remain pending.
 - [/] Right-to-erasure for end customers: `erase_customer_pii(uuid, text)` blanks customer PII, zeroes loyalty/utang scaffold balances, keeps transaction references intact for required record retention, and writes a sanitized audit entry. UI wiring and hosted Supabase exercise remain pending.
 - [ ] No PII (names, phone numbers, addresses) is ever sent to crash/error logging without the privacy review on P10.4.
 - [/] Privacy notice surface; mobile `/privacy` scaffold records a local acknowledgement timestamp in MMKV and is reachable from Diagnostics. Final settings placement, legal copy, and server-side consent audit remain pending.
@@ -2129,6 +2129,7 @@ Use this section as releases progress.
 - [x] Customer-erasure scaffold update 2026-05-12: Supabase migration `20260512000000_customer_erasure.sql` adds customer erasure markers and the `erase_customer_pii(uuid, text)` RPC so owner/manager roles can blank customer PII while preserving historical transaction references and sanitized audit evidence.
 - [x] Scanner scaffold update 2026-05-12: mobile `/scanner` now uses Expo `CameraView`, requests camera permission, scans EAN/UPC/code barcodes, looks up active local products by SKU or id, and adds one piece through the same cart path as Sale product tiles. Physical barcode evidence remains part of the 0.9 device pass.
 - [x] Local customer-erasure schema update 2026-05-12: mobile SQLite migration v6 adds customer erasure markers locally so shared `DbCustomer` fields, disabled-module cleanup, and server erasure semantics remain aligned.
+- [x] Tenant export scaffold update 2026-05-12: Edge Function `tenant-data-export` validates `client_operation_id`, calls `record_tenant_export(uuid)` for owner-only idempotent audit logging, and returns a single JSON document containing tenant-scoped business, user, product, customer, sale, payment, audit, invite, device, shift, approval, PLU, kiosk, and return tables.
 - [x] Verification: `source scripts/use-toolchain.sh && bun run check:toolchain` passes with Node 24.15.0, Bun 1.3.13, Supabase CLI 2.98.2, and EAS CLI runner available.
 - [x] Verification: `source scripts/use-toolchain.sh && bun run check:foundation` passes end-to-end.
 - [x] Current code-testable count after the first 0.9 tier suite: 103 passing tests total — 32 shared + 71 mobile.
