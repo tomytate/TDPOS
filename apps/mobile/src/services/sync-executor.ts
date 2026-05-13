@@ -4,11 +4,13 @@ import {
   refreshEntitlementsFromSupabase,
   type SupabaseEntitlementsClient,
 } from './entitlements-refresh'
+import { refreshCatalogFromSupabase, type SupabaseCatalogClient } from './catalog-refresh'
 import { warnSafe } from './safe-logger'
 import { upsertDeviceHeartbeat, type SupabaseDeviceHeartbeatClient } from './device-heartbeat'
 import { createSyncCallables, type SupabaseRpcLike } from './sync-callables'
 import { createSyncRunner, type SyncRunnerOutcome } from './sync-runner'
 import { supabase } from './supabase'
+import { useAuthStore } from '@/stores/auth-store'
 
 export type SyncExecutorOutcome =
   | SyncRunnerOutcome
@@ -27,6 +29,14 @@ export async function runSyncQueueOnce(db: AsyncSqliteLike): Promise<SyncExecuto
     db,
   }).catch((err) => {
     warnSafe('[SyncExecutor] entitlement refresh failed', err)
+  })
+
+  await refreshCatalogFromSupabase({
+    supabase: supabase as unknown as SupabaseCatalogClient,
+    db,
+    businessId: useAuthStore.getState().businessId,
+  }).catch((err) => {
+    warnSafe('[SyncExecutor] catalog refresh failed', err)
   })
 
   await upsertDeviceHeartbeat({
