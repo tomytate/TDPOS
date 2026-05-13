@@ -42,6 +42,8 @@ export interface LastSaleResultItem {
 export interface LastSaleResult {
   saleId: string
   receiptNumber: string
+  status?: 'completed' | 'voided'
+  voidedOriginalReceiptNumber?: string | null
   total: number
   tendered: number
   change: number

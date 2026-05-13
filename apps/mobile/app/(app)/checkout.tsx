@@ -183,6 +183,8 @@ export default function CheckoutScreen() {
       setLastSaleResult({
         saleId: result.saleId,
         receiptNumber: result.receiptNumber,
+        status: 'completed',
+        voidedOriginalReceiptNumber: null,
         total: result.total,
         tendered: result.tendered,
         change: result.change,

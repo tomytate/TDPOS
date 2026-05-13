@@ -5,7 +5,12 @@
 import { z } from 'zod'
 
 import { DEFAULT_MODULE_STATE, LEGACY_TIER_MAP, SUBSCRIPTION_TIERS } from '../constants/index'
-import type { LegacySubscriptionTier, ModuleName, StockAdjustmentReason } from '../types/index'
+import type {
+  LegacySubscriptionTier,
+  ModuleName,
+  StockAdjustmentReason,
+  VoidReason,
+} from '../types/index'
 
 const LEGACY_SUBSCRIPTION_TIERS = Object.keys(LEGACY_TIER_MAP) as [
   LegacySubscriptionTier,
@@ -125,6 +130,7 @@ export const inventoryDeltaSchema = z.object({
       'stock_in',
       'transfer',
       'adjustment',
+      'void',
       'count_correction',
       'damage',
       'theft',
@@ -143,6 +149,14 @@ export const stockAdjustmentReasonSchema = z.enum([
   'expiry',
   'other',
 ] satisfies [StockAdjustmentReason, ...StockAdjustmentReason[]])
+
+export const voidReasonSchema = z.enum([
+  'wrong_item',
+  'customer_cancelled',
+  'duplicate_sale',
+  'cashier_error',
+  'other',
+] satisfies [VoidReason, ...VoidReason[]])
 
 // Receipt number format BRANCH-CASHIER-DATE-SEQUENCE
 const RECEIPT_NUMBER_PATTERN = /^[A-Z0-9]{3,5}-[A-Z0-9]{2,5}-\d{8}-\d{6}$/

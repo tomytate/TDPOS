@@ -140,7 +140,7 @@ export default function ReportsScreen() {
   const { data, isPending, isFetching, refetch } = useDailySales(today)
   const maxHourlyTotal = Math.max(1, ...(data?.hourlyData.map((row) => row.gross_total) ?? [0]))
   const maxPaymentTotal = Math.max(1, ...(data?.paymentMix.map((row) => row.gross_total) ?? [0]))
-  const hasSales = (data?.saleCount ?? 0) > 0
+  const hasSales = (data?.saleCount ?? 0) + (data?.voidCount ?? 0) > 0
   const trackColor = theme.tdpos.ink[200]
 
   return (
@@ -208,6 +208,7 @@ export default function ReportsScreen() {
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
             <MetricTile label={t('eod.grossSales')} value={formatMoney(data?.grossTotal ?? 0)} />
             <MetricTile label={t('eod.sales')} value={String(data?.saleCount ?? 0)} />
+            <MetricTile label={t('eod.voids')} value={String(data?.voidCount ?? 0)} />
             <MetricTile label={t('eod.pieces')} value={String(data?.itemCount ?? 0)} />
           </View>
 

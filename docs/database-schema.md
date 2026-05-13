@@ -15,6 +15,7 @@ erDiagram
     businesses ||--o{ customers : "serves"
     businesses ||--o{ audit_logs : "logs"
     businesses ||--o{ stock_take_counts : "counts"
+    businesses ||--o{ sale_voids : "voids"
     businesses ||--o{ business_devices : "registers"
     businesses ||--o{ shift_sessions : "opens"
     businesses ||--o{ manager_approval_requests : "reviews"
@@ -35,6 +36,7 @@ erDiagram
     sales ||--o{ sale_items : "contains"
     sales ||--o{ payments : "paid by"
     sales ||--o{ receipts : "generates"
+    sales ||--o{ sale_voids : "references"
 
     customers ||--o{ sales : "buys"
     customers ||--o{ utang_payments : "pays"
@@ -108,6 +110,19 @@ Sales rows are immutable after creation; corrections use compensating rows. `202
 | `pieces_sold` | INTEGER NOT NULL | Always stored in pieces |
 | `was_sold_as` | TEXT ('piece'/'pack') | What the customer saw on receipt |
 
+### sale_voids
+
+| Column | Type | Description |
+|---|---|---|
+| `business_id` | UUID | Tenant partition for RLS. Local SQLite omits this column and derives tenant context from the device. |
+| `original_sale_id` | UUID / TEXT | Immutable sale being voided. Unique. |
+| `compensating_sale_id` | UUID / TEXT | Fresh sale row with `status = 'voided'` and negative item/total values. Unique. |
+| `reason` | TEXT | One of `wrong_item`, `customer_cancelled`, `duplicate_sale`, `cashier_error`, `other`. |
+| `reason_note` | TEXT | Optional manager note. |
+| `voided_by` | UUID / TEXT | Manager/owner user id when available. |
+
+Voids never update the original sale. Mobile writes a separate receipt-numbered compensating sale, restores stock through a positive inventory delta, and stores the durable link in `sale_voids`. The server table from `20260512000006_sale_voids.sql` is RLS-scoped and immutable.
+
 ### applied_operations (Race-Safe Dedup)
 
 | Column | Type | Description |
@@ -142,7 +157,7 @@ Sales rows are immutable after creation; corrections use compensating rows. `202
 
 `business_devices` has a `business_devices_limit_guard` trigger that enforces `businesses.max_devices` for new install ids. Existing install ids can still heartbeat through `ON CONFLICT` updates. The `sync_snapshot` column carries counts only (`unsynced_rows`, `pending_rows`, `failed_rows`, `reviewable_rows`, timestamps), never raw queue payloads.
 
-Mobile also has local-first counterparts for paid workflow scaffolds: `runLocalMigrations()` v2 creates SQLite `shift_sessions` so `mobile.shift_login` and `mobile.shift_handoff` can open, summarize, count, and close a cashier shift while offline; v3 creates SQLite `manager_approval_requests` so Tier C convenience counters and manager phones can queue and resolve local approval decisions. Those rows do not enter `sync_queue` yet; remote shift/approval sync is deferred until the shared sync envelope is extended beyond sales inserts and inventory deltas. Tier D Premium surfaces (`mobile.supermarket_counter`, `mobile.customer_display`, `mobile.backoffice_audit`, `mobile.weighted_plu`) do not add new local tables; they read from existing `products`, `sales`, `inventory_logs`, and `sync_queue` tables. The supermarket counter and weighted PLU surfaces write through the shared cart/checkout path; the back-office audit surface is gated to owner/manager roles. Tier E Enterprise surfaces add two new local tables: v4 creates `kiosk_orders` so `mobile.self_service_kiosk` can queue customer-built orders that require staff confirmation before stock is decremented; v5 creates `return_requests` so `mobile.returns_warranty` can record return reason codes and manager approval decisions against original sale references without mutating them (ADR-011). Local migration v6 adds the customer erasure marker columns to SQLite so local privacy cleanup and shared DB types stay aligned with the Supabase erasure scaffold. Local migration v8 creates `stock_take_counts`, which preserves counted pieces, system pieces before adjustment, and adjustment delta for the Stock Accuracy Score. `mobile.hq_rollup` reads from existing `branches`, `products`, `sales`, and `sync_queue` tables for cross-branch snapshots and is gated to owner/manager roles.
+Mobile also has local-first counterparts for paid workflow scaffolds: `runLocalMigrations()` v2 creates SQLite `shift_sessions` so `mobile.shift_login` and `mobile.shift_handoff` can open, summarize, count, and close a cashier shift while offline; v3 creates SQLite `manager_approval_requests` so Tier C convenience counters and manager phones can queue and resolve local approval decisions. Those rows do not enter `sync_queue` yet; remote shift/approval sync is deferred until the shared sync envelope is extended beyond sales inserts and inventory deltas. Tier D Premium surfaces (`mobile.supermarket_counter`, `mobile.customer_display`, `mobile.backoffice_audit`, `mobile.weighted_plu`) do not add new local tables; they read from existing `products`, `sales`, `inventory_logs`, and `sync_queue` tables. The supermarket counter and weighted PLU surfaces write through the shared cart/checkout path; the back-office audit surface is gated to owner/manager roles. Tier E Enterprise surfaces add two new local tables: v4 creates `kiosk_orders` so `mobile.self_service_kiosk` can queue customer-built orders that require staff confirmation before stock is decremented; v5 creates `return_requests` so `mobile.returns_warranty` can record return reason codes and manager approval decisions against original sale references without mutating them (ADR-011). Local migration v6 adds the customer erasure marker columns to SQLite so local privacy cleanup and shared DB types stay aligned with the Supabase erasure scaffold. Local migration v8 creates `stock_take_counts`, which preserves counted pieces, system pieces before adjustment, and adjustment delta for the Stock Accuracy Score. Local migration v9 creates `sale_voids`, which links an immutable original sale to the local compensating sale receipt. `mobile.hq_rollup` reads from existing `branches`, `products`, `sales`, and `sync_queue` tables for cross-branch snapshots and is gated to owner/manager roles.
 
 ## Entitlement Guard Functions
 
@@ -178,3 +193,4 @@ The Supabase entitlement scaffold lives in `20260510000001_entitlement_guards.sq
 | `20260512000003_server_clock_handshake.sql` | Read-only authenticated RPC returning server time for mobile receipt-date skew guards. |
 | `20260512000004_inventory_adjustment_reason.sql` | Refreshes `apply_inventory_delta` so stock takes log type `adjustment` while preserving manager-entered reason codes. |
 | `20260512000005_stock_take_counts.sql` | Tenant-scoped immutable cycle-count snapshots for Stock Accuracy Score. |
+| `20260512000006_sale_voids.sql` | Tenant-scoped immutable links between original sales and compensating void sale rows. |

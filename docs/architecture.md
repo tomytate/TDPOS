@@ -146,7 +146,7 @@
 
 **Consequences:**
 - `supabase/migrations/20260509000000_immutability_triggers.sql` enforces this with `prevent_sales_mutation`, `prevent_sale_items_mutation`, and `prevent_inventory_logs_mutation`.
-- The void/refund workflow (P11.5.4) writes new rows; it never updates existing ones.
+- The void workflow (P11.5.4) writes new rows; it never updates existing ones. `supabase/migrations/20260512000006_sale_voids.sql` adds the immutable tenant-scoped link between the original sale and the compensating sale.
 - Stock takes use the same delta rail as sales: a physical count writes a new `inventory_logs` row with `type='adjustment'`, queues a `DELTA`, and never edits prior audit rows.
 - Audit log table also has `prevent_audit_mutation` from the initial migration.
 

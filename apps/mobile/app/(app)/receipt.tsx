@@ -4,12 +4,25 @@
 // placeholder slots for the upcoming Print / Share affordances.
 
 import { router } from 'expo-router'
+import { useSQLiteContext } from 'expo-sqlite'
 import { Share, ScrollView, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { Appbar, Button, Card, Chip, Divider, Snackbar, Surface, Text } from 'react-native-paper'
+import {
+  Appbar,
+  Button,
+  Card,
+  Chip,
+  Dialog,
+  Divider,
+  Portal,
+  Snackbar,
+  Surface,
+  Text,
+} from 'react-native-paper'
 import { useState } from 'react'
 
 import { useAppTheme } from '@/constants/theme'
+import { executeVoidSale } from '@/features/sales/lib/execute-void-sale'
 import { useHaptics } from '@/hooks/use-haptics'
 import { useT } from '@/i18n/translations'
 import { useAuthStore } from '@/stores/auth-store'
@@ -19,6 +32,7 @@ import {
   BIR_RECEIPT_FOOTER,
   BIR_RECEIPT_HEADER,
   BIR_RECEIPT_NOTE,
+  createClientOperationId,
   formatMoney,
 } from '@tdpos/shared'
 
@@ -27,18 +41,50 @@ import {
 // before the user reads the content. Single-sourced here so dark mode (or
 // a future theme variant) can swap it without hunting through the file.
 const RECEIPT_PAPER_BG = '#fffdf8'
+const MANAGER_ROLES = new Set(['owner', 'manager'])
+
+function formatReceiptAmount(value: number) {
+  if (value < 0) return `-${formatMoney(Math.abs(value))}`
+  return formatMoney(value)
+}
+
+function describeVoidFailure(reason: string): string {
+  switch (reason) {
+    case 'missing_device_identity':
+      return 'Device not paired. Ask the manager to re-pair this register.'
+    case 'sale_not_found':
+      return 'The original sale is no longer available on this device.'
+    case 'already_voided':
+      return 'This sale is already voided.'
+    case 'void_window_closed':
+      return 'This sale can only be voided on the same local business day.'
+    case 'no_sale_items':
+      return 'This sale has no item lines to return to inventory.'
+    default:
+      return `Void could not complete (${reason}). Try again or call support.`
+  }
+}
 
 export default function ReceiptScreen() {
   const theme = useAppTheme()
   const t = useT()
   const haptics = useHaptics()
   const insets = useSafeAreaInsets()
+  const db = useSQLiteContext()
   const lastSaleResult = useCartStore((s) => s.lastSaleResult)
+  const setLastSaleResult = useCartStore((s) => s.setLastSaleResult)
+  const branchId = useAuthStore((s) => s.branchId)
+  const branchCode = useAuthStore((s) => s.branchCode)
+  const cashierCode = useAuthStore((s) => s.cashierCode)
+  const userId = useAuthStore((s) => s.userId)
+  const role = useAuthStore((s) => s.role)
   const storeName = useAuthStore((s) => s.storeName) ?? 'TD POS Store'
   const storeAddress = useAuthStore((s) => s.storeAddress) ?? ''
   const tin = useAuthStore((s) => s.tin) ?? ''
 
   const [snackbar, setSnackbar] = useState<string | null>(null)
+  const [voidDialogVisible, setVoidDialogVisible] = useState(false)
+  const [voidSubmitting, setVoidSubmitting] = useState(false)
 
   if (!lastSaleResult) {
     return (
@@ -78,28 +124,93 @@ export default function ReceiptScreen() {
 
   const created = new Date(lastSaleResult.createdAt)
   const isUtang = lastSaleResult.isUtang
+  const isVoid = lastSaleResult.status === 'voided'
+  const displayTotal = Math.abs(lastSaleResult.total)
   const isCash = lastSaleResult.paymentMethod === 'cash' && !isUtang
+  const canVoid = !isVoid && role !== null && MANAGER_ROLES.has(role)
   const successAccessibilityLabel = isUtang
-    ? `Utang recorded, ${formatMoney(lastSaleResult.total)}`
-    : `Sale recorded, ${formatMoney(lastSaleResult.total)}`
+    ? `Utang recorded, ${formatMoney(displayTotal)}`
+    : isVoid
+      ? `Sale voided, ${formatMoney(displayTotal)}`
+      : `Sale recorded, ${formatMoney(displayTotal)}`
 
   const handleShare = async () => {
     void haptics.tapLight()
     try {
       const lines = [
         `${storeName} — Provisional receipt`,
+        ...(isVoid && lastSaleResult.voidedOriginalReceiptNumber
+          ? [`VOID — refers to ${lastSaleResult.voidedOriginalReceiptNumber}`]
+          : []),
         `#${lastSaleResult.receiptNumber}`,
         ...lastSaleResult.items.map(
           (item) =>
-            `${item.qty}× ${item.name}${item.wasSoldAs === 'pack' ? ' (pack)' : ''} — ${formatMoney(item.lineTotal)}`,
+            `${item.qty}× ${item.name}${item.wasSoldAs === 'pack' ? ' (pack)' : ''} — ${formatReceiptAmount(item.lineTotal)}`,
         ),
-        `Total: ${formatMoney(lastSaleResult.total)}`,
-        isUtang ? 'Charged to utang' : `Paid: ${lastSaleResult.paymentMethod.toUpperCase()}`,
+        `Total: ${formatReceiptAmount(lastSaleResult.total)}`,
+        isVoid
+          ? 'Void compensating entry'
+          : isUtang
+            ? 'Charged to utang'
+            : `Paid: ${lastSaleResult.paymentMethod.toUpperCase()}`,
         APP_BRANDING_FOOTER,
       ]
       await Share.share({ message: lines.join('\n') })
     } catch {
       setSnackbar('Could not open share sheet.')
+    }
+  }
+
+  const handleVoidSale = async () => {
+    if (!lastSaleResult || voidSubmitting) return
+    if (!branchId || !branchCode || !cashierCode) {
+      setSnackbar('Device not configured. Sign out and re-pair.')
+      void haptics.error()
+      return
+    }
+
+    setVoidSubmitting(true)
+    try {
+      const result = await executeVoidSale({
+        db,
+        clientOperationId: createClientOperationId(),
+        originalSaleId: lastSaleResult.saleId,
+        branchId,
+        branchCode,
+        cashierCode,
+        userId,
+        reason: 'customer_cancelled',
+      })
+
+      if (!result.ok) {
+        setSnackbar(describeVoidFailure(result.reason))
+        void haptics.error()
+        return
+      }
+
+      setLastSaleResult({
+        ...lastSaleResult,
+        saleId: result.saleId,
+        receiptNumber: result.receiptNumber,
+        status: 'voided',
+        voidedOriginalReceiptNumber: result.originalReceiptNumber,
+        total: result.total,
+        tendered: 0,
+        change: 0,
+        items: lastSaleResult.items.map((item) => ({
+          ...item,
+          lineTotal: -Math.abs(item.lineTotal),
+        })),
+        createdAt: result.createdAt * 1000,
+      })
+      setVoidDialogVisible(false)
+      setSnackbar(t('receipt.voidSuccess'))
+      void haptics.success()
+    } catch (err) {
+      setSnackbar(err instanceof Error ? err.message : t('receipt.voidFailed'))
+      void haptics.error()
+    } finally {
+      setVoidSubmitting(false)
     }
   }
 
@@ -110,7 +221,16 @@ export default function ReceiptScreen() {
       >
         {/* Celebratory header — the moment the cashier just landed a sale */}
         <View style={{ alignItems: 'center', gap: 8, paddingVertical: 24 }}>
-          {isUtang ? (
+          {isVoid ? (
+            <Chip
+              mode="flat"
+              compact
+              style={{ backgroundColor: theme.colors.errorContainer }}
+              textStyle={{ color: theme.colors.onErrorContainer, fontWeight: '700' }}
+            >
+              VOID · Compensating entry
+            </Chip>
+          ) : isUtang ? (
             <Chip
               mode="flat"
               compact
@@ -121,7 +241,7 @@ export default function ReceiptScreen() {
             </Chip>
           ) : null}
           <Text variant="headlineMedium" style={{ color: theme.colors.onPrimary }}>
-            {isUtang ? 'Utang recorded' : t('receipt.recorded')}
+            {isVoid ? t('receipt.voided') : isUtang ? 'Utang recorded' : t('receipt.recorded')}
           </Text>
           <Text
             variant="displaySmall"
@@ -133,9 +253,9 @@ export default function ReceiptScreen() {
             accessibilityLiveRegion="polite"
             accessibilityLabel={successAccessibilityLabel}
           >
-            {formatMoney(lastSaleResult.total)}
+            {isVoid ? `-${formatMoney(displayTotal)}` : formatMoney(displayTotal)}
           </Text>
-          {!isUtang && lastSaleResult.change > 0 ? (
+          {!isVoid && !isUtang && lastSaleResult.change > 0 ? (
             <Text variant="titleMedium" style={{ color: theme.tdpos.amber[300] }}>
               {t('receipt.change')}: {formatMoney(lastSaleResult.change)}
             </Text>
@@ -173,6 +293,11 @@ export default function ReceiptScreen() {
             <Text variant="bodySmall" style={{ fontFamily: 'monospace' }}>
               Receipt: {lastSaleResult.receiptNumber}
             </Text>
+            {isVoid && lastSaleResult.voidedOriginalReceiptNumber ? (
+              <Text variant="bodySmall" style={{ fontFamily: 'monospace' }}>
+                {t('receipt.voidedRef')}: {lastSaleResult.voidedOriginalReceiptNumber}
+              </Text>
+            ) : null}
             <Text variant="bodySmall" style={{ fontFamily: 'monospace' }}>
               {created.toLocaleString('en-PH')}
             </Text>
@@ -198,7 +323,7 @@ export default function ReceiptScreen() {
                   variant="bodySmall"
                   style={{ fontFamily: 'monospace', fontVariant: ['tabular-nums'] }}
                 >
-                  {formatMoney(item.lineTotal)}
+                  {formatReceiptAmount(item.lineTotal)}
                 </Text>
               </View>
             ))}
@@ -211,10 +336,22 @@ export default function ReceiptScreen() {
                 variant="titleSmall"
                 style={{ fontFamily: 'monospace', fontVariant: ['tabular-nums'] }}
               >
-                {formatMoney(lastSaleResult.total)}
+                {formatReceiptAmount(lastSaleResult.total)}
               </Text>
             </View>
-            {isUtang ? (
+            {isVoid ? (
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                <Text variant="bodySmall" style={{ fontFamily: 'monospace' }}>
+                  VOID
+                </Text>
+                <Text
+                  variant="bodySmall"
+                  style={{ fontFamily: 'monospace', fontVariant: ['tabular-nums'] }}
+                >
+                  {formatReceiptAmount(lastSaleResult.total)}
+                </Text>
+              </View>
+            ) : isUtang ? (
               <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                 <Text variant="bodySmall" style={{ fontFamily: 'monospace' }}>
                   UTANG (credit)
@@ -320,6 +457,21 @@ export default function ReceiptScreen() {
             Share
           </Button>
         </View>
+        {canVoid ? (
+          <Button
+            mode="outlined"
+            icon="backup-restore"
+            onPress={() => {
+              void haptics.tapMedium()
+              setVoidDialogVisible(true)
+            }}
+            loading={voidSubmitting}
+            disabled={voidSubmitting}
+            accessibilityLabel="Void this sale"
+          >
+            {t('receipt.voidSale')}
+          </Button>
+        ) : null}
         <Button
           mode="contained"
           icon="cart-outline"
@@ -336,6 +488,23 @@ export default function ReceiptScreen() {
           {t('receipt.newSale')}
         </Button>
       </Surface>
+
+      <Portal>
+        <Dialog visible={voidDialogVisible} onDismiss={() => setVoidDialogVisible(false)}>
+          <Dialog.Title>{t('receipt.voidConfirmTitle')}</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium">{t('receipt.voidConfirmBody')}</Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button disabled={voidSubmitting} onPress={() => setVoidDialogVisible(false)}>
+              Cancel
+            </Button>
+            <Button loading={voidSubmitting} disabled={voidSubmitting} onPress={handleVoidSale}>
+              {t('receipt.voidSale')}
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
 
       <Snackbar visible={snackbar !== null} onDismiss={() => setSnackbar(null)} duration={3500}>
         {snackbar ?? ''}

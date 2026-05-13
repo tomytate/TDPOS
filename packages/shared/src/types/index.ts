@@ -7,6 +7,13 @@ export type SaleStatus = 'completed' | 'voided' | 'pending_sync' | 'pending_sync
 
 export type SoldAs = 'piece' | 'pack'
 
+export type VoidReason =
+  | 'wrong_item'
+  | 'customer_cancelled'
+  | 'duplicate_sale'
+  | 'cashier_error'
+  | 'other'
+
 export type SyncOperation = 'INSERT' | 'UPDATE' | 'DELETE' | 'DELTA'
 
 export type InventoryLogType = 'stock_in' | 'sale' | 'adjustment' | 'transfer'

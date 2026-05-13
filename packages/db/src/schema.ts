@@ -113,6 +113,17 @@ export interface DbSaleItem {
   subtotal: number
 }
 
+export interface DbSaleVoid {
+  id: string
+  business_id?: string
+  original_sale_id: string
+  compensating_sale_id: string
+  reason: string
+  reason_note: string | null
+  voided_by: string | null
+  created_at: DbTimestamp
+}
+
 export interface DbInventoryLog {
   id: string
   product_id: string

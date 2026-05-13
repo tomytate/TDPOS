@@ -1,5 +1,5 @@
 // Local SQLite migration runner — applies versioned schema changes.
-// Migrations are registered in LOCAL_MIGRATIONS array (v2-v8).
+// Migrations are registered in LOCAL_MIGRATIONS array (v2-v9).
 // Each migration runs exactly once via schema_version tracking.
 
 import type { AsyncSqliteLike } from './async-sqlite'
@@ -134,6 +134,23 @@ CREATE INDEX IF NOT EXISTS idx_stock_take_counts_latest
   ON stock_take_counts(product_id, created_at DESC);
 `
 
+export const LOCAL_SALE_VOIDS_SQL = `
+CREATE TABLE IF NOT EXISTS sale_voids (
+  id TEXT PRIMARY KEY NOT NULL,
+  original_sale_id TEXT NOT NULL REFERENCES sales(id),
+  compensating_sale_id TEXT NOT NULL REFERENCES sales(id),
+  reason TEXT NOT NULL CHECK(reason IN ('wrong_item','customer_cancelled','duplicate_sale','cashier_error','other')),
+  reason_note TEXT,
+  voided_by TEXT,
+  created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+  UNIQUE(original_sale_id),
+  UNIQUE(compensating_sale_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_sale_voids_original
+  ON sale_voids(original_sale_id);
+`
+
 export const LOCAL_MIGRATIONS: LocalMigration[] = [
   {
     version: 1,
@@ -167,6 +184,10 @@ export const LOCAL_MIGRATIONS: LocalMigration[] = [
   {
     version: 8,
     sql: LOCAL_STOCK_TAKE_COUNTS_SQL,
+  },
+  {
+    version: 9,
+    sql: LOCAL_SALE_VOIDS_SQL,
   },
 ]
 

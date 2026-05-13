@@ -454,7 +454,7 @@ Run this review once any paid service is enabled.
 - [x] Route shells: `(auth)/sign-in.tsx`, `(auth)/verify-otp.tsx`, `(app)/(tabs)/index.tsx` (sale), `(app)/(tabs)/inventory.tsx`, `(app)/(tabs)/reports.tsx`, `(app)/checkout.tsx`, `(app)/receipt.tsx`, `(app)/scanner.tsx`, root `index.tsx` redirect.
 - [x] Services: `services/storage.ts` (single MMKV + Zustand adapter), `services/query-client.ts` (5min stale, 30min gc, retry 2, no refetchOnFocus), `services/supabase.ts` (publishable-key, MMKV auth storage, `autoRefreshToken`, `persistSession`, no URL detection).
 - [x] Zustand stores with MMKV persist: `stores/auth-store.ts` (user/business/role/branch/cashier/store/TIN + cached tier entitlements), `stores/cart-store.ts` (CartItem with line totals, partialize items only), `stores/settings-store.ts` (modules, language, themeMode, all modules default OFF).
-- [x] Local DB: `db/init.ts`, `db/schema.ts` (LOCAL_SCHEMA_SQL), `db/migrations/001_initial_schema.sql` (products, categories, sales, sale_items, sync_queue, receipt_sequence, customers, inventory_logs, settings, schema_version with PRAGMA WAL + foreign_keys ON, idempotent CREATE IF NOT EXISTS), and `runLocalMigrations()` v2-v8 for shifts, manager approvals, kiosk orders, returns, customer-erasure markers, sale clock metadata, and stock-take counts.
+- [x] Local DB: `db/init.ts`, `db/schema.ts` (LOCAL_SCHEMA_SQL), `db/migrations/001_initial_schema.sql` (products, categories, sales, sale_items, sync_queue, receipt_sequence, customers, inventory_logs, settings, schema_version with PRAGMA WAL + foreign_keys ON, idempotent CREATE IF NOT EXISTS), and `runLocalMigrations()` v2-v9 for shifts, manager approvals, kiosk orders, returns, customer-erasure markers, sale clock metadata, stock-take counts, and sale void links.
 - [x] Theme + design tokens: `constants/colors.ts` (teal/amber/ink/semantic/categoryBg) with passing test, `constants/theme.ts` (MD3 light + dark + `useAppTheme`).
 - [x] i18n: `i18n/translations.ts` (29 EN + 29 TL keys, `useT()` reads from settings store).
 - [x] Feature hooks: `features/products/hooks/use-products.ts` (filter by `category_id`, sort by name), `features/products/hooks/use-categories.ts` (with product counts), `features/reports/hooks/use-daily-sales.ts` (hourly bucket, payment mix, totals).
@@ -1755,11 +1755,11 @@ Purpose: every row in this phase blocks v1.0. Per the Release Pact, "enterprise-
 
 ### P11.5.4 Refund / Void Workflow
 
-- [ ] Receipt screen exposes a "Void this sale" path (manager+ only) within the configured void window.
-- [ ] Void writes a compensating sale row (see P2.3) and inventory delta row, both with fresh `client_operation_id`.
-- [ ] Past-day correction uses a separate "Stock adjustment" path that does NOT modify any sale row.
-- [ ] Void receipt prints with "VOID — refers to <original receipt #>" header.
-- [ ] EOD totals subtract voids correctly and surface a void count separately.
+- [x] Receipt screen exposes a "Void this sale" path (manager+ only) within the configured void window.
+- [x] Void writes a compensating sale row (see P2.3), local `sale_voids` link, and positive inventory delta row with fresh `client_operation_id`.
+- [x] Past-day correction uses a separate "Stock adjustment" path that does NOT modify any sale row.
+- [x] Void receipt renders with `VOID` and a reference to the original receipt number.
+- [x] EOD totals subtract voids correctly and surface a void count separately.
 
 ### P11.5.5 Subscription / Module Validation Offline
 
@@ -2138,9 +2138,10 @@ Use this section as releases progress.
 - [x] Clock skew guard update 2026-05-12: `server_clock_handshake()` caches authenticated server time during entitlement refresh, checkout blocks brand-new receipts more than 24h away from that handshake, diagnostics/support bundles show the cached handshake, and the support runbook documents the recovery path.
 - [x] Stock take scaffold update 2026-05-12: manager/owner inventory rows expose a stock-take dialog, `executeStockTake()` writes local product stock + append-only adjustment log + sync `DELTA`, and `20260512000004_inventory_adjustment_reason.sql` refreshes the remote delta RPC to carry adjustment reasons without breaking `inventory_logs.type`.
 - [x] Stock Accuracy Score update 2026-05-12: local migration v8 adds immutable `stock_take_counts`, `getStockAccuracySnapshot()` computes the latest count score, Inventory shows the metric, and `20260512000005_stock_take_counts.sql` adds the tenant-scoped server table with RLS + immutability.
+- [x] Void workflow update 2026-05-12: local migration v9 adds immutable `sale_voids`, managers can void same-day receipts from the Receipt screen, `executeVoidSale()` writes a compensating negative sale + positive inventory delta without mutating the original sale, EOD reports net totals with a separate void count, and `20260512000006_sale_voids.sql` adds the tenant-scoped server link table with RLS + immutability.
 - [x] Verification: `source scripts/use-toolchain.sh && bun run check:toolchain` passes with Node 24.15.0, Bun 1.3.13, Supabase CLI 2.98.2, and EAS CLI runner available.
 - [x] Verification: `source scripts/use-toolchain.sh && bun run check:foundation` passes end-to-end.
-- [x] Current code-testable count after the first 0.9 tier suite: 113 passing tests total — 32 shared + 81 mobile.
+- [x] Current code-testable count after the first 0.9 tier suite: 116 passing tests total — 32 shared + 84 mobile.
 - [x] Mobile scaffold evidence: every registered `mobile.*` TierSurface now renders a native preview panel under `apps/mobile/src/features/tier-surfaces/surface-preview.tsx`; this keeps B-E routes visible without starting 0.9 polish.
 - [x] Backend scaffold evidence: `20260511000000_tier_surface_scaffold.sql` adds tenant-scoped RLS tables for devices, shifts, manager approvals, PLUs, kiosks, and returns; `/sync` reads device status from the new scaffold.
 - [x] Device heartbeat evidence: mobile foreground sync calls `upsertDeviceHeartbeat()` after entitlement refresh; the database trigger allows same-install refreshes while blocking a second active install over `max_devices`; heartbeat includes sanitized local sync-count snapshots only.
