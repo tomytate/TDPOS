@@ -12,6 +12,7 @@ import { useDailySales } from '@/features/reports/hooks/use-daily-sales'
 import { useHaptics } from '@/hooks/use-haptics'
 import { useT } from '@/i18n/translations'
 import { useAuthStore } from '@/stores/auth-store'
+import { useCartStore } from '@/stores/cart-store'
 import { formatMoney } from '@tdpos/shared'
 
 const MANAGER_ROLES = new Set(['owner', 'manager'])
@@ -35,6 +36,11 @@ function formatPaymentMethod(method: string, isUtang: number) {
   if (isUtang === 1) return 'Utang'
   if (method.toLowerCase() === 'gcash') return 'GCash'
   return method.charAt(0).toUpperCase() + method.slice(1)
+}
+
+function formatSignedMoney(value: number) {
+  if (value < 0) return `-${formatMoney(Math.abs(value))}`
+  return formatMoney(value)
 }
 
 function getBarWidth(value: number, maxValue: number): `${number}%` {
@@ -135,6 +141,7 @@ export default function ReportsScreen() {
   const t = useT()
   const haptics = useHaptics()
   const role = useAuthStore((state) => state.role)
+  const setLastSaleResult = useCartStore((state) => state.setLastSaleResult)
   const canOpenDiagnostics = role ? MANAGER_ROLES.has(role) : false
   const today = getLocalDateString()
   const { data, isPending, isFetching, refetch } = useDailySales(today)
@@ -302,6 +309,72 @@ export default function ReportsScreen() {
                     <Text variant="bodySmall" style={{ fontVariant: ['tabular-nums'] }}>
                       {formatMoney(row.gross_total)}
                     </Text>
+                  </View>
+                )
+              })}
+            </Card.Content>
+          </Card>
+
+          <Card mode="contained">
+            <Card.Content style={{ gap: 12 }}>
+              <Text variant="titleMedium">{t('eod.receipts')}</Text>
+              {data?.recentReceipts.map((receipt) => {
+                const isVoid = receipt.status === 'voided'
+                return (
+                  <View
+                    key={receipt.saleId}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 10,
+                      justifyContent: 'space-between',
+                      paddingVertical: 4,
+                    }}
+                  >
+                    <View style={{ flex: 1, gap: 2 }}>
+                      <Text variant="labelLarge" numberOfLines={1}>
+                        #{receipt.receiptNumber}
+                      </Text>
+                      <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                        {new Date(receipt.createdAt * 1000).toLocaleTimeString('en-PH', {
+                          hour: 'numeric',
+                          minute: '2-digit',
+                        })}
+                        {isVoid && receipt.originalReceiptNumber
+                          ? ` · ${t('eod.voidOf')} ${receipt.originalReceiptNumber}`
+                          : ''}
+                      </Text>
+                    </View>
+                    <Text
+                      variant="labelLarge"
+                      style={{ fontVariant: ['tabular-nums'], minWidth: 84, textAlign: 'right' }}
+                    >
+                      {formatSignedMoney(receipt.total)}
+                    </Text>
+                    <Button
+                      mode="text"
+                      compact
+                      onPress={() => {
+                        void haptics.tapLight()
+                        setLastSaleResult({
+                          saleId: receipt.saleId,
+                          receiptNumber: receipt.receiptNumber,
+                          status: isVoid ? 'voided' : 'completed',
+                          voidedOriginalReceiptNumber: receipt.originalReceiptNumber,
+                          total: receipt.total,
+                          tendered: Math.max(0, receipt.total),
+                          change: 0,
+                          paymentMethod: receipt.paymentMethod,
+                          isUtang: receipt.isUtang,
+                          items: receipt.items,
+                          createdAt: receipt.createdAt * 1000,
+                        })
+                        router.push('/(app)/receipt')
+                      }}
+                      accessibilityLabel={`Open receipt ${receipt.receiptNumber}`}
+                    >
+                      {t('eod.openReceipt')}
+                    </Button>
                   </View>
                 )
               })}

@@ -1810,7 +1810,7 @@ Purpose: every row in this phase blocks v1.0. Per the Release Pact, "enterprise-
 ### P11.5.11 Receipt Hardening
 
 - [x] Re-print last receipt: cashier can re-show the latest sale's receipt screen even after navigating away. The cart store now persists `lastSaleResult`, and the Sale app bar exposes a receipt action when a last sale exists.
-- [ ] Print receipt for any past sale within the void window from the EOD screen.
+- [/] Print receipt for any past sale within the void window from the EOD screen. Reports now lists same-day receipts and can reopen any local receipt into the Receipt screen for share/print/void actions; thermal-printer wiring remains P8.3 hardware work.
 - [ ] BIR-ready footer copy is centralized in one constant so accreditation language can flip in one place.
 - [ ] Receipt PDF generator (uses store name/address/TIN and the stored receipt rows) — used by exports and by the web dashboard later.
 
@@ -2141,6 +2141,7 @@ Use this section as releases progress.
 - [x] Void workflow update 2026-05-12: local migration v9 adds immutable `sale_voids`, managers can void same-day receipts from the Receipt screen, `executeVoidSale()` writes a compensating negative sale + positive inventory delta without mutating the original sale, EOD reports net totals with a separate void count, and `20260512000006_sale_voids.sql` adds the tenant-scoped server link table with RLS + immutability.
 - [x] Local migration gate update 2026-05-12: `scripts/check-local-migrations.mjs` now verifies that `LOCAL_MIGRATIONS` is contiguous from v1, version 1 embeds `LOCAL_SCHEMA_SQL`, and every exported `LOCAL_*_SQL` migration constant is registered. `check:foundation` and CI now run it as the 4th gate.
 - [x] Catalog restore scaffold update 2026-05-12: `refreshCatalogFromSupabase()` pulls remote categories/products into local SQLite after sync, converts remote timestamps/prices into local shapes, and preserves local product stock when unsynced inventory deltas exist so an offline sale cannot be erased by catalog refresh.
+- [x] EOD receipt recovery update 2026-05-12: Reports now lists same-day local receipts, reconstructs line items from `sales` + `sale_items`, and reopens them through the Receipt screen so managers can share, print-placeholder, or void without manually querying SQLite.
 - [x] Verification: `source scripts/use-toolchain.sh && bun run check:toolchain` passes with Node 24.15.0, Bun 1.3.13, Supabase CLI 2.98.2, and EAS CLI runner available.
 - [x] Verification: `source scripts/use-toolchain.sh && bun run check:foundation` passes end-to-end.
 - [x] Current code-testable count after the first 0.9 tier suite: 119 passing tests total — 32 shared + 87 mobile.
