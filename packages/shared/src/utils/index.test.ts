@@ -6,6 +6,7 @@ import {
   formatMoney,
   formatReceiptDate,
   generateReceiptNumber,
+  getDeviceHeartbeatFreshness,
   isValidPhPhone,
   isValidReceiptNumber,
   normalizePhPhone,
@@ -16,6 +17,42 @@ import {
 describe('money formatting', () => {
   test('formats Philippine peso values with two decimals', () => {
     expect(formatMoney(1234.5)).toBe('₱1,234.50')
+  })
+})
+
+describe('device heartbeat freshness', () => {
+  const now = new Date('2026-05-13T12:00:00.000Z')
+
+  test('classifies active devices by the shared 15-minute cadence thresholds', () => {
+    expect(
+      getDeviceHeartbeatFreshness({
+        status: 'active',
+        lastSeenAt: '2026-05-13T11:30:01.000Z',
+        now,
+      }),
+    ).toBe('fresh')
+    expect(
+      getDeviceHeartbeatFreshness({
+        status: 'active',
+        lastSeenAt: '2026-05-13T11:15:00.000Z',
+        now,
+      }),
+    ).toBe('stale')
+    expect(
+      getDeviceHeartbeatFreshness({
+        status: 'active',
+        lastSeenAt: '2026-05-12T12:00:00.000Z',
+        now,
+      }),
+    ).toBe('offline')
+  })
+
+  test('keeps explicit lifecycle statuses separate from heartbeat age', () => {
+    expect(getDeviceHeartbeatFreshness({ status: 'lost', lastSeenAt: null, now })).toBe('lost')
+    expect(getDeviceHeartbeatFreshness({ status: 'inactive', lastSeenAt: null, now })).toBe(
+      'inactive',
+    )
+    expect(getDeviceHeartbeatFreshness({ status: 'active', lastSeenAt: null, now })).toBe('never')
   })
 })
 

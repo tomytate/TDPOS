@@ -8,7 +8,7 @@ TD POS is a mobile-first, offline-capable SaaS POS and inventory management syst
 
 ## Release Posture
 
-- **Current baseline:** v0.8 Scaffold Complete — all five tier surfaces implemented, 121 tests passing, 13-stage foundation gate green.
+- **Current baseline:** v0.8 Scaffold Complete — all five tier surfaces implemented, 123 tests passing, 13-stage foundation gate green.
 - **Next real milestone:** v0.9 — full test suite (screenshot parity, accessibility, performance), hosted Supabase staging, EAS dev builds, physical-device airplane-mode sale.
 - **Then:** v0.1alpha — first pilot store.
 - **Target:** v1.0 Public Launch — mobile + web dashboard + marketing site simultaneously.

@@ -149,7 +149,7 @@ A surface (mobile, web, backend) meets the bar when **every** row below is `[x]`
 - [x] Diagnostics screen in the mobile app (manager+ only): sync queue health, app version, schema version, device identity, free disk, MMKV size, and support bundle copy exist.
 - [x] "Bundle support package" action copies diagnostics + recent sync errors for support email.
 - [x] Public runbook covers: sync stuck, printer offline, lost device, change branch/cashier code, restore on new phone. (`docs/operations/support-runbook.md`.)
-- [/] Web dashboard has a sync health view (per-device queue depth, last seen). Last-seen device rows and sanitized queue-count snapshots are scaffolded; production heartbeat cadence and device-management UX remain pending.
+- [/] Web dashboard has a sync health view (per-device queue depth, last seen). Last-seen device rows, sanitized queue-count snapshots, and shared stale/offline heartbeat classification are scaffolded; device-pairing UX remains pending.
 - [x] On-call rotation defined or single-owner explicit (small team is fine; ambiguity is not). (`docs/operations/support-runbook.md` declares the pilot single-owner model.)
 - [x] Incident response template ready in `.github/`. (`.github/ISSUE_TEMPLATE/incident.md`.)
 
@@ -1635,7 +1635,7 @@ Purpose: decide whether TD POS is safe to call v1.0. Per the Release Pact, v1.0 
 - [ ] Read-only dashboard reflects latest synced state for the tenant.
 - [ ] Reports (daily/weekly/monthly) work and export CSV + PDF.
 - [ ] Product, branch, user, module management all work.
-- [/] Sync health view shows per-device queue depth and last seen. Web `/sync` reads `business_devices` for status, last-seen timestamps, and sanitized queue counts from mobile foreground heartbeat. Production heartbeat cadence and stale-device rules remain pending.
+- [/] Sync health view shows per-device queue depth and last seen. Web `/sync` reads `business_devices` for status, last-seen timestamps, sanitized queue counts, and shared stale/offline heartbeat classification from mobile foreground/background heartbeat. Device-pairing UX remains pending.
 - [ ] Audit log view is accessible to owner/manager.
 - [ ] Tenant A cannot see tenant B at any layer (RLS verified).
 - [ ] WCAG 2.2 AA equivalent across every screen.
@@ -1891,7 +1891,7 @@ Acceptance:
 - [x] PDF export using `@react-pdf/renderer` with the BIR-ready receipt format applied. Route Handler: `GET /api/exports/sales/pdf?from=YYYY-MM-DD&to=YYYY-MM-DD`, Node runtime, defense-in-depth `getCurrentClaims()` check, RLS-scoped `getSalesForExport()`, `renderToBuffer`, `application/pdf`, `Cache-Control: private, no-store`.
 - [x] Audit log view (read-only, filtered by tenant). Server Component at `/audit`, query at `apps/web/src/lib/queries/audit-log.ts`. Surfaces field _names_ of changed columns only (`beforeKeys`, `afterKeys` derived from `Object.keys`); never values — preserves the ADR-014 privacy posture. RLS scopes per-tenant; the `prevent_audit_mutation` trigger from the initial migration enforces immutability at the database, so the page is read-only by construction.
 - [/] Stock Accuracy Score view (system vs last cycle count). Mobile Inventory now shows a local score from `stock_take_counts`; web owner analytics view remains W0.8/W0.9 work.
-- [/] Sync health view. Server Component at `/sync`, query at `apps/web/src/lib/queries/sync-health.ts`. Reads `applied_operations` (RLS-scoped) and surfaces: completed (24h), in_progress (any age), stuck (`status='in_progress' AND applied_at < now()-60s`), failed (24h), last `applied_at`, last 10 failure rows with their `reason` label only, and latest `business_devices` rows with status, last seen, and sanitized local queue counts. Tone-coded banner: green/healthy, amber/review, red/action-needed. Production heartbeat cadence and stale-device rules remain pending.
+- [/] Sync health view. Server Component at `/sync`, query at `apps/web/src/lib/queries/sync-health.ts`. Reads `applied_operations` (RLS-scoped) and surfaces: completed (24h), in_progress (any age), stuck (`status='in_progress' AND applied_at < now()-60s`), failed (24h), last `applied_at`, last 10 failure rows with their `reason` label only, and latest `business_devices` rows with status, last seen, stale/offline freshness, and sanitized local queue counts. Tone-coded banner: green/healthy, amber/review, red/action-needed.
 
 Acceptance:
 
@@ -2145,12 +2145,13 @@ Use this section as releases progress.
 - [x] Local disaster-recovery export update 2026-05-13: Diagnostics now has a manager-triggered local data export that copies compact JSON containing products, sales, sale_items, and sync_queue rows for support recovery, with sanitized error text and no automatic upload.
 - [x] Verification: `source scripts/use-toolchain.sh && bun run check:toolchain` passes with Node 24.15.0, Bun 1.3.13, Supabase CLI 2.98.2, and EAS CLI runner available.
 - [x] Verification: `source scripts/use-toolchain.sh && bun run check:foundation` passes end-to-end.
-- [x] Current code-testable count after the first 0.9 tier suite: 121 passing tests total — 32 shared + 89 mobile.
+- [x] Current code-testable count after the first 0.9 tier suite: 123 passing tests total — 34 shared + 89 mobile.
 - [x] Mobile scaffold evidence: every registered `mobile.*` TierSurface now renders a native preview panel under `apps/mobile/src/features/tier-surfaces/surface-preview.tsx`; this keeps B-E routes visible without starting 0.9 polish.
 - [x] Backend scaffold evidence: `20260511000000_tier_surface_scaffold.sql` adds tenant-scoped RLS tables for devices, shifts, manager approvals, PLUs, kiosks, and returns; `/sync` reads device status from the new scaffold.
 - [x] Device heartbeat evidence: mobile foreground sync calls `upsertDeviceHeartbeat()` after entitlement refresh; the database trigger allows same-install refreshes while blocking a second active install over `max_devices`; heartbeat includes sanitized local sync-count snapshots only.
 - [x] Web device management evidence: `web.devices` is in the shared tier surface registry, `/devices` is linked from the dashboard shell, `getDeviceManagementRows()` renders registered devices from `business_devices`, and `updateDeviceStatusScaffoldAction()` validates status-action payloads behind the same tier guard.
 - [x] Lost-device recovery evidence 2026-05-13: mobile device heartbeat now includes receipt-sequence reservations in `sync_snapshot`, `20260513000000_device_recovery_metadata.sql` adds lost/replacement metadata to `business_devices`, and web `/devices` has a dedicated lost-device replacement action that requires queue/receipt acknowledgements before marking the old install lost and releasing a replacement slot.
+- [x] Stale-device rule evidence 2026-05-13: `@tdpos/shared` now centralizes the 15-minute heartbeat cadence, 45-minute stale window, and 24-hour offline window; web `/sync` and `/devices` use `getDeviceHeartbeatFreshness()` so freshness badges, counts, and status banners classify devices consistently.
 - [x] Tier B mobile scaffold evidence: `mobile.tablet_pos` adds a wide product grid that writes only through the existing cart/checkout path; `mobile.owner_lanes` reads open local shifts and sanitized sync health; local mobile migration v2 creates `shift_sessions`; `mobile.shift_login` can open a local shift with opening cash and live lane totals, while `mobile.shift_handoff` can count cash, capture a handoff note, and close the shift locally. Remote shift sync is intentionally deferred until the sync contract grows beyond sales and inventory deltas.
 - [x] Tier C mobile scaffold evidence: local mobile migration v3 creates `manager_approval_requests`; `mobile.convenience_counter` adds fast-repeat product controls and queues a local price-override approval request; `mobile.manager_phone` lists pending local approvals and resolves them as approved or declined for owner/manager roles. Remote approval sync is intentionally deferred with the same sync-envelope boundary as shifts.
 - [x] Marketing scaffold evidence: `apps/marketing` exists as a Next.js 16 app with home, pricing, privacy, and terms scaffold pages; pricing imports `TIER_DEFINITIONS` from `@tdpos/shared`.

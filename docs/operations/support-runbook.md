@@ -52,9 +52,10 @@ Steps:
 
 1. Keep selling; local SQLite is the source of truth while offline.
 2. Confirm the device has internet and the app has been brought to foreground.
-3. Wait one foreground sync cycle.
-4. Copy the support bundle if the unsynced count does not change.
-5. Escalate as `SEV-2` if the queue does not drain after reconnecting.
+3. Check the web **Sync health** page. An active device is stale after 45 minutes without heartbeat and offline after 24 hours.
+4. Wait one foreground sync cycle.
+5. Copy the support bundle if the unsynced count does not change.
+6. Escalate as `SEV-2` if the queue does not drain after reconnecting.
 
 Escalate as `SEV-1` if a sale appears twice on the receipt screen or if stock appears to decrement twice for one checkout.
 

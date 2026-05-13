@@ -26,6 +26,14 @@ function formatReceiptDateKey(value: string): string {
   return `${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(6, 8)}`
 }
 
+function freshnessClassName(freshness: string): string {
+  if (freshness === 'fresh') return 'bg-success-500/10 text-success-600'
+  if (freshness === 'stale') return 'bg-amber-50 text-amber-700'
+  if (freshness === 'offline') return 'bg-danger-50 text-danger-600'
+  if (freshness === 'lost') return 'bg-danger-50 text-danger-600'
+  return 'bg-ink-100 text-ink-500'
+}
+
 export default async function DevicesPage() {
   const [entitlementsResult, result] = await Promise.all([
     getBusinessEntitlements(),
@@ -107,7 +115,7 @@ export default async function DevicesPage() {
             </section>
           ) : null}
 
-          <section className="grid grid-cols-1 gap-3 sm:grid-cols-4">
+          <section className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-6">
             <div className="rounded-lg border border-ink-200 bg-white p-4">
               <p className="m-0 text-[11px] font-semibold uppercase text-ink-500">Registered</p>
               <p className="mt-2 text-2xl font-semibold text-teal-700">{result.devices.length}</p>
@@ -115,6 +123,14 @@ export default async function DevicesPage() {
             <div className="rounded-lg border border-ink-200 bg-white p-4">
               <p className="m-0 text-[11px] font-semibold uppercase text-ink-500">Active</p>
               <p className="mt-2 text-2xl font-semibold text-success-600">{result.activeCount}</p>
+            </div>
+            <div className="rounded-lg border border-ink-200 bg-white p-4">
+              <p className="m-0 text-[11px] font-semibold uppercase text-ink-500">Stale</p>
+              <p className="mt-2 text-2xl font-semibold text-amber-700">{result.staleCount}</p>
+            </div>
+            <div className="rounded-lg border border-ink-200 bg-white p-4">
+              <p className="m-0 text-[11px] font-semibold uppercase text-ink-500">Offline</p>
+              <p className="mt-2 text-2xl font-semibold text-danger-600">{result.offlineCount}</p>
             </div>
             <div className="rounded-lg border border-ink-200 bg-white p-4">
               <p className="m-0 text-[11px] font-semibold uppercase text-ink-500">Lost</p>
@@ -196,15 +212,11 @@ export default async function DevicesPage() {
                       </td>
                       <td className="px-4 py-3">
                         <span
-                          className={
-                            device.status === 'active'
-                              ? 'rounded-full bg-success-500/10 px-2 py-0.5 text-[12px] font-semibold text-success-600'
-                              : device.status === 'lost'
-                                ? 'rounded-full bg-danger-50 px-2 py-0.5 text-[12px] font-semibold text-danger-600'
-                                : 'rounded-full bg-ink-100 px-2 py-0.5 text-[12px] font-semibold text-ink-500'
-                          }
+                          className={`rounded-full px-2 py-0.5 text-[12px] font-semibold ${freshnessClassName(
+                            device.freshness,
+                          )}`}
                         >
-                          {device.status}
+                          {device.status} · {device.freshness}
                         </span>
                         {device.lostReportedAt ? (
                           <div className="mt-1 text-[11px] text-ink-500">

@@ -1,4 +1,8 @@
-import { RECEIPT_SEQUENCE_PAD_LENGTH } from '../constants/index'
+import {
+  DEVICE_HEARTBEAT_OFFLINE_AFTER_HOURS,
+  DEVICE_HEARTBEAT_STALE_AFTER_MINUTES,
+  RECEIPT_SEQUENCE_PAD_LENGTH,
+} from '../constants/index'
 import type { SoldAs } from '../types/index'
 
 export const formatMoney = (value: number) =>
@@ -110,3 +114,34 @@ export const normalizePhPhone = (input: string) => {
 }
 
 export const isValidPhPhone = (input: string) => /^\+63[89]\d{9}$/.test(normalizePhPhone(input))
+
+export type DeviceHeartbeatFreshness = 'fresh' | 'stale' | 'offline' | 'inactive' | 'lost' | 'never'
+
+export function getDeviceHeartbeatFreshness(params: {
+  status: string
+  lastSeenAt: string | number | Date | null
+  now?: Date
+}): DeviceHeartbeatFreshness {
+  if (params.status === 'lost') return 'lost'
+  if (params.status === 'inactive') return 'inactive'
+  if (params.lastSeenAt === null) return 'never'
+
+  const lastSeen =
+    params.lastSeenAt instanceof Date
+      ? params.lastSeenAt
+      : new Date(
+          typeof params.lastSeenAt === 'number' && params.lastSeenAt < 10_000_000_000
+            ? params.lastSeenAt * 1000
+            : params.lastSeenAt,
+        )
+  if (Number.isNaN(lastSeen.getTime())) return 'never'
+
+  const now = params.now ?? new Date()
+  const ageMs = Math.max(0, now.getTime() - lastSeen.getTime())
+  const staleAfterMs = DEVICE_HEARTBEAT_STALE_AFTER_MINUTES * 60 * 1000
+  const offlineAfterMs = DEVICE_HEARTBEAT_OFFLINE_AFTER_HOURS * 60 * 60 * 1000
+
+  if (ageMs >= offlineAfterMs) return 'offline'
+  if (ageMs >= staleAfterMs) return 'stale'
+  return 'fresh'
+}

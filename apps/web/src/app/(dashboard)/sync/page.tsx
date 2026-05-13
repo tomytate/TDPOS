@@ -31,6 +31,8 @@ function tailRef(value: string): string {
 function statusToneFor(
   stuck: number,
   failed: number,
+  staleDevices: number,
+  offlineDevices: number,
 ): {
   label: string
   className: string
@@ -48,6 +50,20 @@ function statusToneFor(
       label: 'Review failures',
       className: 'border-amber-300 bg-amber-50 text-amber-700',
       description: `${failed} failed operation${failed === 1 ? '' : 's'} in the last 24h.`,
+    }
+  }
+  if (offlineDevices > 0) {
+    return {
+      label: 'Device offline',
+      className: 'border-danger-500 bg-danger-50 text-danger-600',
+      description: `${offlineDevices} device${offlineDevices === 1 ? '' : 's'} past the 24h heartbeat window.`,
+    }
+  }
+  if (staleDevices > 0) {
+    return {
+      label: 'Device stale',
+      className: 'border-amber-300 bg-amber-50 text-amber-700',
+      description: `${staleDevices} device${staleDevices === 1 ? '' : 's'} missed the 45-minute heartbeat window.`,
     }
   }
   return {
@@ -119,7 +135,12 @@ export default async function SyncHealthPage() {
       ) : (
         <>
           {(() => {
-            const tone = statusToneFor(result.snapshot.stuckCount, result.snapshot.failedCount)
+            const tone = statusToneFor(
+              result.snapshot.stuckCount,
+              result.snapshot.failedCount,
+              result.snapshot.staleDeviceCount,
+              result.snapshot.offlineDeviceCount,
+            )
             return (
               <article
                 role="status"
@@ -138,7 +159,7 @@ export default async function SyncHealthPage() {
             )
           })()}
 
-          <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <section className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
             <article className="rounded-xl border border-ink-200 bg-white p-4 shadow-sm">
               <p className="m-0 text-[11px] font-semibold uppercase tracking-[1px] text-ink-500">
                 Completed (24h)
@@ -187,6 +208,30 @@ export default async function SyncHealthPage() {
                 {result.snapshot.activeDeviceCount}
               </p>
             </article>
+            <article className="rounded-xl border border-ink-200 bg-white p-4 shadow-sm">
+              <p className="m-0 text-[11px] font-semibold uppercase tracking-[1px] text-ink-500">
+                Stale devices
+              </p>
+              <p
+                className={`mt-2 text-3xl font-semibold tabular-nums ${
+                  result.snapshot.staleDeviceCount > 0 ? 'text-amber-700' : 'text-ink-700'
+                }`}
+              >
+                {result.snapshot.staleDeviceCount}
+              </p>
+            </article>
+            <article className="rounded-xl border border-ink-200 bg-white p-4 shadow-sm">
+              <p className="m-0 text-[11px] font-semibold uppercase tracking-[1px] text-ink-500">
+                Offline devices
+              </p>
+              <p
+                className={`mt-2 text-3xl font-semibold tabular-nums ${
+                  result.snapshot.offlineDeviceCount > 0 ? 'text-danger-600' : 'text-ink-700'
+                }`}
+              >
+                {result.snapshot.offlineDeviceCount}
+              </p>
+            </article>
           </section>
 
           <article className="rounded-xl border border-ink-200 bg-white p-4 shadow-sm">
@@ -230,7 +275,7 @@ export default async function SyncHealthPage() {
                       ) : null}
                     </div>
                     <span className="rounded bg-ink-50 px-2 py-0.5 text-[12px] font-semibold uppercase text-ink-600">
-                      {device.status}
+                      {device.status} · {device.freshness}
                     </span>
                     <span className="text-[12px] text-ink-500">
                       Seen {formatTimestamp(device.lastSeenAt)}

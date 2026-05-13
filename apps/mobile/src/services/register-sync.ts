@@ -1,14 +1,13 @@
 import * as BackgroundTask from 'expo-background-task'
 import * as TaskManager from 'expo-task-manager'
 import { useEffect } from 'react'
+import { DEVICE_HEARTBEAT_MINIMUM_INTERVAL_MINUTES } from '@tdpos/shared'
 
 import { useAuthStore } from '@/stores/auth-store'
 
 import { warnSafe } from './safe-logger'
 import { supabase } from './supabase'
 import { SYNC_TASK_NAME } from './sync-task'
-
-const MINIMUM_SYNC_INTERVAL_MINUTES = 15
 
 type BackgroundSyncRegistrationResult =
   | { ok: true; registered: true }
@@ -26,7 +25,7 @@ export async function registerBackgroundSync(): Promise<BackgroundSyncRegistrati
   const isRegistered = await TaskManager.isTaskRegisteredAsync(SYNC_TASK_NAME)
   if (!isRegistered) {
     await BackgroundTask.registerTaskAsync(SYNC_TASK_NAME, {
-      minimumInterval: MINIMUM_SYNC_INTERVAL_MINUTES,
+      minimumInterval: DEVICE_HEARTBEAT_MINIMUM_INTERVAL_MINUTES,
     })
   }
 

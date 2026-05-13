@@ -17,6 +17,8 @@
 
 import 'server-only'
 
+import { getDeviceHeartbeatFreshness, type DeviceHeartbeatFreshness } from '@tdpos/shared'
+
 import { getServerSupabase } from '@/lib/supabase/server'
 
 export interface SyncHealthFailure {
@@ -32,6 +34,7 @@ export interface SyncDeviceSnapshot {
   deviceName: string | null
   surface: string
   status: string
+  freshness: DeviceHeartbeatFreshness
   branchName: string | null
   lastSeenAt: string | null
   unsyncedRows: number | null
@@ -48,6 +51,8 @@ export interface SyncHealthSnapshot {
   completedCount24h: number
   inProgressCount: number
   activeDeviceCount: number
+  staleDeviceCount: number
+  offlineDeviceCount: number
   devices: SyncDeviceSnapshot[]
   recentFailures: SyncHealthFailure[]
 }
@@ -175,12 +180,26 @@ export async function getSyncHealthSnapshot(): Promise<SyncHealthResult> {
     completedCount24h: completed24h.count ?? 0,
     inProgressCount: inProgress.count ?? 0,
     activeDeviceCount: deviceRows.filter((device) => device.status === 'active').length,
+    staleDeviceCount: deviceRows.filter(
+      (device) =>
+        getDeviceHeartbeatFreshness({ status: device.status, lastSeenAt: device.last_seen_at }) ===
+        'stale',
+    ).length,
+    offlineDeviceCount: deviceRows.filter(
+      (device) =>
+        getDeviceHeartbeatFreshness({ status: device.status, lastSeenAt: device.last_seen_at }) ===
+        'offline',
+    ).length,
     devices: deviceRows.map((device) => ({
       id: device.id,
       installTail: tailInstallId(device.install_id),
       deviceName: device.device_name,
       surface: device.surface,
       status: device.status,
+      freshness: getDeviceHeartbeatFreshness({
+        status: device.status,
+        lastSeenAt: device.last_seen_at,
+      }),
       branchName: device.branches?.[0]?.name ?? null,
       lastSeenAt: device.last_seen_at,
       unsyncedRows: numberOrNull(device.sync_snapshot?.unsynced_rows),

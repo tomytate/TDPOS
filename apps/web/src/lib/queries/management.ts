@@ -10,12 +10,14 @@ import 'server-only'
 import {
   displayStock,
   formatMoney,
+  getDeviceHeartbeatFreshness,
   getTierDefinition,
   getTierModuleState,
   isTierSurfaceEnabled,
   normalizeSubscriptionTier,
   resolveTierModuleState,
   splitStock,
+  type DeviceHeartbeatFreshness,
   type ModuleName,
   type SubscriptionTier,
   type TierSurface,
@@ -380,6 +382,7 @@ export interface DeviceManagementRow {
   branchName: string | null
   surface: string
   status: string
+  freshness: DeviceHeartbeatFreshness
   lastSeenAt: string | null
   unsyncedRows: number | null
   pendingRows: number | null
@@ -395,6 +398,8 @@ export interface DeviceManagementRow {
 export type DeviceManagementResult = QueryResult<{
   devices: DeviceManagementRow[]
   activeCount: number
+  staleCount: number
+  offlineCount: number
   lostCount: number
 }>
 
@@ -464,6 +469,8 @@ export async function getDeviceManagementRows(limit = 100): Promise<DeviceManage
   return withSupabase<{
     devices: DeviceManagementRow[]
     activeCount: number
+    staleCount: number
+    offlineCount: number
     lostCount: number
   }>(async (supabase) => {
     const { data, error } = await supabase
@@ -485,6 +492,10 @@ export async function getDeviceManagementRows(limit = 100): Promise<DeviceManage
       branchName: row.branches?.[0]?.name ?? null,
       surface: row.surface,
       status: row.status,
+      freshness: getDeviceHeartbeatFreshness({
+        status: row.status,
+        lastSeenAt: row.last_seen_at,
+      }),
       lastSeenAt: row.last_seen_at,
       unsyncedRows: numberOrNull(row.sync_snapshot?.unsynced_rows),
       pendingRows: numberOrNull(row.sync_snapshot?.pending_rows),
@@ -501,6 +512,8 @@ export async function getDeviceManagementRows(limit = 100): Promise<DeviceManage
       ready: true,
       devices,
       activeCount: devices.filter((device) => device.status === 'active').length,
+      staleCount: devices.filter((device) => device.freshness === 'stale').length,
+      offlineCount: devices.filter((device) => device.freshness === 'offline').length,
       lostCount: devices.filter((device) => device.status === 'lost').length,
     }
   })
