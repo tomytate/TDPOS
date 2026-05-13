@@ -99,6 +99,13 @@ export const deviceManagementDraftSchema = z.object({
   status: z.enum(['active', 'inactive', 'lost']),
 })
 
+export const deviceLostReplacementDraftSchema = z.object({
+  device_id: z.uuid({ error: 'Choose a registered device' }),
+  recovery_note: optionalTextSchema,
+  acknowledge_unsynced: z.boolean().default(false),
+  acknowledge_receipts: z.boolean().default(false),
+})
+
 export const customerErasureDraftSchema = z.object({
   customer_id: z.uuid({ error: 'Choose a customer' }),
   reason: optionalTextSchema,
@@ -238,6 +245,7 @@ export type CategoryManagementDraft = z.infer<typeof categoryManagementDraftSche
 export type UserInviteDraft = z.infer<typeof userInviteDraftSchema>
 export type ModuleManagementDraft = z.infer<typeof moduleManagementDraftSchema>
 export type DeviceManagementDraft = z.infer<typeof deviceManagementDraftSchema>
+export type DeviceLostReplacementDraft = z.infer<typeof deviceLostReplacementDraftSchema>
 export type CustomerErasureDraft = z.infer<typeof customerErasureDraftSchema>
 export type TenantDataExportRequest = z.infer<typeof tenantDataExportRequestSchema>
 export type SaleItem = z.infer<typeof saleItemSchema>

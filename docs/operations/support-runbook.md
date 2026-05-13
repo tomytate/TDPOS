@@ -100,12 +100,12 @@ Symptoms:
 Steps:
 
 1. Treat as `SEV-1` if the device may still be signed in.
-2. Disable the user's access in the hosted auth dashboard when available.
-3. Record the last known install ID, branch, cashier code, and last successful sync time.
-4. Do not transfer receipt sequence ownership manually.
-5. Escalate to engineering for device deactivation and receipt-sequence review.
+2. Open the web dashboard **Devices** page and find the last known install ID, branch, cashier code, last seen time, queue counts, and receipt-sequence snapshot.
+3. If the device shows unsynced, failed, or reviewable local rows, get the manager-triggered local data export before marking it lost.
+4. Use **Lost-device replacement** to mark the old device lost. This records the reporter, recovery note, latest receipt-sequence snapshot, and releases one paid-tier device slot for the replacement heartbeat.
+5. Do not transfer receipt sequence ownership manually. The old sequence snapshot stays attached to the lost device for support review.
 
-Permanent restore and receipt-sequence transfer require the device-management and restore-from-server features tracked in the v1.0 checklist.
+Permanent restore still requires the replacement phone to sign in, heartbeat, restore products/categories from the server, and pass the first sync smoke test before the store uses it for customer receipts.
 
 ### 5. Restore On A New Phone
 

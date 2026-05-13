@@ -1,6 +1,9 @@
 import { TierLockBanner } from '@/components/tier-lock-banner'
 import { ScaffoldActionButton } from '@/components/scaffold-action-button'
-import { updateDeviceStatusScaffoldAction } from '@/app/(dashboard)/actions'
+import {
+  markDeviceLostForReplacementAction,
+  updateDeviceStatusScaffoldAction,
+} from '@/app/(dashboard)/actions'
 import { getBusinessEntitlements, getDeviceManagementRows } from '@/lib/queries/management'
 
 function formatTimestamp(value: string | number | null): string {
@@ -16,6 +19,11 @@ function formatLimit(limit: number | null): string {
 
 function formatQueue(value: number | null): string {
   return value === null ? '--' : value.toLocaleString('en-PH')
+}
+
+function formatReceiptDateKey(value: string): string {
+  if (!/^\d{8}$/.test(value)) return value
+  return `${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(6, 8)}`
 }
 
 export default async function DevicesPage() {
@@ -56,15 +64,18 @@ export default async function DevicesPage() {
           {canManage && result.devices.length > 0 ? (
             <section className="rounded-lg border border-ink-200 bg-ink-50 p-4">
               <div className="mb-3">
-                <h2 className="m-0 text-base font-semibold text-ink-900">Device action scaffold</h2>
+                <h2 className="m-0 text-base font-semibold text-ink-900">
+                  Lost-device replacement
+                </h2>
                 <p className="mt-1 text-sm text-ink-600">
-                  Status changes validate the registered device id and pass through the same tier
-                  guard as the Devices route. The production mutation lands in W0.8.
+                  Mark a missing device as lost, preserve its latest queue and receipt-sequence
+                  snapshot for support, and release its paid-tier device slot for the next
+                  heartbeat.
                 </p>
               </div>
               <ScaffoldActionButton
-                action={updateDeviceStatusScaffoldAction}
-                label="Validate device status action"
+                action={markDeviceLostForReplacementAction}
+                label="Prepare replacement"
                 fields={[
                   {
                     kind: 'select',
@@ -76,15 +87,20 @@ export default async function DevicesPage() {
                     })),
                   },
                   {
-                    kind: 'select',
-                    name: 'status',
-                    label: 'Next status',
-                    defaultValue: 'inactive',
-                    options: [
-                      { label: 'Active', value: 'active' },
-                      { label: 'Inactive', value: 'inactive' },
-                      { label: 'Lost', value: 'lost' },
-                    ],
+                    kind: 'text',
+                    name: 'recovery_note',
+                    label: 'Recovery note',
+                    placeholder: 'Example: replacement phone issued to C01',
+                  },
+                  {
+                    kind: 'checkbox',
+                    name: 'acknowledge_unsynced',
+                    label: 'Local export copied if queue rows remain',
+                  },
+                  {
+                    kind: 'checkbox',
+                    name: 'acknowledge_receipts',
+                    label: 'Receipt sequence snapshot reviewed',
                   },
                 ]}
               />
@@ -160,6 +176,20 @@ export default async function DevicesPage() {
                             Oldest {formatTimestamp(device.oldestPendingCreatedAt)}
                           </div>
                         ) : null}
+                        {device.receiptSequences.length > 0 ? (
+                          <div className="mt-1 text-ink-500">
+                            Receipt seq{' '}
+                            {device.receiptSequences
+                              .slice(0, 2)
+                              .map(
+                                (sequence) =>
+                                  `${sequence.branchCode}/${sequence.cashierCode}/${formatReceiptDateKey(
+                                    sequence.date,
+                                  )}: ${sequence.lastSequence}`,
+                              )
+                              .join(' · ')}
+                          </div>
+                        ) : null}
                       </td>
                       <td className="px-4 py-3 text-ink-600">
                         {formatTimestamp(device.lastSeenAt)}
@@ -176,6 +206,14 @@ export default async function DevicesPage() {
                         >
                           {device.status}
                         </span>
+                        {device.lostReportedAt ? (
+                          <div className="mt-1 text-[11px] text-ink-500">
+                            Reported {formatTimestamp(device.lostReportedAt)}
+                          </div>
+                        ) : null}
+                        {device.replacementRequestedAt ? (
+                          <div className="text-[11px] text-ink-500">Replacement prepared</div>
+                        ) : null}
                       </td>
                     </tr>
                   ))
@@ -188,6 +226,44 @@ export default async function DevicesPage() {
             Queue values are local counts reported by the device heartbeat. Raw sync payloads stay
             on-device and never appear in this dashboard.
           </p>
+
+          {canManage && result.devices.length > 0 ? (
+            <section className="rounded-lg border border-ink-200 bg-white p-4">
+              <div className="mb-3">
+                <h2 className="m-0 text-base font-semibold text-ink-900">Manual status override</h2>
+                <p className="mt-1 text-sm text-ink-600">
+                  Use this only to reactivate a recovered device or park a lane as inactive. Lost
+                  replacements should use the recovery flow above.
+                </p>
+              </div>
+              <ScaffoldActionButton
+                action={updateDeviceStatusScaffoldAction}
+                label="Set status"
+                fields={[
+                  {
+                    kind: 'select',
+                    name: 'device_id',
+                    label: 'Device',
+                    options: result.devices.map((device) => ({
+                      label: `${device.deviceName ?? `Device ${device.installTail}`} (${device.status})`,
+                      value: device.id,
+                    })),
+                  },
+                  {
+                    kind: 'select',
+                    name: 'status',
+                    label: 'Next status',
+                    defaultValue: 'inactive',
+                    options: [
+                      { label: 'Active', value: 'active' },
+                      { label: 'Inactive', value: 'inactive' },
+                      { label: 'Lost', value: 'lost' },
+                    ],
+                  },
+                ]}
+              />
+            </section>
+          ) : null}
         </>
       )}
     </div>

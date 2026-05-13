@@ -1,5 +1,5 @@
 import type { AsyncSqliteLike } from '@/db/async-sqlite'
-import { getSyncHealth, type SyncHealth } from '@/features/diagnostics/lib/sync-health'
+import { buildDeviceSyncSnapshot } from '@/services/device-heartbeat-snapshot'
 import { getOrCreateInstallId } from '@/services/device-identity'
 import { storage } from '@/services/storage'
 import { useAuthStore } from '@/stores/auth-store'
@@ -60,29 +60,6 @@ function entitlementSnapshot(params: {
   }
 }
 
-function buildSyncSnapshot(health: SyncHealth | null) {
-  if (!health) {
-    return {
-      available: false,
-      reason: 'local_sqlite_unavailable',
-    }
-  }
-
-  return {
-    available: true,
-    total_rows: health.totalRows,
-    synced_rows: health.syncedRows,
-    unsynced_rows: health.unsyncedRows,
-    pending_rows: health.pendingRows,
-    failed_rows: health.failedRows,
-    reviewable_rows: health.reviewableRows,
-    max_retry_count: health.maxRetryCount,
-    last_successful_sync_at: health.lastSuccessfulSyncAt,
-    oldest_pending_created_at: health.oldestPendingCreatedAt,
-    latest_error_at: health.latestErrorAt,
-  }
-}
-
 export async function upsertDeviceHeartbeat(params: {
   supabase: SupabaseDeviceHeartbeatClient
   db?: AsyncSqliteLike
@@ -94,7 +71,7 @@ export async function upsertDeviceHeartbeat(params: {
 
   const surface = params.surface ?? 'mobile.tier_a_cashier'
   const installId = getOrCreateInstallId(storage)
-  const health = params.db ? await getSyncHealth(params.db) : null
+  const syncSnapshot = await buildDeviceSyncSnapshot(params.db)
   const { error } = await params.supabase.from('business_devices').upsert(
     {
       business_id: state.businessId,
@@ -114,7 +91,7 @@ export async function upsertDeviceHeartbeat(params: {
         lastServerHandshakeAt: state.lastServerHandshakeAt,
         cashierCode: state.cashierCode,
       }),
-      sync_snapshot: buildSyncSnapshot(health),
+      sync_snapshot: syncSnapshot,
     },
     { onConflict: 'business_id,install_id' },
   )

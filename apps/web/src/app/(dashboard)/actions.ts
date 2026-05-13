@@ -7,6 +7,7 @@ import {
   branchManagementDraftSchema,
   categoryManagementDraftSchema,
   customerErasureDraftSchema,
+  deviceLostReplacementDraftSchema,
   deviceManagementDraftSchema,
   moduleManagementDraftSchema,
   normalizePhPhone,
@@ -91,6 +92,11 @@ function firstIssueMessage(result: { error: { issues: Array<{ message: string }>
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
+}
+
+function numberFromRecord(record: Record<string, unknown> | null, key: string): number {
+  const value = record?.[key]
+  return typeof value === 'number' && Number.isFinite(value) ? value : 0
 }
 
 function customerErasureMessage(reason: string | null): string {
@@ -623,13 +629,24 @@ export async function updateDeviceStatusScaffoldAction(
   // update below also returns null — same 404 path either way.
   const { data: priorRow } = await supabase
     .from('business_devices')
-    .select('status')
+    .select('status, lost_reported_at, replacement_requested_at, recovery_note')
     .eq('id', draft.data.device_id)
     .maybeSingle()
 
+  const statusPatch: Record<string, unknown> = { status: draft.data.status }
+  if (draft.data.status === 'lost') {
+    statusPatch.lost_reported_at = new Date().toISOString()
+    statusPatch.lost_reported_by = ctx.userId
+  } else if ((priorRow as { status?: string } | null)?.status === 'lost') {
+    statusPatch.lost_reported_at = null
+    statusPatch.lost_reported_by = null
+    statusPatch.replacement_requested_at = null
+    statusPatch.recovery_note = null
+  }
+
   const { data: updated, error: updateError } = await supabase
     .from('business_devices')
-    .update({ status: draft.data.status })
+    .update(statusPatch)
     .eq('id', draft.data.device_id)
     .select('id')
     .maybeSingle()
@@ -651,8 +668,16 @@ export async function updateDeviceStatusScaffoldAction(
     action: 'device.status_update',
     resourceType: 'business_device',
     resourceId: draft.data.device_id,
-    before: priorRow ? { status: (priorRow as { status: string }).status } : null,
-    after: { status: draft.data.status },
+    before: priorRow
+      ? {
+          status: (priorRow as { status: string }).status,
+          lost_reported_at: (priorRow as { lost_reported_at: string | null }).lost_reported_at,
+          replacement_requested_at: (priorRow as { replacement_requested_at: string | null })
+            .replacement_requested_at,
+          recovery_note: (priorRow as { recovery_note: string | null }).recovery_note,
+        }
+      : null,
+    after: statusPatch,
   })
 
   revalidatePath('/devices')
@@ -661,6 +686,135 @@ export async function updateDeviceStatusScaffoldAction(
   return {
     ok: true,
     message: `Device set to ${draft.data.status}.`,
+    resourceId: draft.data.device_id,
+  }
+}
+
+export async function markDeviceLostForReplacementAction(
+  _previousState: ScaffoldActionState,
+  formData: FormData,
+): Promise<ScaffoldActionResult> {
+  const draft = deviceLostReplacementDraftSchema.safeParse({
+    device_id: textField(formData, 'device_id'),
+    recovery_note: optionalTextField(formData, 'recovery_note'),
+    acknowledge_unsynced: formData.get('acknowledge_unsynced') === 'on',
+    acknowledge_receipts: formData.get('acknowledge_receipts') === 'on',
+  })
+
+  if (!draft.success) return invalidInput(firstIssueMessage(draft))
+
+  const access = await guardedScaffoldAccess('web.devices')
+  if (!access.ok) return access
+
+  let supabase
+  try {
+    supabase = await getServerSupabase()
+  } catch {
+    return { ok: false, reason: 'supabase_unconfigured', message: 'Supabase is not configured.' }
+  }
+
+  const ctx = await resolveCallerContext(supabase)
+  if (!ctx.ok) return ctx.result
+
+  const { data: priorRow, error: readError } = await supabase
+    .from('business_devices')
+    .select(
+      `id, install_id, device_name, status, last_seen_at, sync_snapshot,
+       lost_reported_at, replacement_requested_at, recovery_note`,
+    )
+    .eq('id', draft.data.device_id)
+    .maybeSingle()
+
+  if (readError) {
+    return { ok: false, reason: 'query_failed', message: readError.message }
+  }
+  if (!priorRow) {
+    return {
+      ok: false,
+      reason: 'query_failed',
+      message: 'Device not found in your business.',
+    }
+  }
+
+  const syncSnapshot = isRecord(priorRow.sync_snapshot) ? priorRow.sync_snapshot : null
+  const unsafeQueueRows =
+    numberFromRecord(syncSnapshot, 'unsynced_rows') +
+    numberFromRecord(syncSnapshot, 'failed_rows') +
+    numberFromRecord(syncSnapshot, 'reviewable_rows')
+  const receiptSequences = syncSnapshot?.receipt_sequences
+  const hasReceiptSequenceSnapshot = Array.isArray(receiptSequences) && receiptSequences.length > 0
+
+  if (unsafeQueueRows > 0 && !draft.data.acknowledge_unsynced) {
+    return invalidInput(
+      `This device last reported ${unsafeQueueRows} unsynced, failed, or reviewable local row${
+        unsafeQueueRows === 1 ? '' : 's'
+      }. Copy the local data export first, then acknowledge this risk.`,
+    )
+  }
+
+  if (hasReceiptSequenceSnapshot && !draft.data.acknowledge_receipts) {
+    return invalidInput(
+      'Acknowledge the receipt sequence snapshot before preparing a replacement device.',
+    )
+  }
+
+  const reportedAt = new Date().toISOString()
+  const { data: updated, error: updateError } = await supabase
+    .from('business_devices')
+    .update({
+      status: 'lost',
+      lost_reported_at: reportedAt,
+      lost_reported_by: ctx.userId,
+      replacement_requested_at: reportedAt,
+      recovery_note: draft.data.recovery_note ?? null,
+    })
+    .eq('id', draft.data.device_id)
+    .select('id')
+    .maybeSingle()
+
+  if (updateError) {
+    return { ok: false, reason: 'query_failed', message: updateError.message }
+  }
+  if (!updated) {
+    return {
+      ok: false,
+      reason: 'query_failed',
+      message: 'Device not found in your business.',
+    }
+  }
+
+  await logAuditEvent(supabase, {
+    businessId: ctx.businessId,
+    userId: ctx.userId,
+    action: 'device.lost_replacement_prepare',
+    resourceType: 'business_device',
+    resourceId: draft.data.device_id,
+    before: {
+      status: priorRow.status as string,
+      last_seen_at: (priorRow as { last_seen_at: string | null }).last_seen_at,
+      lost_reported_at: (priorRow as { lost_reported_at: string | null }).lost_reported_at,
+      replacement_requested_at: (priorRow as { replacement_requested_at: string | null })
+        .replacement_requested_at,
+      recovery_note: (priorRow as { recovery_note: string | null }).recovery_note,
+    },
+    after: {
+      status: 'lost',
+      lost_reported_at: reportedAt,
+      replacement_requested_at: reportedAt,
+      unsafe_queue_rows: unsafeQueueRows,
+      receipt_sequence_snapshots: hasReceiptSequenceSnapshot ? receiptSequences : [],
+      recovery_note: draft.data.recovery_note ?? null,
+    },
+  })
+
+  revalidatePath('/devices')
+  revalidatePath('/sync')
+  revalidatePath('/audit')
+
+  return {
+    ok: true,
+    message:
+      'Device marked lost. Its slot is released for a replacement heartbeat; keep the local data export until support closes recovery.',
     resourceId: draft.data.device_id,
   }
 }

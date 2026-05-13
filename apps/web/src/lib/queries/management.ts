@@ -386,6 +386,10 @@ export interface DeviceManagementRow {
   failedRows: number | null
   reviewableRows: number | null
   oldestPendingCreatedAt: number | null
+  receiptSequences: DeviceReceiptSequence[]
+  lostReportedAt: string | null
+  replacementRequestedAt: string | null
+  recoveryNote: string | null
 }
 
 export type DeviceManagementResult = QueryResult<{
@@ -394,6 +398,13 @@ export type DeviceManagementResult = QueryResult<{
   lostCount: number
 }>
 
+export interface DeviceReceiptSequence {
+  branchCode: string
+  cashierCode: string
+  date: string
+  lastSequence: number
+}
+
 interface DeviceRow {
   id: string
   install_id: string
@@ -401,12 +412,16 @@ interface DeviceRow {
   surface: string
   status: string
   last_seen_at: string | null
+  lost_reported_at: string | null
+  replacement_requested_at: string | null
+  recovery_note: string | null
   sync_snapshot: {
     unsynced_rows?: unknown
     pending_rows?: unknown
     failed_rows?: unknown
     reviewable_rows?: unknown
     oldest_pending_created_at?: unknown
+    receipt_sequences?: unknown
   } | null
   branches: Array<{ name: string }> | null
 }
@@ -419,6 +434,32 @@ function numberOrNull(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null
 }
 
+function receiptSequencesFromSnapshot(value: unknown): DeviceReceiptSequence[] {
+  if (!Array.isArray(value)) return []
+
+  return value
+    .map((entry) => {
+      if (typeof entry !== 'object' || entry === null) return null
+      const row = entry as Record<string, unknown>
+      if (
+        typeof row.branch_code !== 'string' ||
+        typeof row.cashier_code !== 'string' ||
+        typeof row.date !== 'string' ||
+        typeof row.last_sequence !== 'number'
+      ) {
+        return null
+      }
+
+      return {
+        branchCode: row.branch_code,
+        cashierCode: row.cashier_code,
+        date: row.date,
+        lastSequence: row.last_sequence,
+      }
+    })
+    .filter((entry): entry is DeviceReceiptSequence => entry !== null)
+}
+
 export async function getDeviceManagementRows(limit = 100): Promise<DeviceManagementResult> {
   return withSupabase<{
     devices: DeviceManagementRow[]
@@ -428,7 +469,9 @@ export async function getDeviceManagementRows(limit = 100): Promise<DeviceManage
     const { data, error } = await supabase
       .from('business_devices')
       .select(
-        'id, install_id, device_name, surface, status, last_seen_at, sync_snapshot, branches ( name )',
+        `id, install_id, device_name, surface, status, last_seen_at,
+         lost_reported_at, replacement_requested_at, recovery_note,
+         sync_snapshot, branches ( name )`,
       )
       .order('last_seen_at', { ascending: false, nullsFirst: false })
       .limit(limit)
@@ -448,6 +491,10 @@ export async function getDeviceManagementRows(limit = 100): Promise<DeviceManage
       failedRows: numberOrNull(row.sync_snapshot?.failed_rows),
       reviewableRows: numberOrNull(row.sync_snapshot?.reviewable_rows),
       oldestPendingCreatedAt: numberOrNull(row.sync_snapshot?.oldest_pending_created_at),
+      receiptSequences: receiptSequencesFromSnapshot(row.sync_snapshot?.receipt_sequences),
+      lostReportedAt: row.lost_reported_at,
+      replacementRequestedAt: row.replacement_requested_at,
+      recoveryNote: row.recovery_note,
     }))
 
     return {

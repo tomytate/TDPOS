@@ -210,6 +210,10 @@ export interface DbBusinessDevice {
   last_seen_at: DbTimestamp | null
   entitlement_snapshot: Record<string, unknown>
   sync_snapshot: Record<string, unknown>
+  lost_reported_at: DbTimestamp | null
+  lost_reported_by: string | null
+  replacement_requested_at: DbTimestamp | null
+  recovery_note: string | null
   created_at: DbTimestamp
 }
 
