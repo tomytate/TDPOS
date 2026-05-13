@@ -6,6 +6,7 @@
 
 import * as Clipboard from 'expo-clipboard'
 import { router } from 'expo-router'
+import { useSQLiteContext } from 'expo-sqlite'
 import { useState } from 'react'
 import { ScrollView, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -16,6 +17,7 @@ import { useDiagnosticsMetadata } from '@/features/diagnostics/hooks/use-diagnos
 import { useRecentSyncErrors } from '@/features/diagnostics/hooks/use-recent-sync-errors'
 import { useSyncHealth } from '@/features/diagnostics/hooks/use-sync-health'
 import { buildSupportBundle } from '@/features/diagnostics/lib/support-bundle'
+import { buildLocalDataExport } from '@/features/diagnostics/lib/local-data-export'
 import { useHaptics } from '@/hooks/use-haptics'
 import { useT } from '@/i18n/translations'
 import { useAuthStore } from '@/stores/auth-store'
@@ -37,7 +39,9 @@ export default function DiagnosticsScreen() {
   const t = useT()
   const insets = useSafeAreaInsets()
   const haptics = useHaptics()
+  const db = useSQLiteContext()
   const [copying, setCopying] = useState(false)
+  const [exporting, setExporting] = useState(false)
   const [snackbar, setSnackbar] = useState<string | null>(null)
   const role = useAuthStore((state) => state.role)
   const canViewDiagnostics = role ? MANAGER_ROLES.has(role) : false
@@ -309,6 +313,43 @@ export default function DiagnosticsScreen() {
                 </Button>
                 <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
                   Bundle strips phone numbers and emails before leaving the device.
+                </Text>
+                <Button
+                  mode="outlined"
+                  icon="database-export-outline"
+                  loading={exporting}
+                  disabled={exporting || !metadata}
+                  onPress={() => {
+                    if (!metadata) return
+                    void haptics.tapLight()
+                    setExporting(true)
+                    void buildLocalDataExport({
+                      db,
+                      metadata,
+                      generatedAt: new Date(),
+                    })
+                      .then((exportText) => Clipboard.setStringAsync(exportText))
+                      .then((copied) => {
+                        setSnackbar(
+                          copied
+                            ? t('diagnostics.localExportCopied')
+                            : t('diagnostics.localExportCopyFailed'),
+                        )
+                      })
+                      .catch(() => {
+                        setSnackbar(t('diagnostics.localExportCopyFailed'))
+                      })
+                      .finally(() => {
+                        setExporting(false)
+                      })
+                  }}
+                  accessibilityLabel={t('diagnostics.copyLocalExport')}
+                  accessibilityHint="Copies products, sales, sale lines, and sync queue rows for support recovery"
+                >
+                  {t('diagnostics.copyLocalExport')}
+                </Button>
+                <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                  {t('diagnostics.localExportHint')}
                 </Text>
               </Card.Content>
             </Card>

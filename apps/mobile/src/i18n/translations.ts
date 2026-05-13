@@ -77,6 +77,11 @@ export const translations = {
     'diagnostics.copyBundle': 'Copy support bundle',
     'diagnostics.bundleCopied': 'Support bundle copied',
     'diagnostics.bundleCopyFailed': 'Could not copy support bundle',
+    'diagnostics.copyLocalExport': 'Copy local data export',
+    'diagnostics.localExportCopied': 'Local data export copied',
+    'diagnostics.localExportCopyFailed': 'Could not copy local data export',
+    'diagnostics.localExportHint':
+      'Includes products, sales, sale lines, and sync queue rows. Use only when support asks.',
     'diagnostics.queue': 'Sync queue',
     'diagnostics.unsynced': 'Unsynced',
     'diagnostics.failed': 'Retrying',
@@ -198,6 +203,11 @@ export const translations = {
     'diagnostics.copyBundle': 'Copy support bundle',
     'diagnostics.bundleCopied': 'Nakopya ang support bundle',
     'diagnostics.bundleCopyFailed': 'Hindi makopya ang support bundle',
+    'diagnostics.copyLocalExport': 'Copy local data export',
+    'diagnostics.localExportCopied': 'Nakopya ang local data export',
+    'diagnostics.localExportCopyFailed': 'Hindi makopya ang local data export',
+    'diagnostics.localExportHint':
+      'Kasama ang products, sales, sale lines, at sync queue rows. Gamitin lang kapag hiningi ng support.',
     'diagnostics.queue': 'Sync queue',
     'diagnostics.unsynced': 'Hindi pa synced',
     'diagnostics.failed': 'Retry',

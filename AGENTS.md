@@ -25,7 +25,7 @@ TD POS uses five canonical product tiers. New code must use these values only:
 
 `packages/shared/src/constants/index.ts` owns `TIER_DEFINITIONS`, module unlocks, limits, UI reference paths, and upgrade targets. The old six-name subscription values are migration-only through `LEGACY_TIER_MAP`; do not add new features against them. Root `UI/` is visual/product reference only, not production code.
 
-## Tech Stack (Verified May 11, 2026)
+## Tech Stack (Verified May 13, 2026)
 
 ### Mobile (apps/mobile)
 

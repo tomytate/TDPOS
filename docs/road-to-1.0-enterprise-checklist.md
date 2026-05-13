@@ -1780,7 +1780,7 @@ Purpose: every row in this phase blocks v1.0. Per the Release Pact, "enterprise-
 ### P11.5.7 Backup, Restore, And Disaster Recovery
 
 - [ ] Document Supabase backup posture per plan (Free = no backups, Pro = PITR). Decide which plan v1.0 ships on.
-- [ ] Mobile-side: an "export local data" diagnostic that produces a compressed JSON dump of products, sales, sale_items, sync_queue.
+- [x] Mobile-side: an "export local data" diagnostic that produces a compact JSON dump of products, sales, sale_items, sync_queue. The Diagnostics screen copies it only on manager action; it does not upload or write a file.
 - [/] Restore-from-server bootstrap: sync executor now pulls tenant products/categories into local SQLite after the queue drains, and preserves local `stock_pieces` for products with unsynced `DELTA` rows. Full fresh-device proof still requires a hosted-device smoke test.
 - [/] Lost-device runbook: device deactivation, sync-queue replay, receipt sequence reservation transfer to a new device. Process is documented in `docs/operations/support-runbook.md`; device-management implementation remains pending.
 - [x] EAS Update rollback plan: every release has a known-good prior update channel pinned for fast revert. `docs/operations/pilot-readiness.md` documents rollback to previous update, rollback to embedded update, and the rule that pilot builds do not use OTA until the update channel plan is explicit.
@@ -2142,9 +2142,10 @@ Use this section as releases progress.
 - [x] Local migration gate update 2026-05-12: `scripts/check-local-migrations.mjs` now verifies that `LOCAL_MIGRATIONS` is contiguous from v1, version 1 embeds `LOCAL_SCHEMA_SQL`, and every exported `LOCAL_*_SQL` migration constant is registered. `check:foundation` and CI now run it as the 4th gate.
 - [x] Catalog restore scaffold update 2026-05-12: `refreshCatalogFromSupabase()` pulls remote categories/products into local SQLite after sync, converts remote timestamps/prices into local shapes, and preserves local product stock when unsynced inventory deltas exist so an offline sale cannot be erased by catalog refresh.
 - [x] EOD receipt recovery update 2026-05-12: Reports now lists same-day local receipts, reconstructs line items from `sales` + `sale_items`, and reopens them through the Receipt screen so managers can share, print-placeholder, or void without manually querying SQLite.
+- [x] Local disaster-recovery export update 2026-05-13: Diagnostics now has a manager-triggered local data export that copies compact JSON containing products, sales, sale_items, and sync_queue rows for support recovery, with sanitized error text and no automatic upload.
 - [x] Verification: `source scripts/use-toolchain.sh && bun run check:toolchain` passes with Node 24.15.0, Bun 1.3.13, Supabase CLI 2.98.2, and EAS CLI runner available.
 - [x] Verification: `source scripts/use-toolchain.sh && bun run check:foundation` passes end-to-end.
-- [x] Current code-testable count after the first 0.9 tier suite: 119 passing tests total — 32 shared + 87 mobile.
+- [x] Current code-testable count after the first 0.9 tier suite: 120 passing tests total — 32 shared + 88 mobile.
 - [x] Mobile scaffold evidence: every registered `mobile.*` TierSurface now renders a native preview panel under `apps/mobile/src/features/tier-surfaces/surface-preview.tsx`; this keeps B-E routes visible without starting 0.9 polish.
 - [x] Backend scaffold evidence: `20260511000000_tier_surface_scaffold.sql` adds tenant-scoped RLS tables for devices, shifts, manager approvals, PLUs, kiosks, and returns; `/sync` reads device status from the new scaffold.
 - [x] Device heartbeat evidence: mobile foreground sync calls `upsertDeviceHeartbeat()` after entitlement refresh; the database trigger allows same-install refreshes while blocking a second active install over `max_devices`; heartbeat includes sanitized local sync-count snapshots only.

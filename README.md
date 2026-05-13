@@ -8,7 +8,7 @@ TD POS is a mobile-first, offline-capable SaaS POS and inventory management syst
 
 ## Release Posture
 
-- **Current baseline:** v0.8 Scaffold Complete — all five tier surfaces implemented, 119 tests passing, 13-stage foundation gate green.
+- **Current baseline:** v0.8 Scaffold Complete — all five tier surfaces implemented, 120 tests passing, 13-stage foundation gate green.
 - **Next real milestone:** v0.9 — full test suite (screenshot parity, accessibility, performance), hosted Supabase staging, EAS dev builds, physical-device airplane-mode sale.
 - **Then:** v0.1alpha — first pilot store.
 - **Target:** v1.0 Public Launch — mobile + web dashboard + marketing site simultaneously.
@@ -31,7 +31,7 @@ TD POS now uses five canonical product tiers, single-sourced in `@tdpos/shared`:
 
 The root `UI/` folder is a reference canvas only. Production implementation uses Expo and Next components, with `scripts/check-tier-ui-sources.mjs` verifying that every tier definition points at an existing source file. Legacy values (`free`, `starter`, `growth`, `pro`, `business`, `enterprise`) are migration inputs only and normalize into the A-E model.
 
-## Tech Stack (Verified May 11, 2026)
+## Tech Stack (Verified May 13, 2026)
 
 | Layer              | Technology                                                                    | Version |
 | ------------------ | ----------------------------------------------------------------------------- | ------- |

@@ -137,10 +137,10 @@ BackgroundTask.registerTaskAsync(TASK_NAME)
 
 ## Sources
 
-- Packages: `expo-background-task@^55.0.17`, `expo-task-manager@^55.0.15` (verified against `apps/mobile/package.json`)
+- Packages: `expo-background-task@~55.0.18`, `expo-task-manager@~55.0.16` (verified against `apps/mobile/package.json`)
 - Official docs: <https://docs.expo.dev/versions/v55.0.0/sdk/background-task/>
 - TaskManager reference: <https://docs.expo.dev/versions/v55.0.0/sdk/task-manager/>
 - iOS BGTaskScheduler reference: <https://developer.apple.com/documentation/backgroundtasks/bgtaskscheduler>
 - `app.config.ts` adds `UIBackgroundModes: ['processing']` and `BGTaskSchedulerPermittedIdentifiers: ['com.expo.modules.backgroundtask.processing']` to iOS Info.plist
 - Implementation: `apps/mobile/src/services/sync-task.ts`, `apps/mobile/src/services/sync-executor.ts`, `apps/mobile/src/services/sync-processor.ts`, `apps/mobile/src/services/register-sync.ts`
-- Last verified: 2026-05-09
+- Last verified: 2026-05-13

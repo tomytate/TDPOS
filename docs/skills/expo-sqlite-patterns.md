@@ -109,8 +109,8 @@ await db.getAllAsync('SELECT * FROM products')
 
 ## Sources
 
-- Package: `expo-sqlite@^55.0.0` (verified against `apps/mobile/package.json`)
+- Package: `expo-sqlite@~55.0.16` (verified against `apps/mobile/package.json`)
 - Official docs: <https://docs.expo.dev/versions/v55.0.0/sdk/sqlite/>
 - API reference: <https://docs.expo.dev/versions/v55.0.0/sdk/sqlite/#sqliteprovider>
 - Implementation: `apps/mobile/src/db/init.ts`, `apps/mobile/src/db/schema.ts`, `apps/mobile/src/features/sales/lib/execute-checkout.ts`, `apps/mobile/src/db/async-sqlite.ts` (test-friendly interface)
-- Last verified: 2026-05-09
+- Last verified: 2026-05-13

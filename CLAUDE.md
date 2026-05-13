@@ -94,11 +94,11 @@ After any code change, run:
 bun run check:foundation
 ```
 
-## Tech Stack Quick Reference (Verified May 11, 2026)
+## Tech Stack Quick Reference (Verified May 13, 2026)
 
 | Layer          | Package                                  | Version       |
 | -------------- | ---------------------------------------- | ------------- |
-| Framework      | expo                                     | 55.0.23       |
+| Framework      | expo                                     | 55.0.24       |
 | Router         | expo-router                              | 55.x          |
 | Local DB       | expo-sqlite                              | 55.x          |
 | State (client) | zustand                                  | 5.0.13        |
