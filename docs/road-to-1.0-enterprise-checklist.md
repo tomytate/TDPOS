@@ -425,7 +425,7 @@ Run this review once any paid service is enabled.
 #### Root + tooling
 
 - [x] Root monorepo scaffold exists.
-- [x] Root `package.json` has Turborepo scripts (`dev`, `build`, `lint`, `typecheck`, `test`, `format`, `db:*`, `mobile:*`, `check:secrets`, `check:tier-ui-sources`, `check:expo-doctor`, `check:mobile-bundle`, `check:foundation`).
+- [x] Root `package.json` has Turborepo scripts (`dev`, `build`, `lint`, `typecheck`, `test`, `format`, `db:*`, `mobile:*`, `check:secrets`, `check:sqlite-migrations`, `check:tier-ui-sources`, `check:expo-doctor`, `check:mobile-bundle`, `check:foundation`).
 - [x] `turbo.json` uses `tasks`, not deprecated `pipeline`. Schema URL is `https://turborepo.dev/schema.json`.
 - [x] TypeScript base config exists (`packages/typescript-config/base.json`, `target: esnext`, `strict`, `noUncheckedIndexedAccess`).
 - [x] ESLint 10 flat config exists (`eslint.config.mjs` with TS-ESLint, react-hooks, prettier).
@@ -435,7 +435,7 @@ Run this review once any paid service is enabled.
 - [x] `.env.example` uses publishable-key naming, no anon key.
 - [x] PR template (`.github/PULL_REQUEST_TEMPLATE.md`) lists the foundation gate and BIR/RLS rules.
 - [x] CI workflow (`.github/workflows/foundation.yml`) runs the same foundation gate on Bun 1.3.13.
-- [x] Foundation gate scripts: committed-secret scan, forbidden patterns, local SQLite schema drift, tier UI source existence, markdown links, and skill-doc structure.
+- [x] Foundation gate scripts: committed-secret scan, forbidden patterns, local SQLite schema drift, local SQLite migration ordering, tier UI source existence, markdown links, and skill-doc structure.
 
 #### Workspace packages
 
@@ -1732,7 +1732,7 @@ Purpose: every row in this phase blocks v1.0. Per the Release Pact, "enterprise-
 
 - [x] Add a forward-migrator that reads `schema_version`, applies missing migrations in order, and writes one row per applied version. `runLocalMigrations()` now owns mobile SQLite startup.
 - [ ] Migration files numbered `00X_*.sql` with a Bun script that runs them on a fresh DB.
-- [ ] Drift checker (`scripts/check-local-sqlite-schema.mjs`) extended to enforce migration ordering, not only the v1 string.
+- [x] Drift checker extended to enforce migration ordering, not only the v1 string. `scripts/check-local-migrations.mjs` validates the contiguous `LOCAL_MIGRATIONS` registry and CI/foundation runs it after the v1 schema drift check.
 - [x] Test: open an old DB created from `001_initial_schema.sql`, run app, confirm future migrations apply once and never again. Covered by `apps/mobile/src/db/migrations.test.ts`.
 - [ ] Document a downgrade rule: ship-only-forward; downgrades require export + reinstall.
 
@@ -2121,7 +2121,7 @@ Use this section as releases progress.
 - [x] Date: 2026-05-10.
 - [x] Scope: five canonical tiers, entitlement scaffolding, mobile/web surface gates, Supabase tier migrations, docs reconciliation.
 - [x] Code evidence: `packages/shared/src/constants/index.ts` owns `TIER_DEFINITIONS`; `scripts/check-tier-ui-sources.mjs` validates all five UI reference paths; Supabase migrations `20260510000000_tier_normalization.sql` and `20260510000001_entitlement_guards.sql` exist.
-- [x] Foundation gate shape: format → committed-secret scan → SQLite drift → forbidden patterns → tier UI source check → doc links → skill docs → Expo Doctor → Android bundle export → typecheck → lint → existing tests.
+- [x] Foundation gate shape: format → committed-secret scan → SQLite drift → SQLite migration ordering → forbidden patterns → tier UI source check → doc links → skill docs → Expo Doctor → Android bundle export → typecheck → lint → existing tests.
 - [x] Security hardening update 2026-05-12: `check:secrets` scans tracked text/code/config files for real-looking committed secrets, and CI now runs the tier UI source check so hosted checks match the local foundation gate.
 - [x] Privacy scaffold update 2026-05-12: mobile `/privacy` exists, is reachable from Diagnostics, is EN/TL translated, and records a local acknowledgement timestamp in persisted settings for the 0.9 privacy/legal review.
 - [x] Disabled-module privacy update 2026-05-12: mobile entitlement refresh now clears local customer-facing caches when `utang`, `customer_sms`, or `loyalty` are turned off, preserving server history while removing no-longer-entitled PII from device storage.
@@ -2139,6 +2139,7 @@ Use this section as releases progress.
 - [x] Stock take scaffold update 2026-05-12: manager/owner inventory rows expose a stock-take dialog, `executeStockTake()` writes local product stock + append-only adjustment log + sync `DELTA`, and `20260512000004_inventory_adjustment_reason.sql` refreshes the remote delta RPC to carry adjustment reasons without breaking `inventory_logs.type`.
 - [x] Stock Accuracy Score update 2026-05-12: local migration v8 adds immutable `stock_take_counts`, `getStockAccuracySnapshot()` computes the latest count score, Inventory shows the metric, and `20260512000005_stock_take_counts.sql` adds the tenant-scoped server table with RLS + immutability.
 - [x] Void workflow update 2026-05-12: local migration v9 adds immutable `sale_voids`, managers can void same-day receipts from the Receipt screen, `executeVoidSale()` writes a compensating negative sale + positive inventory delta without mutating the original sale, EOD reports net totals with a separate void count, and `20260512000006_sale_voids.sql` adds the tenant-scoped server link table with RLS + immutability.
+- [x] Local migration gate update 2026-05-12: `scripts/check-local-migrations.mjs` now verifies that `LOCAL_MIGRATIONS` is contiguous from v1, version 1 embeds `LOCAL_SCHEMA_SQL`, and every exported `LOCAL_*_SQL` migration constant is registered. `check:foundation` and CI now run it as the 4th gate.
 - [x] Verification: `source scripts/use-toolchain.sh && bun run check:toolchain` passes with Node 24.15.0, Bun 1.3.13, Supabase CLI 2.98.2, and EAS CLI runner available.
 - [x] Verification: `source scripts/use-toolchain.sh && bun run check:foundation` passes end-to-end.
 - [x] Current code-testable count after the first 0.9 tier suite: 116 passing tests total — 32 shared + 84 mobile.
@@ -2173,7 +2174,7 @@ Use this section as releases progress.
 - [x] Date: 2026-05-09 (foundation snapshot) → 2026-05-10 (git push to GitHub).
 - [x] Initial commit: `f4bb457` _"v0.1 foundation preview: mobile + web tracks, 15 ADRs, 20 skill docs, 8-stage foundation gate"_ on `main`. Subsequent commits on the same branch: `0e8917b feat(web): add sales PDF export`, `a623541 feat(web): add reporting ranges`, `c70a100 chore(mobile): link eas project`, `5e25fcc chore(deps): refresh package versions`.
 - [x] Remote: `https://github.com/tomytate/TDPOS.git` (private). CI workflow `.github/workflows/foundation.yml` runs the same foundation gate on every PR.
-- [x] Commands run: `bun run check:foundation` (format → SQLite drift → forbidden patterns → tier UI source check → doc-link integrity → skill-doc gate → Expo Doctor → Android bundle export → typecheck across 6 workspaces → lint across 6 workspaces → tests).
+- [x] Commands run: `bun run check:foundation` (format → SQLite drift → SQLite migration ordering → forbidden patterns → tier UI source check → doc-link integrity → skill-doc gate → Expo Doctor → Android bundle export → typecheck across workspaces → lint across workspaces → tests).
 - [ ] Device/simulator: not run on physical device yet — runtime acceptance criteria for P1.4/P1.5 still open.
 - [x] Notes: Mobile foundation + web foundation both real. Sale → checkout → receipt → sync_queue write proven by `bun:sqlite` integration tests. Web dashboard renders 9 RLS-scoped Server Component queries (Overview, audit, sync health) plus CSV + PDF exports. Hosted Supabase project provisioned and three migrations applied; live signup-and-render smoke test still owed once the leaked publishable key is rotated. Scanner, printer integration, real OTP on mobile, and device acceptance remain pending.
 

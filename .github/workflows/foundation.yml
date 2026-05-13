@@ -46,6 +46,9 @@ jobs:
       - name: Check local SQLite schema drift
         run: bun run check:sqlite-schema
 
+      - name: Check local SQLite migration ordering
+        run: bun run check:sqlite-migrations
+
       - name: Check forbidden foundation patterns
         run: bun run check:patterns
 
