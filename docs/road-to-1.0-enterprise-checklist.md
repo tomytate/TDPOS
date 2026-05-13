@@ -1811,8 +1811,8 @@ Purpose: every row in this phase blocks v1.0. Per the Release Pact, "enterprise-
 
 - [x] Re-print last receipt: cashier can re-show the latest sale's receipt screen even after navigating away. The cart store now persists `lastSaleResult`, and the Sale app bar exposes a receipt action when a last sale exists.
 - [/] Print receipt for any past sale within the void window from the EOD screen. Reports now lists same-day receipts and can reopen any local receipt into the Receipt screen for share/print/void actions; thermal-printer wiring remains P8.3 hardware work.
-- [ ] BIR-ready footer copy is centralized in one constant so accreditation language can flip in one place.
-- [ ] Receipt PDF generator (uses store name/address/TIN and the stored receipt rows) — used by exports and by the web dashboard later.
+- [x] BIR-ready footer copy is centralized in one constant so accreditation language can flip in one place. `@tdpos/shared` owns `BIR_RECEIPT_HEADER`, `BIR_RECEIPT_FOOTER`, and `BIR_RECEIPT_NOTE`; mobile receipt and web PDF export import those constants.
+- [x] Receipt PDF generator (uses store name/address/TIN and the stored receipt rows) — used by exports and by the web dashboard later. Web `/api/exports/sales/pdf` uses `apps/web/src/lib/pdf/build-sales-pdf.tsx`.
 
 ### P11.5.12 Doc Repair (Critical Cleanup)
 
