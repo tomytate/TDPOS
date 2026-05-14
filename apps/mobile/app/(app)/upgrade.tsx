@@ -16,6 +16,7 @@ import { Appbar, Button, Card, Surface, Text } from 'react-native-paper'
 import { LockedSurfaceCard } from '@/components/ui/locked-surface-card'
 import { useAppTheme } from '@/constants/theme'
 import { useHaptics } from '@/hooks/use-haptics'
+import { useT } from '@/i18n/translations'
 import { useAuthStore } from '@/stores/auth-store'
 import {
   SUBSCRIPTION_TIERS,
@@ -32,6 +33,7 @@ export default function UpgradeScreen() {
   const theme = useAppTheme()
   const insets = useSafeAreaInsets()
   const haptics = useHaptics()
+  const t = useT()
   const tier = useAuthStore((state) => state.subscriptionTier) as SubscriptionTier
 
   // Mobile-only surfaces, locked at the current tier, indexed by the tier
@@ -59,9 +61,9 @@ export default function UpgradeScreen() {
         <Appbar.BackAction
           color={theme.colors.onPrimary}
           onPress={() => router.back()}
-          accessibilityLabel="Back to subscription"
+          accessibilityLabel={t('upgrade.back')}
         />
-        <Appbar.Content title="Upgrade explorer" color={theme.colors.onPrimary} />
+        <Appbar.Content title={t('upgrade.title')} color={theme.colors.onPrimary} />
       </Appbar.Header>
 
       <ScrollView
@@ -70,9 +72,9 @@ export default function UpgradeScreen() {
         {orderedTiers.length === 0 ? (
           <Card mode="contained">
             <Card.Content style={{ gap: 8 }}>
-              <Text variant="titleMedium">All mobile surfaces unlocked</Text>
+              <Text variant="titleMedium">{t('upgrade.allUnlocked')}</Text>
               <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
-                You&rsquo;re on the highest tier — every mobile surface is available on this device.
+                {t('upgrade.allUnlockedBody')}
               </Text>
             </Card.Content>
           </Card>
@@ -84,10 +86,11 @@ export default function UpgradeScreen() {
                   variant="labelLarge"
                   style={{ color: theme.tdpos.amber[700], fontWeight: '600' }}
                 >
-                  {totalLocked} {totalLocked === 1 ? 'surface' : 'surfaces'} waiting
+                  {totalLocked}{' '}
+                  {totalLocked === 1 ? t('upgrade.waitingSingular') : t('upgrade.waitingPlural')}
                 </Text>
                 <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
-                  Tap a card to preview the surface, or compare tiers on the web to upgrade.
+                  {t('upgrade.waitingBody')}
                 </Text>
               </Card.Content>
             </Card>
@@ -121,7 +124,7 @@ export default function UpgradeScreen() {
                         key={surface}
                         surface={surface}
                         unlocksAt={definition}
-                        actionLabel="Open scaffold"
+                        actionLabel={t('upgrade.openScaffold')}
                         onAction={() => {
                           void haptics.tapLight()
                           router.push({
@@ -157,10 +160,10 @@ export default function UpgradeScreen() {
             void Linking.openURL(PRICING_URL)
           }}
           buttonColor={theme.colors.primary}
-          accessibilityLabel="Compare tiers on the web"
-          accessibilityHint="Opens the pricing page in your browser"
+          accessibilityLabel={t('upgrade.compareTiersWeb')}
+          accessibilityHint={t('upgrade.compareTiersHint')}
         >
-          Compare tiers on the web
+          {t('upgrade.compareTiersWeb')}
         </Button>
       </Surface>
     </View>

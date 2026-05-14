@@ -10,6 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Appbar, Button, Card, Chip, Divider, Surface, Text } from 'react-native-paper'
 
 import { useAppTheme } from '@/constants/theme'
+import { useT } from '@/i18n/translations'
 import { useAuthStore } from '@/stores/auth-store'
 import {
   SURFACE_LABELS,
@@ -44,6 +45,7 @@ function formatLimit(limit: number | null, suffix: string): string {
 export default function SubscriptionScreen() {
   const theme = useAppTheme()
   const insets = useSafeAreaInsets()
+  const t = useT()
   const tier = useAuthStore((state) => state.subscriptionTier) as SubscriptionTier
   const modules = useAuthStore((state) => state.modules)
   const entitlementsValidUntil = useAuthStore((state) => state.entitlementsValidUntil)
@@ -75,7 +77,7 @@ export default function SubscriptionScreen() {
           onPress={() => router.back()}
           accessibilityLabel="Back"
         />
-        <Appbar.Content title="Subscription" color={theme.colors.onPrimary} />
+        <Appbar.Content title={t('subscription.title')} color={theme.colors.onPrimary} />
       </Appbar.Header>
 
       <ScrollView
@@ -85,7 +87,7 @@ export default function SubscriptionScreen() {
         <Card mode="contained">
           <Card.Content style={{ gap: 8 }}>
             <Text variant="labelLarge" style={{ color: theme.colors.onSurfaceVariant }}>
-              {storeName ?? 'Your business'}
+              {storeName ?? t('subscription.yourBusiness')}
             </Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               <Text variant="headlineSmall" style={{ fontWeight: '700' }}>
@@ -108,7 +110,7 @@ export default function SubscriptionScreen() {
             </Text>
             {expiresAt ? (
               <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-                Renews / expires: {expiresAt}
+                {t('subscription.renewsExpires')}: {expiresAt}
               </Text>
             ) : null}
           </Card.Content>
@@ -118,7 +120,7 @@ export default function SubscriptionScreen() {
         <Card mode="contained">
           <Card.Content style={{ gap: 10 }}>
             <Text variant="labelLarge" style={{ color: theme.colors.onSurfaceVariant }}>
-              Limits at this tier
+              {t('subscription.limitsTitle')}
             </Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
               <Chip compact mode="outlined" icon="package-variant">
@@ -141,11 +143,11 @@ export default function SubscriptionScreen() {
         <Card mode="contained">
           <Card.Content style={{ gap: 8 }}>
             <Text variant="labelLarge" style={{ color: theme.colors.onSurfaceVariant }}>
-              Modules
+              {t('subscription.modulesTitle')}
             </Text>
             {enabledModuleKeys.length === 0 ? (
               <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
-                Core only. Upgrade to unlock optional modules like utang, loyalty, and SMS.
+                {t('subscription.modulesCoreOnly')}
               </Text>
             ) : (
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
@@ -163,7 +165,7 @@ export default function SubscriptionScreen() {
         <Card mode="contained">
           <Card.Content style={{ gap: 12 }}>
             <Text variant="labelLarge" style={{ color: theme.colors.onSurfaceVariant }}>
-              Mobile surfaces
+              {t('subscription.mobileSurfacesTitle')}
             </Text>
 
             {unlockedSurfaces.length > 0 ? (
@@ -172,7 +174,7 @@ export default function SubscriptionScreen() {
                   variant="labelMedium"
                   style={{ color: theme.tdpos.semantic.green600, fontWeight: '600' }}
                 >
-                  Available now ({unlockedSurfaces.length})
+                  {t('subscription.availableNow')} ({unlockedSurfaces.length})
                 </Text>
                 {unlockedSurfaces.map((surface) => {
                   const meta = SURFACE_LABELS[surface]
@@ -205,7 +207,7 @@ export default function SubscriptionScreen() {
                   variant="labelMedium"
                   style={{ color: theme.tdpos.amber[700], fontWeight: '600' }}
                 >
-                  Unlock by upgrading ({lockedSurfaces.length})
+                  {t('subscription.unlockByUpgrading')} ({lockedSurfaces.length})
                 </Text>
                 {lockedSurfaces.map((surface) => {
                   const meta = SURFACE_LABELS[surface]
@@ -250,19 +252,19 @@ export default function SubscriptionScreen() {
           mode="contained-tonal"
           icon="lock-open-outline"
           onPress={() => router.push('/(app)/upgrade')}
-          accessibilityLabel="See what other tiers unlock"
+          accessibilityLabel={t('subscription.seeOtherTiers')}
         >
-          See what other tiers unlock
+          {t('subscription.seeOtherTiers')}
         </Button>
         <Button
           mode="contained"
           icon="open-in-new"
           onPress={openPricing}
           buttonColor={theme.colors.primary}
-          accessibilityLabel="Compare tiers on the web"
-          accessibilityHint="Opens the pricing page in your browser"
+          accessibilityLabel={t('subscription.compareTiersWeb')}
+          accessibilityHint={t('subscription.compareTiersHint')}
         >
-          Compare tiers
+          {t('subscription.compareTiers')}
         </Button>
       </Surface>
     </View>
