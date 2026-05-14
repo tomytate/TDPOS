@@ -232,6 +232,19 @@ export const translations = {
     'printer.scanError':
       'Could not scan printers. Use a development build with Bluetooth permission.',
     'printer.testSent': 'Test slip sent to printer.',
+    'signIn.subtitle': 'Sign in with your Philippine mobile number to start a shift.',
+    'signIn.bootstrapErrorTitle': 'Account setup needed',
+    'signIn.phoneLabel': 'Mobile number',
+    'signIn.phonePlaceholder': '09171234567',
+    'signIn.phoneHint': 'Leading 0 or +63 both work. We’ll send a 6-digit code via SMS.',
+    'signIn.phoneAccessibilityHint': 'Enter the number that will receive the SMS code',
+    'signIn.sendCode': 'Send one-time code',
+    'signIn.sendingCode': 'Sending code…',
+    'signIn.sendCodeAccessibility': 'Send one-time code via SMS',
+    'signIn.invalidPhone': 'Enter a valid PH mobile number, e.g. 09171234567.',
+    'signIn.supabaseMissing': 'Supabase not configured. Check apps/mobile/.env.local.',
+    'signIn.otpFailedFallback': 'Could not send OTP.',
+    'signIn.disclaimer': 'BIR-ready provisional cashier. BIR accreditation pending.',
   },
   tl: {
     'app.loading': 'Binubuksan ang TD POS',
@@ -466,6 +479,20 @@ export const translations = {
     'printer.scanError':
       'Hindi ma-scan ang mga printer. Gumamit ng development build na may Bluetooth permission.',
     'printer.testSent': 'Naipadala ang test slip sa printer.',
+    'signIn.subtitle': 'Mag-sign in gamit ang Philippine mobile number mo para magsimula ng shift.',
+    'signIn.bootstrapErrorTitle': 'Kailangan pang i-setup ang account',
+    'signIn.phoneLabel': 'Mobile number',
+    'signIn.phonePlaceholder': '09171234567',
+    'signIn.phoneHint': 'Pwede ang 0 o +63 sa simula. Magpapadala kami ng 6-digit code via SMS.',
+    'signIn.phoneAccessibilityHint': 'I-enter ang numero na tatanggap ng SMS code',
+    'signIn.sendCode': 'Ipadala ang one-time code',
+    'signIn.sendingCode': 'Pinapadala…',
+    'signIn.sendCodeAccessibility': 'Ipadala ang one-time code via SMS',
+    'signIn.invalidPhone': 'Maglagay ng valid na PH mobile number, halimbawa 09171234567.',
+    'signIn.supabaseMissing':
+      'Hindi naka-configure ang Supabase. Tingnan ang apps/mobile/.env.local.',
+    'signIn.otpFailedFallback': 'Hindi naipadala ang OTP.',
+    'signIn.disclaimer': 'BIR-ready provisional cashier. Naghihintay pa ng BIR accreditation.',
   },
 } as const
 

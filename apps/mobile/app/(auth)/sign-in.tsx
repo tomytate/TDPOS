@@ -1,32 +1,26 @@
 // Sign-in — first impression for every pilot cashier. Polished for v0.9
 // visual QA: safe-area-aware, keyboard-aware form, auto-focused input,
 // theme-token colors only, and a brand block that mirrors the web /login
-// split-pane brand rail in compact form.
+// split-pane brand rail in compact form. EN + TL parity via `useT()`.
 
 import { router } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
 import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { Button, HelperText, Surface, Text, TextInput } from 'react-native-paper'
+import { Button, HelperText, Text, TextInput } from 'react-native-paper'
 
 import { ErrorBanner } from '@/components/ui/error-banner'
 import { useAppTheme } from '@/constants/theme'
+import { useT } from '@/i18n/translations'
 import { describeBootstrapFailure } from '@/services/auth-bootstrap'
 import { supabase } from '@/services/supabase'
 import { useAuthStore } from '@/stores/auth-store'
-import {
-  APP_TAGLINE,
-  TIER_A_FREE,
-  getTierModuleState,
-  isValidPhPhone,
-  normalizePhPhone,
-} from '@tdpos/shared'
+import { APP_TAGLINE, isValidPhPhone, normalizePhPhone } from '@tdpos/shared'
 
 export default function SignInScreen() {
   const theme = useAppTheme()
   const insets = useSafeAreaInsets()
-  const setAuth = useAuthStore((state) => state.setAuth)
-  const setDevice = useAuthStore((state) => state.setDevice)
+  const t = useT()
   const bootstrapStatus = useAuthStore((state) => state.bootstrapStatus)
   const bootstrapError =
     bootstrapStatus && !bootstrapStatus.ok ? describeBootstrapFailure(bootstrapStatus) : null
@@ -53,11 +47,11 @@ export default function SignInScreen() {
 
     const normalized = normalizePhPhone(phone.trim())
     if (!isValidPhPhone(normalized)) {
-      setError('Enter a valid PH mobile number, e.g. 09171234567.')
+      setError(t('signIn.invalidPhone'))
       return
     }
     if (!supabase) {
-      setError('Supabase not configured. Check apps/mobile/.env.local.')
+      setError(t('signIn.supabaseMissing'))
       return
     }
 
@@ -74,31 +68,10 @@ export default function SignInScreen() {
         params: { phone: normalized },
       })
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not send OTP.')
+      setError(err instanceof Error ? err.message : t('signIn.otpFailedFallback'))
     } finally {
       setSubmitting(false)
     }
-  }
-
-  const continueInDemoMode = () => {
-    setAuth({
-      userId: 'demo-user',
-      businessId: 'demo-business',
-      role: 'owner',
-      phone: '+639171234567',
-      subscriptionTier: TIER_A_FREE,
-      modules: getTierModuleState(TIER_A_FREE),
-      entitlementsValidUntil: null,
-    })
-    setDevice({
-      branchId: 'demo-branch',
-      branchCode: 'QC01',
-      branchName: 'Demo branch',
-      cashierCode: 'C01',
-      storeName: 'TD POS Demo Store',
-      storeAddress: 'Quezon City',
-    })
-    router.replace('/(app)/(tabs)')
   }
 
   return (
@@ -117,27 +90,6 @@ export default function SignInScreen() {
         }}
         keyboardShouldPersistTaps="handled"
       >
-        {__DEV__ ? (
-          <Surface
-            mode="flat"
-            style={{
-              padding: 12,
-              backgroundColor: theme.tdpos.amber[100],
-              borderRadius: 8,
-              gap: 4,
-            }}
-            accessibilityRole="alert"
-          >
-            <Text variant="labelLarge" style={{ color: theme.tdpos.ink[900] }}>
-              Demo mode available
-            </Text>
-            <Text variant="bodySmall" style={{ color: theme.tdpos.ink[800] }}>
-              Real OTP works against your Supabase project. The demo button below seeds local-only
-              data and is hidden in production builds.
-            </Text>
-          </Surface>
-        ) : null}
-
         {/* Brand block — compact mobile analog of the web /login split-pane rail */}
         <View style={{ gap: 6 }}>
           <Text
@@ -151,20 +103,20 @@ export default function SignInScreen() {
             {APP_TAGLINE}
           </Text>
           <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
-            Sign in with your Philippine mobile number to start a shift.
+            {t('signIn.subtitle')}
           </Text>
         </View>
 
         {bootstrapError ? (
-          <ErrorBanner title="Account setup needed" message={bootstrapError} />
+          <ErrorBanner title={t('signIn.bootstrapErrorTitle')} message={bootstrapError} />
         ) : null}
 
         <View style={{ gap: 4 }}>
           <TextInput
             ref={phoneInputRef}
             mode="outlined"
-            label="Mobile number"
-            placeholder="09171234567"
+            label={t('signIn.phoneLabel')}
+            placeholder={t('signIn.phonePlaceholder')}
             autoComplete="tel"
             inputMode="tel"
             keyboardType="phone-pad"
@@ -174,7 +126,7 @@ export default function SignInScreen() {
             left={<TextInput.Icon icon="phone-outline" />}
             returnKeyType="send"
             onSubmitEditing={() => void sendOtp()}
-            accessibilityHint="Enter the number that will receive the SMS code"
+            accessibilityHint={t('signIn.phoneAccessibilityHint')}
           />
           {error ? (
             <HelperText type="error" visible>
@@ -182,7 +134,7 @@ export default function SignInScreen() {
             </HelperText>
           ) : (
             <HelperText type="info" visible>
-              Leading 0 or +63 both work. We&rsquo;ll send a 6-digit code via SMS.
+              {t('signIn.phoneHint')}
             </HelperText>
           )}
         </View>
@@ -195,27 +147,14 @@ export default function SignInScreen() {
           disabled={submitting || phone.trim().length === 0}
           buttonColor={theme.colors.primary}
           contentStyle={{ paddingVertical: 4 }}
-          accessibilityLabel="Send one-time code via SMS"
+          accessibilityLabel={t('signIn.sendCodeAccessibility')}
         >
-          {submitting ? 'Sending code…' : 'Send one-time code'}
+          {submitting ? t('signIn.sendingCode') : t('signIn.sendCode')}
         </Button>
-
-        {__DEV__ ? (
-          <Button
-            mode="text"
-            icon="flask-outline"
-            onPress={continueInDemoMode}
-            disabled={submitting}
-            textColor={theme.tdpos.amber[700]}
-            accessibilityLabel="Continue in demo mode (development only)"
-          >
-            Continue in demo mode
-          </Button>
-        ) : null}
 
         <View style={{ marginTop: 8, gap: 6, alignItems: 'center' }}>
           <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-            BIR-ready provisional cashier. BIR accreditation pending.
+            {t('signIn.disclaimer')}
           </Text>
         </View>
       </ScrollView>
