@@ -16,7 +16,11 @@ Product tiers: `tier_a_free`, `tier_b_pro`, `tier_c_plus`, `tier_d_premium`, `ti
 - **Canonical pieces:** `stock_pieces` INTEGER is the source of truth. Packs derived via `divmod`.
 - **Delta sync:** Inventory changes sent as deltas (`-1`), never absolute values. Idempotent via `client_operation_id`.
 - **Race-safe dedup:** `INSERT...ON CONFLICT DO NOTHING RETURNING` on `applied_operations` table.
-- **Immutable sales:** No UPDATE/DELETE on sales. Corrections via void/compensating entries.
+- **Immutable sales:** No UPDATE/DELETE on sales. Corrections via void/compensating entries (`execute-void-sale.ts`).
+- **Stock take:** Manager-driven physical counts adjust stock via delta + append-only `stock_take_counts`.
+- **Clock skew guard:** Checkout blocks receipts >24h from last server handshake.
+- **Customer erasure:** PII blanking via `erase_customer_pii()` RPC; historical transaction refs preserved.
+- **Safe logging:** Production paths use `warnSafe()` — no raw Error objects or customer data in logs.
 - **PostgreSQL 17:** `gen_random_uuid()` is built-in (no `uuid-ossp`), `JSON_TABLE` available, `MERGE RETURNING` supported.
 - **Auth:** Phone OTP only via Supabase Auth. MMKV storage, NOT AsyncStorage. E.164 format (+639XX).
 - **UI:** React Native Paper v5 (MD3, NOT MD2). `MD3LightTheme`, NOT `DefaultTheme`.
@@ -42,12 +46,16 @@ bun run dev                    # Start all (turbo)
 bun run dev:mobile             # Expo only
 bun run dev:web                # Next.js only
 bun run dev:marketing          # Marketing site only
+bun run check:foundation       # Full 13-stage gate
+bun run check:secrets          # Committed secret scanner
+bun run check:sqlite-migrations # Local migration ordering
+bun run check:patterns         # Forbidden pattern scanner
 bun run check:expo-doctor      # Expo native dependency health check
 bun run check:mobile-bundle    # Android Metro bundle/export check
 bun run check:tier-ui-sources  # Tier reference source check
 bun run lint                   # ESLint 10
 bun run typecheck              # TS strict
-bun run test                   # All tests
+bun run test                   # All tests (128 across 23 files)
 eas build --profile development --platform all  # Dev builds
 eas build --profile production --platform all   # Store builds
 eas submit --profile production --platform all  # Submit

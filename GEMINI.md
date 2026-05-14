@@ -49,12 +49,15 @@ bun run dev          # Dev all (turbo)
 bun run dev:mobile   # Expo only
 bun run dev:web      # Next.js only
 bun run dev:marketing # Marketing site only
+bun run check:foundation # Full 13-stage gate
+bun run check:secrets # Committed secret scanner
+bun run check:sqlite-migrations # Local migration ordering
 bun run check:expo-doctor # Expo native dependency health check
 bun run check:mobile-bundle # Android Metro bundle/export check
 bun run check:tier-ui-sources # Verify five tier UI references exist
 bun run lint         # ESLint 10
 bun run typecheck    # TS strict
-bun run test         # All tests
+bun run test         # All tests (128 across 23 files)
 eas build --profile development --platform all   # Dev builds
 eas build --profile production --platform all    # Store builds
 eas submit --profile production --platform all   # Submit

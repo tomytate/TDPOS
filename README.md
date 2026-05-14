@@ -8,7 +8,7 @@ TD POS is a mobile-first, offline-capable SaaS POS and inventory management syst
 
 ## Release Posture
 
-- **Current baseline:** v0.8 Scaffold Complete — all five tier surfaces implemented, 123 tests passing, 13-stage foundation gate green.
+- **Current baseline:** v0.8 Scaffold Complete — all five tier surfaces implemented, 128 tests passing, 13-stage foundation gate green.
 - **Next real milestone:** v0.9 — full test suite (screenshot parity, accessibility, performance), hosted Supabase staging, EAS dev builds, physical-device airplane-mode sale.
 - **Then:** v0.1alpha — first pilot store.
 - **Target:** v1.0 Public Launch — mobile + web dashboard + marketing site simultaneously.
@@ -31,7 +31,7 @@ TD POS now uses five canonical product tiers, single-sourced in `@tdpos/shared`:
 
 The root `UI/` folder is a reference canvas only. Production implementation uses Expo and Next components, with `scripts/check-tier-ui-sources.mjs` verifying that every tier definition points at an existing source file. Legacy values (`free`, `starter`, `growth`, `pro`, `business`, `enterprise`) are migration inputs only and normalize into the A-E model.
 
-## Tech Stack (Verified May 13, 2026)
+## Tech Stack (Verified May 14, 2026)
 
 | Layer              | Technology                                                                    | Version |
 | ------------------ | ----------------------------------------------------------------------------- | ------- |
@@ -101,13 +101,15 @@ eas update --branch production --message "fix: receipt alignment"
 ```
 TDPOS/
 ├── apps/mobile/             # Expo SDK 55 (iOS + Android + Tablet)
+│   └── src/db/              # 9 local SQLite migrations (v1–v9)
 ├── apps/web/                # Next.js 16 owner dashboard (auth, reporting, exports, guarded management scaffolds)
 ├── apps/marketing/          # Next.js 16 public site scaffold (pricing, privacy, terms)
-├── packages/shared/         # Shared types, validators, constants, BIR copy
+├── packages/shared/         # Shared types, validators, constants, data retention policy, BIR copy
 ├── packages/db/             # Database schema types + re-exported Zod validators
 ├── packages/typescript-config/
 ├── packages/eslint-config/
-├── supabase/                # PG17 migrations (16), Edge Functions (3), seed
+├── scripts/                 # 9 check scripts (foundation gate, secrets, patterns, migrations)
+├── supabase/                # PG17 migrations (17), Edge Functions (4), seed
 ├── docs/                    # Spec, architecture (17 ADRs), schema reference
 │   └── skills/              # 22 anti-hallucination skill docs (DocGate-3 enforced)
 └── UI/                      # Suki POS design canvas (reference only)
@@ -161,14 +163,16 @@ This project includes comprehensive anti-hallucination documentation for AI codi
 ## Development
 
 ```bash
-bun run check:foundation # Full foundation gate
-bun run check:secrets # Verify no committed secret patterns
-bun run check:tier-ui-sources # Verify every tier points at an existing UI reference
-bun run check:expo-doctor # Expo native dependency health check
-bun run check:mobile-bundle # Android Metro bundle/export check
-bun run lint        # ESLint 10 (flat config)
-bun run typecheck   # TypeScript strict
-bun run test        # All tests
+bun run check:foundation       # Full 13-stage foundation gate
+bun run check:secrets          # Verify no committed secret patterns
+bun run check:sqlite-migrations # Local migration ordering gate
+bun run check:patterns         # Forbidden pattern scanner (console.log, etc.)
+bun run check:tier-ui-sources  # Verify every tier points at an existing UI reference
+bun run check:expo-doctor      # Expo native dependency health check
+bun run check:mobile-bundle    # Android Metro bundle/export check
+bun run lint                   # ESLint 10 (flat config)
+bun run typecheck              # TypeScript strict
+bun run test                   # All tests (128 across 23 files)
 ```
 
 Always run before committing:

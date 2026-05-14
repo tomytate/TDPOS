@@ -81,6 +81,11 @@ bun run dev:mobile             # Expo dev server only
 bun run dev:web                # Next.js dev server only
 bun run dev:marketing          # Marketing site scaffold only
 bun run build                  # Build all
+bun run check:foundation       # Full 13-stage foundation gate
+bun run check:secrets          # Scan for committed secrets
+bun run check:sqlite-schema    # Local SQLite schema drift check
+bun run check:sqlite-migrations # Local migration ordering gate
+bun run check:patterns         # Forbidden pattern scanner
 bun run check:expo-doctor      # Expo native dependency health check
 bun run check:mobile-bundle    # Android Metro bundle/export check
 bun run check:tier-ui-sources  # Verify five tier UI references exist
@@ -162,7 +167,7 @@ The canonical wording rules live in [`docs/skills/bir-compliance.md`](docs/skill
 
 ## Testing Requirements
 
-Always run `bun run typecheck && bun run lint && bun run test` before committing.
+Always run `bun run check:foundation` before committing. Current: 128 tests across 23 files (21 mobile + 2 shared).
 
 Six required Phase 1 tests (§14 of spec):
 
@@ -178,13 +183,15 @@ Six required Phase 1 tests (§14 of spec):
 ```
 TDPOS/
 ├── apps/mobile/          # Expo SDK 55 (iOS + Android + Tablet)
+│   └── src/db/           # 9 local SQLite migrations (v1–v9)
 ├── apps/web/             # Next.js 16 dashboard + guarded management scaffolds
 ├── apps/marketing/       # Next.js 16 public site scaffold
-├── packages/shared/      # Shared types, validators, constants
+├── packages/shared/      # Shared types, validators, constants, data retention
 ├── packages/db/          # Database schema types
 ├── packages/typescript-config/
 ├── packages/eslint-config/
-├── supabase/             # PG17 migrations, Edge Functions, seed
+├── scripts/              # 9 check scripts (foundation gate, secrets, patterns)
+├── supabase/             # PG17 migrations (17), Edge Functions (4), seed
 ├── docs/                 # Spec, architecture, schema reference
 │   └── skills/           # 22 procedural skill docs (shared by ALL agents)
 └── UI/                   # Suki POS design canvas (reference only)
