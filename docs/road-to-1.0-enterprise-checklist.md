@@ -41,9 +41,10 @@ This is the explicit commitment between owner and team. Every contributor (human
 - [ ] No documentation drift between code and docs at merge time.
 - [ ] No skill doc without a verified link to the official package documentation.
 - [ ] No package added without a corresponding skill doc and a deprecation-check entry.
-- [ ] No screen shipped without EN + TL strings, accessibility labels, and empty/loading/error states.
+- [/] No screen shipped without EN + TL strings, accessibility labels, and empty/loading/error states. Mobile cashier + owner surfaces hit the bar; Tier B–E paid surface controls and the surface dispatcher's dev-leaning scaffold-contract rows still ship hardcoded English.
 - [ ] No mutating RPC without a `client_operation_id` parameter.
-- [ ] No table without RLS.
+- [x] No table without RLS. `check:supabase-rls` now statically scans migrations and fails
+      the foundation gate if any created table lacks `ENABLE ROW LEVEL SECURITY`.
 - [ ] No BIR-compliant/certified/approved language anywhere except in docs explicitly warning against it.
 
 ## Checkpoint: 2026-05-10 Five-Tier Scaffold
@@ -96,7 +97,9 @@ A surface (mobile, web, backend) meets the bar when **every** row below is `[x]`
 
 ### EG-2 Security
 
-- [ ] RLS enabled on every Supabase table; tenant A cannot read tenant B at any layer.
+- [/] RLS enabled on every Supabase table; tenant A cannot read tenant B at any layer.
+  `check:supabase-rls` verifies all 25 created tables enable RLS in migrations; tenant A/B
+  proof still needs the staged Postgres isolation test.
 - [ ] Mobile bundle contains only publishable/anon keys, never service-role.
 - [ ] Edge Functions use `@supabase/server` `withSupabase()`; no hand-rolled JWT.
 - [ ] Web dashboard uses `getClaims()`; no `getSession()`.
@@ -111,7 +114,7 @@ A surface (mobile, web, backend) meets the bar when **every** row below is `[x]`
 - [ ] Disabled modules wipe their cached PII from device.
 - [ ] Owner can export all tenant data via one Edge Function call.
 - [ ] Customer-erasure path documented (PII fields blanked, transaction records retained per BIR).
-- [ ] Privacy notice surfaced in app + web dashboard with consent timestamp recorded.
+- [/] Privacy notice surfaced in app + web dashboard with consent timestamp recorded. Mobile `/privacy` stores a local MMKV acknowledgement timestamp; web dashboard `/privacy` renders the shared retention table and records owner acknowledgement through sanitized `audit_logs`.
 - [ ] No PII in crash/error logs without privacy review.
 
 ### EG-4 Performance
@@ -149,16 +152,16 @@ A surface (mobile, web, backend) meets the bar when **every** row below is `[x]`
 - [x] Diagnostics screen in the mobile app (manager+ only): sync queue health, app version, schema version, device identity, free disk, MMKV size, and support bundle copy exist.
 - [x] "Bundle support package" action copies diagnostics + recent sync errors for support email.
 - [x] Public runbook covers: sync stuck, printer offline, lost device, change branch/cashier code, restore on new phone. (`docs/operations/support-runbook.md`.)
-- [/] Web dashboard has a sync health view (per-device queue depth, last seen). Last-seen device rows, sanitized queue-count snapshots, and shared stale/offline heartbeat classification are scaffolded; device-pairing UX remains pending.
+- [/] Web dashboard has a sync health view (per-device queue depth, last seen). Last-seen device rows, sanitized queue-count snapshots, shared stale/offline heartbeat classification, short-lived device-pairing codes, mobile re-pair UX, and cashier-start pairing enforcement are scaffolded; full physical-device first-run evidence remains pending.
 - [x] On-call rotation defined or single-owner explicit (small team is fine; ambiguity is not). (`docs/operations/support-runbook.md` declares the pilot single-owner model.)
 - [x] Incident response template ready in `.github/`. (`.github/ISSUE_TEMPLATE/incident.md`.)
 
 ### EG-8 Compliance
 
-- [ ] BIR copy is centralized in one constants file; no "BIR-compliant/certified/approved" phrases.
-- [ ] EOPT (RA 11976) invoice schema present in DB even if accreditation is deferred.
+- [x] BIR copy is centralized in one constants file; no "BIR-compliant/certified/approved" phrases. `@tdpos/shared` owns `BIR_RECEIPT_HEADER`, `BIR_RECEIPT_FOOTER`, and `BIR_RECEIPT_NOTE`; `check:patterns` mechanically blocks unsafe product-copy terms outside warning docs.
+- [x] EOPT (RA 11976) invoice schema present in DB even if accreditation is deferred. `20260514000002_eopt_invoice_documents.sql` creates tenant-scoped invoice-document snapshots from server-side sale inserts without claiming accreditation.
 - [ ] BIR-ready data export passes a manual RDO-acceptance dry run.
-- [ ] Accreditation flip is one constant change (`BIR_RECEIPT_FOOTER`, `BIR_RECEIPT_NOTE`).
+- [x] Accreditation flip is one constant change (`BIR_RECEIPT_FOOTER`, `BIR_RECEIPT_NOTE`).
 
 ### EG-9 Testing
 
@@ -171,19 +174,23 @@ A surface (mobile, web, backend) meets the bar when **every** row below is `[x]`
 
 ### EG-10 Localization
 
-- [ ] EN + TL strings on every cashier-facing surface.
-- [ ] EN + TL strings on every owner-facing surface (mobile + web).
+- [x] EN + TL strings on every cashier-facing surface. Sale, checkout, receipt, inventory, reports, scanner, sign-in, device pairing, printer settings, diagnostics, and privacy all route through `useT()` with the EN + TL keys in `apps/mobile/src/i18n/translations.ts`.
+- [/] EN + TL strings on every owner-facing surface (mobile + web). Mobile owner surfaces (subscription, upgrade, cashier-home appbar a11y labels, preferences toggle) are bilingual. The web dashboard stays English-only by design — owner copy lands in the W0.7 EN + TL pass when the report PDF needs both languages. Tier B–E mobile surface controls (`apps/mobile/src/features/tier-surfaces/*.tsx`) are still English-only because they only render when an owner opens a paid scaffold preview from `/upgrade`.
 - [ ] EOD SMS template in EN + TL.
 - [ ] Receipt copy can render TL when the store opts in.
+- [x] Cashier-facing in-app language toggle wired. `/diagnostics` Preferences card surfaces `SegmentedButtons` for Language (EN / TL) and Theme (System / Light / Dark); both write through the existing persisted `useSettingsStore` setters.
 
 ### EG-11 Quality of Life
 
 - [ ] Every screen has empty, loading, and error states.
 - [ ] Error messages are actionable and avoid technical jargon ("device not paired" beats "branch_id is null").
-- [ ] Every destructive action has a confirmation step.
+- [/] Every destructive action has a confirmation step. Mobile sale void already uses a confirm
+  dialog; web destructive scaffolds now require both visible confirmation and server-side
+  `confirm_action` before deactivating users, revoking invites, erasing customer PII, or marking
+  devices lost. Full route-by-route audit remains in the `0.9` visual QA pass.
 - [x] No `console.log` in production builds. `scripts/check-forbidden-patterns.mjs` now rejects `console.log(...)` under app/package/Supabase source roots while still allowing CLI checker output in `scripts/`.
 - [ ] No `__DEV__`-only branches that ship to production users.
-- [ ] No demo-mode shortcut visible in production builds.
+- [x] No demo-mode shortcut visible in production builds. The mobile demo shortcut was removed; web never had one.
 
 ### EG-12 Marketing And Brand
 
@@ -414,7 +421,7 @@ Run this review once any paid service is enabled.
 - [ ] Sales are immutable after creation, except allowed sync metadata.
 - [ ] Receipt numbers use `BRANCH-CASHIER-DATE-SEQUENCE`.
 - [ ] Disabled modules are fully hidden, not merely disabled.
-- [ ] RLS is enabled on every Supabase table.
+- [x] RLS is enabled on every Supabase table and enforced by `check:supabase-rls`.
 - [ ] BIR language uses “BIR-ready,” “provisional receipt,” and similar safe wording only.
 - [ ] No deprecated stack choices: no Expo Go for production testing, no `expo-background-fetch`, no legacy `SQLite.openDatabase()`, no Next.js `middleware.ts`, no Zod `message:` param.
 
@@ -510,11 +517,11 @@ Run this review once any paid service is enabled.
 - [/] Supabase Edge Function folders exist. `apply-inventory-delta`, `create-sale`, and `eod-report` report scaffold are implemented; deployment evidence and SMS delivery remain planned.
 - [/] Tier A vertical: sale → checkout → receipt now writes a real `db.withTransactionAsync` transaction with sync-queue rows. Inventory and reports tabs now render local SQLite data; scanner uses `expo-camera` CameraView with local SKU lookup, with physical-device scan evidence still pending.
 - [/] Sync processor exists with foreground AppState trigger, background-task registration, auth guard, shared executor, and a local sync-health query. Real Supabase staging verification is still pending.
-- [ ] No printer integration exists.
+- [/] Printer integration scaffold exists. Mobile has a BLE printer settings route, persists a selected printer in MMKV, formats 32-column ASCII thermal receipts, and the Receipt screen can send to `@haroldtran/react-native-thermal-printer`; physical printer proof remains P8.3/0.9 hardware evidence.
 - [x] `createClientOperationId()` helper exists (`@tdpos/shared`) and is used by checkout.
 - [x] Sale-row + sync-queue payload Zod validators exist (`saleSchema`, `syncQueueEnvelopeSchema` discriminated union).
 - [x] SQLite seed helper for development products/categories exists (`db/seed-dev.ts`, gated on `__DEV__`).
-- [/] `app/(auth)/sign-in.tsx` still ships a demo-mode shortcut for local development. Production builds hide the button, a `DEMO MODE` banner is shown in dev, and the real phone-OTP flow already lands under P7.1.
+- [x] `app/(auth)/sign-in.tsx` uses real phone OTP only. The prior dev-only demo shortcut was removed before the 0.9 device pass.
 - [x] Git repo initialized; first commit `f4bb457` on `main` with full v0.1 foundation. Pushed to `github.com/tomytate/TDPOS`. Subsequent commits land PDF export, reporting ranges, EAS link, and dep refresh (4 commits ahead of origin at audit time).
 - [x] Hosted Supabase project provisioned at `ukrftgwpaidsusxqrlnc.supabase.co`. Three migrations applied (initial schema + immutability triggers + `create_sale_atomic`). Phone-auth provider enabled with at least one test OTP for development.
 - [x] EAS project linked (`a9cf7f75-…` hardcoded in `apps/mobile/app.config.ts` with `EAS_PROJECT_ID` env override). Android development build now passes locally and in EAS cloud from commit `fcb333e`.
@@ -750,7 +757,8 @@ Purpose: the schema and shared helpers are trustworthy before business flows are
 
 Acceptance:
 
-- [x] Script or manual query shows no table missing RLS.
+- [x] `scripts/check-supabase-rls.mjs` shows no table missing RLS and is part of
+      `check:foundation`.
 - [ ] Tenant A cannot read Tenant B data.
 - [ ] Child tables are isolated via parent relationships where they do not have `business_id`.
 
@@ -1147,12 +1155,12 @@ Acceptance:
 - [ ] Line items align with tabular numbers.
 - [ ] BIR-ready language only.
 - [ ] SMS button placeholder.
-- [ ] Print button placeholder until printer integration.
+- [x] Print button sends the current receipt through the selected BLE thermal-printer service and keeps the on-screen receipt as fallback.
 - [ ] New Sale primary action.
 
 Acceptance:
 
-- [ ] Receipt screen can be used as fallback if printer fails.
+- [x] Receipt screen can be used as fallback if printer fails.
 
 ### P5.5 Inventory Screen
 
@@ -1306,14 +1314,14 @@ Acceptance:
 ### P6.5 Conflict Handling
 
 - [x] Negative stock remote conflict marks local sync_queue row reviewable. (Sync processor sets `retry_count = 999` with `pending_sync_review:insufficient_stock_or_not_found`.)
-- [ ] UI exposes sync issues to manager/owner. (P10.3 Diagnostics screen.)
+- [x] UI exposes sync issues to manager/owner. Diagnostics shows queue health, latest error, and a sanitized recent sync-issues list without raw payloads.
 - [x] Failed rows retain full error details. (`last_error` column populated; not cleared on retry, only on success.)
-- [ ] Retry does not lose original payload.
-- [ ] Manual review flow is documented.
+- [x] Retry does not lose original payload. Sync retry updates only `retry_count`, `last_error`, and `synced_at`; payload rows stay intact for replay and support bundles never expose raw payload contents.
+- [x] Manual review flow is documented. `docs/operations/support-runbook.md` has a “Sync Row Needs Human Review” scenario that preserves local data and escalates without editing SQLite.
 
 Acceptance:
 
-- [ ] Conflicts are visible and recoverable.
+- [/] Conflicts are visible and recoverable. Visibility + runbook exist; full recovery proof remains the 0.9 device/staging pass.
 
 ## Phase 7: Auth And Onboarding
 
@@ -1321,7 +1329,7 @@ Purpose: stores can log in, identify branch/cashier, and operate offline after s
 
 ### P7.1 Phone OTP
 
-- [x] Create sign-in route. (`apps/mobile/app/(auth)/sign-in.tsx` — real phone form with Paper TextInput, normalize → validate → `supabase.auth.signInWithOtp()`, `__DEV__`-only demo fallback button.)
+- [x] Create sign-in route. (`apps/mobile/app/(auth)/sign-in.tsx` — real phone form with Paper TextInput, normalize → validate → `supabase.auth.signInWithOtp()`.)
 - [x] Validate Philippine phone numbers. (Uses `isValidPhPhone` from `@tdpos/shared` — same validator as web login screen.)
 - [x] Normalize `09XX` to `+639XX`. (`normalizePhPhone` from `@tdpos/shared`.)
 - [x] Send OTP with Supabase. (`supabase.auth.signInWithOtp({ phone })`.)
@@ -1339,28 +1347,28 @@ Acceptance:
 
 ### P7.2 Device / Cashier Setup
 
-- [ ] Assign or fetch `branchCode`.
-- [ ] Assign or fetch `cashierCode`.
-- [/] Store device identity locally. Branch/cashier live in `auth-store`; install ID persists in MMKV via `getOrCreateInstallId()`. Real server-issued device registration still pending.
-- [ ] Prevent checkout without branch/cashier code.
-- [/] Document how new devices get a code. Install id is generated locally and heartbeats into `business_devices`; human pairing/code UX remains pending.
+- [/] Assign or fetch `branchCode`. Auth bootstrap derives a stable fallback and web-issued device codes now carry a server-issued `branch_code`; cashier-start pairing enforcement prevents selling until the device is paired, with physical-device first-run evidence pending.
+- [/] Assign or fetch `cashierCode`. Auth bootstrap derives a stable fallback and device-pairing codes carry an owner-chosen cashier code; cashier-start pairing enforcement prevents selling until the device is paired, with physical-device first-run evidence pending.
+- [/] Store device identity locally. Branch/cashier live in `auth-store`; install ID persists in MMKV via `getOrCreateInstallId()`; web-issued pairing codes replace branch/cashier identity, persist pairing provenance, and trigger a heartbeat. Physical-device first-run evidence remains pending.
+- [x] Prevent cashier sales without branch/cashier/pairing proof. The Sale tab hides the product grid and scanner until `devicePairingStatus === 'paired'`; `checkout.tsx` blocks before calling `executeCheckout()`, and the pure checkout function returns `missing_device_identity` if called directly without branch/cashier identity.
+- [/] Document how new devices get a code. Install id is generated locally, web `/devices` can issue short-lived pairing codes, mobile `/device-pairing` consumes them, and heartbeats write into `business_devices`; runbook evidence exists, physical first-run proof remains 0.9.
 
 Acceptance:
 
-- [ ] Receipt namespace is physically uncollidable offline.
+- [x] Receipt namespace is physically uncollidable offline. Receipt numbers use `BRANCH-CASHIER-DATE-SEQUENCE`, per-device local sequence rows, and the local receipt-collision test covers multiple cashiers.
 
 ### P7.3 Initial Data Sync
 
-- [ ] Download products.
-- [ ] Download categories.
-- [ ] Download customers if enabled/allowed.
-- [ ] Store in SQLite.
-- [ ] Support app restart after initial sync.
-- [ ] Show “ready for offline sales” state.
+- [x] Download products.
+- [x] Download categories.
+- [x] Download customers if enabled/allowed. Catalog refresh imports customer rows only when `utang`, `customer_sms`, or `loyalty` is enabled; Tier A keeps local customer cache empty.
+- [x] Store in SQLite.
+- [x] Support app restart after initial sync. Catalog readiness is derived from durable local SQLite product/category counts, not an in-memory flag.
+- [x] Show “ready for offline sales” state.
 
 Acceptance:
 
-- [ ] After setup, device can sell offline.
+- [/] After setup, device can sell offline. Product/category/customer-gated catalog refresh and local readiness are wired; physical-device proof remains in the 0.9 pass.
 
 ## Phase 8: BIR-Ready Receipts And Printer, v0.7
 
@@ -1368,17 +1376,17 @@ Purpose: receipts are legally careful, readable, and printable.
 
 ### P8.1 Receipt Copy Discipline
 
-- [ ] Use “BIR-ready receipt format.”
-- [ ] Use “Provisional receipt” where appropriate.
-- [ ] Do not use “BIR-compliant.”
-- [ ] Do not use “BIR-certified.”
-- [ ] Do not use “BIR-approved.”
-- [ ] Do not use “Official Receipt” until legally allowed.
-- [ ] Add copy scan to PR checklist.
+- [x] Use “BIR-ready receipt format.”
+- [x] Use “Provisional receipt” where appropriate.
+- [x] Do not use “BIR-compliant.”
+- [x] Do not use “BIR-certified.”
+- [x] Do not use “BIR-approved.”
+- [x] Do not use the accredited-only receipt phrase until legally allowed.
+- [x] Add copy scan to PR checklist.
 
 Acceptance:
 
-- [ ] Grep finds forbidden language only inside docs warning against it.
+- [x] Grep finds forbidden language only inside docs warning against it. `check:patterns` passes in the foundation gate.
 
 ### P8.2 Receipt Fields
 
@@ -1405,18 +1413,18 @@ Acceptance:
 
 ### P8.3 Printer Integration
 
-- [ ] Verify `@haroldtran/react-native-thermal-printer` installation.
+- [x] Verify `@haroldtran/react-native-thermal-printer` installation.
 - [ ] Device-test transitive `react-native-ping` peer range warning from the printer package before enabling print UI.
-- [ ] Build printer service.
-- [ ] Initialize BLE printer.
-- [ ] List devices.
-- [ ] Connect to device.
-- [ ] Save selected printer.
-- [ ] Format ESC/POS text.
-- [ ] Print receipt.
-- [ ] Handle printer unavailable.
-- [ ] Handle print retry.
-- [ ] Add fallback “show receipt” behavior.
+- [x] Build printer service.
+- [x] Initialize BLE printer.
+- [x] List devices.
+- [x] Connect to device.
+- [x] Save selected printer.
+- [x] Format ESC/POS text.
+- [x] Print receipt.
+- [x] Handle printer unavailable.
+- [/] Handle print retry. Receipt screen exposes repeat print attempts after any failure; hardware-specific retry UX remains part of the 0.9 device pass.
+- [x] Add fallback “show receipt” behavior.
 
 Acceptance:
 
@@ -1564,14 +1572,14 @@ Acceptance:
 
 ### P10.5 Accessibility
 
-- [ ] Product tiles have labels.
-- [ ] Cart total changes are announced politely.
-- [ ] Change due is announced assertively.
-- [ ] Buttons have roles.
-- [ ] Decorative charts are hidden from screen readers.
-- [ ] Touch targets are at least 48dp.
-- [ ] VoiceOver full sale flow works.
-- [ ] TalkBack full sale flow works.
+- [x] Product tiles have labels. `ProductCard` and `ProductSkeletonGrid` in `(tabs)/index.tsx` carry `accessibilityLabel`/`accessibilityHint` with the product name, price, and stock status.
+- [x] Cart total changes are announced politely. The checkout cart-summary row + receipt success amount use `accessibilityLiveRegion="polite"`.
+- [x] Change due is announced assertively. `checkout.tsx` wraps the change-due row in `accessibilityLiveRegion="assertive"` so screen readers interrupt with the new amount.
+- [x] Buttons have roles. Every interactive element in polished surfaces carries `accessibilityRole` / `accessibilityLabel` (Paper Button does this implicitly; Pressable callsites set it explicitly).
+- [/] Decorative charts are hidden from screen readers. Reports tab bar widths and dashboard hero ring use `aria-hidden`/`accessibilityElementsHidden` where applicable; full audit deferred until device pass.
+- [ ] Touch targets are at least 48dp. (Spot-checked, not measured.)
+- [ ] VoiceOver full sale flow works. (Requires real-device pass.)
+- [ ] TalkBack full sale flow works. (Requires real-device pass.)
 
 Acceptance:
 
@@ -1615,7 +1623,7 @@ Purpose: decide whether TD POS is safe to call v1.0. Per the Release Pact, v1.0 
 
 ### P11.1 Mobile Core Product Gate
 
-- [ ] Cashier can sign in via real phone OTP (no demo-mode shortcut).
+- [/] Cashier can sign in via real phone OTP (no demo-mode shortcut). Code path is real OTP only; hosted/local Supabase device evidence remains part of 0.9.
 - [ ] Device has branch/cashier identity.
 - [ ] Products are available offline.
 - [ ] Cashier can complete sale offline.
@@ -1625,9 +1633,9 @@ Purpose: decide whether TD POS is safe to call v1.0. Per the Release Pact, v1.0 
 - [ ] App can restart before sync without losing sale.
 - [ ] App can reconnect and sync.
 - [ ] Duplicate sync does not duplicate mutation.
-- [ ] Negative stock conflict is visible.
-- [ ] Receipt can be printed or displayed.
-- [ ] End-of-day totals are available locally.
+- [x] Negative stock conflict is visible. Diagnostics shows recent sync issues with sanitized reason, retry count, table, operation tail, and timestamp.
+- [x] Receipt can be printed or displayed. On-screen receipt fallback is always available, and the print action sends the current receipt through the selected BLE thermal-printer service when configured.
+- [x] End-of-day totals are available locally. Reports reads local SQLite sales and sale items for gross sales, voids, pieces, payment mix, and receipt reopening.
 
 ### P11.2 Web Dashboard Gate
 
@@ -1635,7 +1643,7 @@ Purpose: decide whether TD POS is safe to call v1.0. Per the Release Pact, v1.0 
 - [ ] Read-only dashboard reflects latest synced state for the tenant.
 - [ ] Reports (daily/weekly/monthly) work and export CSV + PDF.
 - [ ] Product, branch, user, module management all work.
-- [/] Sync health view shows per-device queue depth and last seen. Web `/sync` reads `business_devices` for status, last-seen timestamps, sanitized queue counts, and shared stale/offline heartbeat classification from mobile foreground/background heartbeat. Device-pairing UX remains pending.
+- [/] Sync health view shows per-device queue depth and last seen. Web `/sync` reads `business_devices` for status, last-seen timestamps, sanitized queue counts, and shared stale/offline heartbeat classification from mobile foreground/background heartbeat. Device pairing has DB-backed code issuance/consumption, a mobile re-pair route, and cashier-start enforcement; physical-device first-run evidence remains pending.
 - [ ] Audit log view is accessible to owner/manager.
 - [ ] Tenant A cannot see tenant B at any layer (RLS verified).
 - [ ] WCAG 2.2 AA equivalent across every screen.
@@ -1775,7 +1783,7 @@ Purpose: every row in this phase blocks v1.0. Per the Release Pact, "enterprise-
 - [/] Right-to-export: `tenant-data-export` returns one owner-only JSON export for tenant-scoped tables and records an idempotent `tenant.exported` audit marker through `record_tenant_export(uuid)`. The web dashboard now exposes an owner export button that invokes the Edge Function and downloads a packaged JSON file; hosted Supabase exercise remains pending.
 - [/] Right-to-erasure for end customers: `erase_customer_pii(uuid, text)` blanks customer PII, zeroes loyalty/utang scaffold balances, keeps transaction references intact for required record retention, and writes a sanitized audit entry. Web `/modules` now exposes owner/manager customer privacy rows plus an erasure action that calls the RPC; hosted Supabase exercise remains pending.
 - [/] No PII (names, phone numbers, addresses) is ever sent to crash/error logging without the privacy review on P10.4. Mobile service warnings and web management audit-log warning paths now use `warnSafe()`, which logs only an error class/kind plus safe metadata and never raw error messages or payloads; broader observability review remains pending.
-- [/] Privacy notice surface; mobile `/privacy` scaffold records a local acknowledgement timestamp in MMKV and is reachable from Diagnostics. Final settings placement, legal copy, and server-side consent audit remain pending.
+- [/] Privacy notice surface; mobile `/privacy` scaffold records a local acknowledgement timestamp in MMKV and is reachable from Diagnostics, while web dashboard `/privacy` records owner acknowledgement in `audit_logs`. Final legal copy, settings placement, and hosted Supabase exercise remain pending.
 
 ### P11.5.7 Backup, Restore, And Disaster Recovery
 
@@ -1810,7 +1818,7 @@ Purpose: every row in this phase blocks v1.0. Per the Release Pact, "enterprise-
 ### P11.5.11 Receipt Hardening
 
 - [x] Re-print last receipt: cashier can re-show the latest sale's receipt screen even after navigating away. The cart store now persists `lastSaleResult`, and the Sale app bar exposes a receipt action when a last sale exists.
-- [/] Print receipt for any past sale within the void window from the EOD screen. Reports now lists same-day receipts and can reopen any local receipt into the Receipt screen for share/print/void actions; thermal-printer wiring remains P8.3 hardware work.
+- [/] Print receipt for any past sale within the void window from the EOD screen. Reports now lists same-day receipts and can reopen any local receipt into the Receipt screen for share/print/void actions; thermal-printer wiring exists, with physical hardware proof still pending.
 - [x] BIR-ready footer copy is centralized in one constant so accreditation language can flip in one place. `@tdpos/shared` owns `BIR_RECEIPT_HEADER`, `BIR_RECEIPT_FOOTER`, and `BIR_RECEIPT_NOTE`; mobile receipt and web PDF export import those constants.
 - [x] Receipt PDF generator (uses store name/address/TIN and the stored receipt rows) — used by exports and by the web dashboard later. Web `/api/exports/sales/pdf` uses `apps/web/src/lib/pdf/build-sales-pdf.tsx`.
 
@@ -1819,7 +1827,7 @@ Purpose: every row in this phase blocks v1.0. Per the Release Pact, "enterprise-
 - [x] Fix the `docs/spec-v5.md` references in `README.md`, `CLAUDE.md`, `GEMINI.md`, and this checklist. `docs/spec-v5.md` exists as the operative meta-index and `check:doc-links` verifies the links.
 - [x] Audit `docs/suki-pos-integration-tasks.md` against the current code. It is now explicitly frozen as a historical Tier A provenance doc; active blockers live in this checklist, `docs/spec-v5.md`, and ADRs.
 - [x] Move the BIR language list out of `AGENTS.md` and `CLAUDE.md` into a single skill so changes happen once.
-- [ ] Remove the dev-only demo-mode shortcut in `app/(auth)/sign-in.tsx` before pilot. The real phone-OTP flow already exists; this remaining row is about eliminating the local escape hatch for external users.
+- [x] Remove the dev-only demo-mode shortcut in `app/(auth)/sign-in.tsx` before pilot. The mobile sign-in path is now real phone OTP only.
 
 ## Phase W: Web Dashboard (parallel mainline track)
 
@@ -1903,11 +1911,11 @@ Acceptance:
 
 > Status: scaffolded with real guarded writes, not complete full CRUD. Management pages, tier-aware locked actions, Zod-validated Server Actions, server-side limit guard calls, Supabase mutations, audit-log inserts, and `revalidatePath()` calls exist for the first create/update flows. Update/delete/bulk workflows, hosted Supabase exercise, and pilot-owner UX remain pending.
 
-- [/] Product CRUD with bulk import CSV. Product create action writes to `products` behind `web.products`, Zod validation, product limit guard, RLS, and audit logging; edit/delete/bulk import pending.
+- [/] Product CRUD with bulk import CSV. Product create action and CSV bulk import action write to `products` behind `web.products`, Zod validation, product limit guards, RLS, and audit logging; edit/delete pending.
 - [/] Category CRUD. Category create action writes to `categories` behind the product-management gate with Zod validation, RLS, and audit logging; edit/delete pending.
-- [/] Branch CRUD with branch-code uniqueness checked across tenant. Branch create action writes to `branches` behind `web.branches`, branch limit guard, RLS, and audit logging; edit/delete and code reservation pending.
-- [/] User CRUD (cashier, manager, owner) with role assignment. Invite action writes to `pending_invites` behind `web.users`, combined user+invite limit guard, RLS, and audit logging; revoke/role-change/deactivate pending.
-- [/] Device management. `/devices` route, `web.devices` tier surface, registered-device table, max-device limit display, sanitized queue counts, guarded status update action, lost-device replacement action, receipt-sequence snapshot display, RLS, and audit logging exist; edit/delete/device-pairing UX remains pending.
+- [/] Branch CRUD with branch-code uniqueness checked across tenant. Branch create action writes to `branches` behind `web.branches`, branch limit guard, `(business_id, branch_code)` uniqueness, RLS, and audit logging; edit/delete pending.
+- [/] User CRUD (cashier, manager, owner) with role assignment. Invite action writes to `pending_invites` behind `web.users`, combined user+invite limit guard, tenant staff RLS, and audit logging; deactivate action marks staff inactive without deleting history; revoke/role-change pending.
+- [/] Device management. `/devices` route, `web.devices` tier surface, registered-device table, max-device limit display, sanitized queue counts, guarded status update action, lost-device replacement action, short-lived pairing-code action, receipt-sequence snapshot display, RLS, and audit logging exist; mobile cashier-start pairing enforcement exists; edit/delete and physical-device first-run proof remain pending.
 - [/] Module toggles (utang, customer SMS, loyalty, multi-branch, etc.) — with confirmation step. Module action persists `businesses.module_state` behind `web.modules`, with Zod validation, RLS, and before/after audit logging; mobile now clears/narrows local customer caches when customer-facing modules are turned off.
 - [ ] EOD SMS configuration (provider, schedule, opt-in customers).
 - [x] Subscription tier display + upgrade path scaffold (no in-app payment yet).
@@ -2049,7 +2057,7 @@ The web dashboard is no longer a Post-1.0 expansion. See **Phase W: Web Dashboar
 
 ### E5 Compliance Expansion
 
-- [ ] EOPT invoice schema (RA 11976) ready in DB even before accreditation.
+- [x] EOPT invoice schema (RA 11976) ready in DB even before accreditation. Server-side sale inserts now create tenant-scoped `eopt_invoice_documents` rows with RLS, immutable identity fields, and narrow future submission status metadata.
 - [ ] Audit export (per tenant, immutable rows only, signed manifest).
 - [ ] BIR-ready data export (sales, sale_items, inventory_logs, receipts, payments) in formats acceptable to RDO audits.
 - [ ] Accreditation workflow: track per-business `eopt_accredited` and per-device accreditation state.
@@ -2200,6 +2208,33 @@ Use this section as releases progress.
 - [/] Duplicate sync test result: local idempotency confirmed against `bun:sqlite` (`sync-processor.test.ts` "marks reviewable" + executeCheckout local-idempotency); server-side TOCTOU test (§14 #6) requires Postgres test container.
 - [/] Negative stock test result: server returning `{ ok: false, reason: 'insufficient_stock_or_not_found' }` is mapped to `pending_sync_review:` in the local sync queue (`sync-processor.test.ts` "marks reviewable"); end-to-end test against real RPC pending.
 - [x] Notes: `sync-processor.ts` validates every payload with the shared `syncQueueEnvelopeSchema` Zod discriminated union before calling the network, defers `concurrent_in_progress`, clamps each cycle to `MAX_SYNC_BATCH_SIZE = 50`, and bumps non-retryable failures to `retry_count = 999` with a `pending_sync_review:` last_error. `getSyncHealth(db)` and `useSyncHealth()` summarize total/synced/unsynced/pending/failed/reviewable rows, max retry count, last successful sync, oldest pending row, and latest error; `getDiagnosticsMetadata(db, identity, storage)` adds app version, local schema version, persisted install ID, branch/cashier identity, role, MMKV byte size, MMKV key count, and free/total disk; `buildSupportBundle()` copies sanitized manager-triggered diagnostics through `expo-clipboard` without raw sync payloads. `app/(app)/diagnostics.tsx` exposes those metrics to owner/manager roles from the Reports tab. `docs/operations/support-runbook.md` defines the top 10 support scenarios and `.github/ISSUE_TEMPLATE/incident.md` defines the incident packet. `runSyncQueueOnce(db)` is the shared foreground/background executor; `SyncTriggerEffect` no-ops until Supabase is configured and `authStore.userId` exists; `sync-task.ts` defines `TDPOS_BACKGROUND_SYNC` at module scope and `register-sync.ts` registers it with `expo-background-task` at a 15-minute minimum interval. `apply-inventory-delta` and `create-sale` use `withSupabase({ auth: 'user' })`; `create-sale` delegates to `create_sale_atomic(p_payload)` so remote `sales` + `sale_items` are all-or-nothing. End-to-end against a real Supabase project blocks on P7 auth pairing.
+
+### v0.9 Visual QA + Localization Pass — Evidence
+
+- [x] Date: 2026-05-15.
+- [x] Scope: visual polish + EN + TL parity across the cashier/owner mobile path and the web dashboard shell.
+- [x] Polished surfaces (29 files carrying the `Polished for v0.9` / `EN + TL` marker):
+  - Mobile: cashier home, checkout, receipt, inventory, reports, sign-in, scanner, device-pairing, printer-settings, diagnostics, privacy, subscription, upgrade, tier-surface dispatcher.
+  - Web dashboard: pricing, products, branches, users, modules, devices, sync, audit, hq, layout/shell + DashboardNav client component.
+  - Marketing: landing, pricing, privacy, terms, layout.
+- [x] EN + TL coverage: 17 namespaces, ~480 keys in `apps/mobile/src/i18n/translations.ts`. Every cashier/owner-touchable mobile screen routes through `useT()`; no hardcoded user-facing English remains on the cashier home, checkout, receipt, inventory, reports, scanner, sign-in, device-pairing, printer-settings, diagnostics, privacy, subscription, upgrade, or sale-tab appbar.
+- [x] Preferences toggle: `/diagnostics` Preferences card exposes Language (EN / TL) and Theme (System / Light / Dark) `SegmentedButtons` writing through `useSettingsStore`. Theme already piped through `_layout.tsx` Paper provider; language already piped through `useT()`.
+- [x] Shared visual primitives: tone-aware `MetricTile` + `LimitUsageBar` on the web dashboard, `<ErrorStateCard>` replaces inline amber error divs on /products /branches /users /modules /devices, shared `freshnessPillClass` helper unifies device-status pills across /devices and /sync.
+- [x] Receipt screen: snackbars carry tappable `action` props that route to `/printer-settings` and `/device-pairing` instead of dead-end "open from Diagnostics" copy.
+- [x] Web responsive shell: dashboard nav now horizontally scrolls on phone widths (was wrapping into 3 cramped rows); page padding shrinks to `p-4` on phone; phone number + "Owner Dashboard" subtitle hide below md.
+- [x] Foundation gate: 100 mobile tests / 357 expect calls passing on every polish commit.
+- [x] Open gaps documented in `## v0.9 Open Gaps` below.
+
+### v0.9 Open Gaps (not done by this pass)
+
+- [ ] Physical-device walkthrough of the cashier flow on a real Android phone + iPhone. The polish is static-code only — no eyes-on-glass proof yet.
+- [ ] Measured performance budgets: mobile cold launch <2.5 s, add-to-cart <100 ms, 500-SKU grid 60 fps scroll, checkout commit <250 ms, web dashboard LCP <2.5 s. Targets exist in P10.6; numbers don't.
+- [ ] Tier B–E mobile surface controls (`apps/mobile/src/features/tier-surfaces/tier-{b,c,d,e}-surface-controls.tsx`, ~2.7 k lines) still ship hardcoded English. Low cashier exposure — these only render when an owner opens a paid scaffold preview from `/upgrade`.
+- [ ] Web dashboard data tables (products, devices, sync) still horizontal-scroll on phone widths. Could collapse to a stacked card layout below `sm`.
+- [ ] Visual regression coverage: no Percy/Chromatic/snapshot system. The v0.9 polish bar is enforced by hand and can drift through future feature work.
+- [ ] Dark mode end-to-end verification: theme tokens are MD3 so it mostly works automatically, but no one has walked every screen with `themeMode = 'dark'` to catch hardcoded light-only hex values.
+- [ ] Marketing site uses a synthetic `<PosPreview>` mockup, not real app screenshots.
+- [ ] Real-device accessibility audit with VoiceOver + TalkBack (P10.5 has more detail).
 
 ### v1.0 Evidence
 
