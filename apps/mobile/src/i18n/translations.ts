@@ -330,6 +330,15 @@ export const translations = {
     'checkout.failure.deviceUnpaired':
       'Device not paired. Ask the manager to re-pair this register.',
     'checkout.failure.clockSkew': 'Set this device date and time, reconnect, then try again.',
+    'prefs.title': 'Preferences',
+    'prefs.language': 'Language',
+    'prefs.languageEn': 'English',
+    'prefs.languageTl': 'Tagalog',
+    'prefs.theme': 'Theme',
+    'prefs.themeSystem': 'System',
+    'prefs.themeLight': 'Light',
+    'prefs.themeDark': 'Dark',
+    'prefs.savedLocally': 'Saved on this device only.',
   },
   tl: {
     'app.loading': 'Binubuksan ang TD POS',
@@ -665,6 +674,15 @@ export const translations = {
       'Hindi naka-pair ang device. Patulungin ang manager mag-pair ulit ng register.',
     'checkout.failure.clockSkew':
       'I-set ang oras at petsa ng device, kumonekta ulit, tapos subukan ulit.',
+    'prefs.title': 'Mga Preference',
+    'prefs.language': 'Wika',
+    'prefs.languageEn': 'English',
+    'prefs.languageTl': 'Tagalog',
+    'prefs.theme': 'Tema',
+    'prefs.themeSystem': 'Sistema',
+    'prefs.themeLight': 'Maliwanag',
+    'prefs.themeDark': 'Madilim',
+    'prefs.savedLocally': 'Naka-save lang sa device na ito.',
   },
 } as const
 

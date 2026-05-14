@@ -10,7 +10,7 @@ import { useSQLiteContext } from 'expo-sqlite'
 import { useState } from 'react'
 import { ScrollView, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { Appbar, Button, Card, Chip, Snackbar, Text } from 'react-native-paper'
+import { Appbar, Button, Card, Chip, SegmentedButtons, Snackbar, Text } from 'react-native-paper'
 
 import { useAppTheme } from '@/constants/theme'
 import { useDiagnosticsMetadata } from '@/features/diagnostics/hooks/use-diagnostics-metadata'
@@ -21,6 +21,7 @@ import { buildLocalDataExport } from '@/features/diagnostics/lib/local-data-expo
 import { useHaptics } from '@/hooks/use-haptics'
 import { useT } from '@/i18n/translations'
 import { useAuthStore } from '@/stores/auth-store'
+import { useSettingsStore } from '@/stores/settings-store'
 
 const MANAGER_ROLES = new Set(['owner', 'manager'])
 
@@ -45,6 +46,10 @@ export default function DiagnosticsScreen() {
   const [snackbar, setSnackbar] = useState<string | null>(null)
   const role = useAuthStore((state) => state.role)
   const canViewDiagnostics = role ? MANAGER_ROLES.has(role) : false
+  const language = useSettingsStore((state) => state.language)
+  const themeMode = useSettingsStore((state) => state.themeMode)
+  const setLanguage = useSettingsStore((state) => state.setLanguage)
+  const setThemeMode = useSettingsStore((state) => state.setThemeMode)
   const { data, isPending, isFetching, refetch } = useSyncHealth({ enabled: canViewDiagnostics })
   const { data: metadata, isPending: isMetadataPending } = useDiagnosticsMetadata({
     enabled: canViewDiagnostics,
@@ -134,6 +139,30 @@ export default function DiagnosticsScreen() {
               </Button>
               <Button
                 mode="contained-tonal"
+                icon="cellphone-link"
+                contentStyle={{ justifyContent: 'flex-start' }}
+                onPress={() => {
+                  void haptics.tapLight()
+                  router.push('/(app)/device-pairing')
+                }}
+                accessibilityLabel="Open device pairing"
+              >
+                Device pairing
+              </Button>
+              <Button
+                mode="contained-tonal"
+                icon="printer-wireless"
+                contentStyle={{ justifyContent: 'flex-start' }}
+                onPress={() => {
+                  void haptics.tapLight()
+                  router.push('/(app)/printer-settings')
+                }}
+                accessibilityLabel="Open receipt printer settings"
+              >
+                Receipt printer
+              </Button>
+              <Button
+                mode="contained-tonal"
                 icon="shield-account-outline"
                 contentStyle={{ justifyContent: 'flex-start' }}
                 onPress={() => {
@@ -144,6 +173,51 @@ export default function DiagnosticsScreen() {
               >
                 {t('diagnostics.privacy')}
               </Button>
+            </Card.Content>
+          </Card>
+
+          {/* Preferences — device-level display + language */}
+          <Card mode="contained">
+            <Card.Content style={{ gap: 12 }}>
+              <Text variant="labelLarge" style={{ color: theme.colors.onSurfaceVariant }}>
+                {t('prefs.title')}
+              </Text>
+              <View style={{ gap: 6 }}>
+                <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                  {t('prefs.language')}
+                </Text>
+                <SegmentedButtons
+                  value={language}
+                  onValueChange={(value) => {
+                    void haptics.selection()
+                    setLanguage(value as typeof language)
+                  }}
+                  buttons={[
+                    { value: 'en', label: t('prefs.languageEn'), icon: 'translate' },
+                    { value: 'tl', label: t('prefs.languageTl'), icon: 'translate' },
+                  ]}
+                />
+              </View>
+              <View style={{ gap: 6 }}>
+                <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                  {t('prefs.theme')}
+                </Text>
+                <SegmentedButtons
+                  value={themeMode}
+                  onValueChange={(value) => {
+                    void haptics.selection()
+                    setThemeMode(value as typeof themeMode)
+                  }}
+                  buttons={[
+                    { value: 'system', label: t('prefs.themeSystem'), icon: 'theme-light-dark' },
+                    { value: 'light', label: t('prefs.themeLight'), icon: 'white-balance-sunny' },
+                    { value: 'dark', label: t('prefs.themeDark'), icon: 'weather-night' },
+                  ]}
+                />
+              </View>
+              <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                {t('prefs.savedLocally')}
+              </Text>
             </Card.Content>
           </Card>
 
@@ -225,6 +299,56 @@ export default function DiagnosticsScreen() {
             </Card.Content>
           </Card>
 
+          {recentErrors.length > 0 ? (
+            <Card mode="contained">
+              <Card.Content style={{ gap: 10 }}>
+                <Text variant="labelLarge" style={{ color: theme.colors.onSurfaceVariant }}>
+                  Recent sync issues
+                </Text>
+                {recentErrors.map((error) => (
+                  <View
+                    key={error.queueId}
+                    style={{
+                      borderWidth: 1,
+                      borderColor: theme.tdpos.ink[200],
+                      borderRadius: 8,
+                      padding: 10,
+                      gap: 4,
+                    }}
+                  >
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 8 }}>
+                      <Text variant="titleSmall">
+                        #{error.queueId} · {error.tableName}
+                      </Text>
+                      <Text
+                        variant="bodySmall"
+                        style={{
+                          color:
+                            error.retryCount >= 999
+                              ? theme.tdpos.semantic.red600
+                              : theme.tdpos.amber[700],
+                          fontWeight: '700',
+                        }}
+                      >
+                        retry {error.retryCount}
+                      </Text>
+                    </View>
+                    <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                      {error.operation} · {error.operationRef} ·{' '}
+                      {formatEpochSeconds(error.createdAt, t('diagnostics.never'))}
+                    </Text>
+                    <Text variant="bodySmall" selectable>
+                      {error.lastError}
+                    </Text>
+                  </View>
+                ))}
+                <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                  Raw payloads stay on-device. Copy the support bundle before any recovery step.
+                </Text>
+              </Card.Content>
+            </Card>
+          ) : null}
+
           {/* Device + support bundle */}
           {metadata ? (
             <Card mode="contained">
@@ -245,6 +369,18 @@ export default function DiagnosticsScreen() {
                 <InfoRow
                   label={t('diagnostics.cashier')}
                   value={metadata.cashierCode ?? t('diagnostics.never')}
+                />
+                <InfoRow
+                  label="Pairing"
+                  value={formatPairingStatus(metadata.devicePairingStatus)}
+                />
+                <InfoRow
+                  label="Pairing ref"
+                  value={tailRef(metadata.devicePairingId ?? t('diagnostics.never'))}
+                />
+                <InfoRow
+                  label="Paired at"
+                  value={metadata.devicePairedAt ?? t('diagnostics.never')}
                 />
                 <InfoRow
                   label={t('diagnostics.role')}
@@ -460,4 +596,15 @@ function formatBytes(value: number): string {
 
 function formatOptionalBytes(value: number | null, fallback: string): string {
   return value === null ? fallback : formatBytes(value)
+}
+
+function formatPairingStatus(value: string | null): string {
+  if (value === 'paired') return 'Paired'
+  if (value === 'fallback') return 'Fallback identity'
+  if (value === 'unpaired') return 'Not paired'
+  return 'Unknown'
+}
+
+function tailRef(value: string): string {
+  return value.length > 8 ? `...${value.slice(-8)}` : value
 }
