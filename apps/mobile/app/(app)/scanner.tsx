@@ -1,6 +1,7 @@
 // Barcode scanner - Tier A cashier scaffold.
 // Uses Expo CameraView, local SQLite SKU lookup, and the existing cart store
 // so scans follow the same checkout/inventory path as product-tile taps.
+// EN + TL parity via `useT()` so the cashier sees their language end-to-end.
 
 import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera'
 import { useSQLiteContext } from 'expo-sqlite'
@@ -12,6 +13,7 @@ import { Appbar, Button, Card, Surface, Text } from 'react-native-paper'
 
 import { useAppTheme } from '@/constants/theme'
 import { useHaptics } from '@/hooks/use-haptics'
+import { useT } from '@/i18n/translations'
 import { useCartStore } from '@/stores/cart-store'
 import type { DbProduct } from '@tdpos/db'
 import { formatMoney } from '@tdpos/shared'
@@ -29,6 +31,7 @@ export default function ScannerScreen() {
   const theme = useAppTheme()
   const insets = useSafeAreaInsets()
   const haptics = useHaptics()
+  const t = useT()
   const db = useSQLiteContext()
   const addItem = useCartStore((state) => state.addItem)
   const [permission, requestPermission] = useCameraPermissions()
@@ -116,7 +119,7 @@ export default function ScannerScreen() {
           onPress={() => router.back()}
           accessibilityLabel="Back"
         />
-        <Appbar.Content title="Barcode scanner" color={theme.colors.onPrimary} />
+        <Appbar.Content title={t('scanner.title')} color={theme.colors.onPrimary} />
       </Appbar.Header>
 
       {canScan ? (
@@ -162,8 +165,7 @@ export default function ScannerScreen() {
               }}
             >
               <Text variant="bodyMedium" style={{ color: theme.tdpos.ink[50] }}>
-                Center the barcode inside the frame. SKU or product id matches add one piece to
-                cart.
+                {t('scanner.frameHint')}
               </Text>
             </View>
           </View>
@@ -178,22 +180,10 @@ export default function ScannerScreen() {
             <ScanResultCard result={scanResult} onReset={resetScanner} />
             <Card mode="contained">
               <Card.Content style={{ gap: 8 }}>
-                <Text variant="titleMedium">Scanner rules</Text>
-                <Step
-                  order="1"
-                  label="Scan SKU barcode"
-                  hint="Matches active products by SKU first, with product id as a dev fallback."
-                />
-                <Step
-                  order="2"
-                  label="Adds one piece"
-                  hint="The cart and checkout stock guard stay the single sale path."
-                />
-                <Step
-                  order="3"
-                  label="Scan again"
-                  hint="Use the reset button after each scan to avoid duplicate reads."
-                />
+                <Text variant="titleMedium">{t('scanner.rulesTitle')}</Text>
+                <Step order="1" label={t('scanner.step1Label')} hint={t('scanner.step1Hint')} />
+                <Step order="2" label={t('scanner.step2Label')} hint={t('scanner.step2Hint')} />
+                <Step order="3" label={t('scanner.step3Label')} hint={t('scanner.step3Hint')} />
               </Card.Content>
             </Card>
           </ScrollView>
@@ -213,35 +203,34 @@ export default function ScannerScreen() {
                 style={{ color: theme.tdpos.amber[700], fontWeight: '600' }}
                 accessibilityRole="header"
               >
-                Camera permission needed
+                {t('scanner.permissionTitle')}
               </Text>
               <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
-                TD POS uses the camera to read product barcodes and match them against the offline
-                product catalog.
+                {t('scanner.permissionBody')}
               </Text>
               <Button mode="contained" icon="camera" onPress={requestCamera}>
-                Allow camera
+                {t('scanner.permissionAction')}
               </Button>
             </Card.Content>
           </Card>
 
           <Card mode="contained">
             <Card.Content style={{ gap: 10 }}>
-              <Text variant="titleMedium">Fallback while permission is off</Text>
+              <Text variant="titleMedium">{t('scanner.fallbackTitle')}</Text>
               <Step
                 order="1"
-                label="Open Sale"
-                hint="The tabbed home screen lists every active product."
+                label={t('scanner.fallbackStep1Label')}
+                hint={t('scanner.fallbackStep1Hint')}
               />
               <Step
                 order="2"
-                label="Tap a product tile"
-                hint="Adds one piece to the cart through the same checkout path."
+                label={t('scanner.fallbackStep2Label')}
+                hint={t('scanner.fallbackStep2Hint')}
               />
               <Step
                 order="3"
-                label="Charge to checkout"
-                hint="Cash, GCash, or utang with the same receipt flow."
+                label={t('scanner.fallbackStep3Label')}
+                hint={t('scanner.fallbackStep3Hint')}
               />
             </Card.Content>
           </Card>
@@ -263,9 +252,9 @@ export default function ScannerScreen() {
           icon="cart-outline"
           buttonColor={theme.colors.primary}
           onPress={goToSale}
-          accessibilityLabel="Back to Sale tab"
+          accessibilityLabel={t('scanner.backToSale')}
         >
-          Back to Sale
+          {t('scanner.backToSale')}
         </Button>
       </Surface>
     </View>
@@ -274,15 +263,15 @@ export default function ScannerScreen() {
 
 function ScanResultCard({ result, onReset }: { result: ScanResult; onReset: () => void }) {
   const theme = useAppTheme()
+  const t = useT()
 
   if (result.kind === 'idle') {
     return (
       <Card mode="contained">
         <Card.Content style={{ gap: 6 }}>
-          <Text variant="titleMedium">Ready to scan</Text>
+          <Text variant="titleMedium">{t('scanner.idleTitle')}</Text>
           <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
-            Scan one product at a time. The scanner pauses after a match so the cashier can confirm
-            the result.
+            {t('scanner.idleBody')}
           </Text>
         </Card.Content>
       </Card>
@@ -296,21 +285,21 @@ function ScanResultCard({ result, onReset }: { result: ScanResult; onReset: () =
 
   const title =
     result.kind === 'found'
-      ? `${result.productName} added`
+      ? `${result.productName} ${t('scanner.foundSuffix')}`
       : result.kind === 'out_of_stock'
-        ? `${result.productName} is out of stock`
+        ? `${result.productName} ${t('scanner.outOfStockSuffix')}`
         : result.kind === 'missing'
-          ? 'No matching product'
-          : 'Scanner lookup failed'
+          ? t('scanner.missingTitle')
+          : t('scanner.errorTitle')
 
   const body =
     result.kind === 'found'
-      ? `${formatMoney(result.price)} was added as one piece.`
+      ? `${formatMoney(result.price)} ${t('scanner.foundBodyTemplate')}`
       : result.kind === 'out_of_stock'
-        ? `Code ${result.code} matched an active product, but stock is zero.`
+        ? `${result.code} ${t('scanner.outOfStockBody')}`
         : result.kind === 'missing'
-          ? `Code ${result.code} does not match an active SKU in the local catalog.`
-          : 'Try again, or add the product manually from Sale.'
+          ? `${result.code} ${t('scanner.missingBody')}`
+          : t('scanner.errorBody')
 
   return (
     <Card mode="contained" style={{ backgroundColor: tone.background }}>
@@ -322,7 +311,7 @@ function ScanResultCard({ result, onReset }: { result: ScanResult; onReset: () =
           {body}
         </Text>
         <Button mode="outlined" icon="refresh" onPress={onReset}>
-          Scan again
+          {t('scanner.scanAgain')}
         </Button>
       </Card.Content>
     </Card>
