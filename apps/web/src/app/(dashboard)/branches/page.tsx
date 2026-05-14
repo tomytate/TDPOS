@@ -4,6 +4,7 @@
 // empty state, and a status pill on every row.
 
 import { createBranchScaffoldAction } from '@/app/(dashboard)/actions'
+import { ErrorStateCard } from '@/components/error-state-card'
 import { ScaffoldActionButton } from '@/components/scaffold-action-button'
 import { TierLockBanner } from '@/components/tier-lock-banner'
 import { getBranchManagementRows, getBusinessEntitlements } from '@/lib/queries/management'
@@ -94,6 +95,7 @@ export default async function BranchesPage() {
           label="Validate branch scaffold"
           fields={[
             { kind: 'text', name: 'name', label: 'Name', placeholder: 'Main', required: true },
+            { kind: 'text', name: 'branch_code', label: 'Code', placeholder: 'MAIN' },
             { kind: 'text', name: 'region', label: 'Region', placeholder: 'NCR' },
             { kind: 'text', name: 'address', label: 'Address', placeholder: 'Quezon City' },
           ]}
@@ -109,11 +111,18 @@ export default async function BranchesPage() {
       ) : null}
 
       {!result.ready ? (
-        <div role="status" className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm">
-          {result.reason === 'supabase_unconfigured'
-            ? 'Supabase is not configured.'
-            : `Branches could not load: ${result.message ?? 'unknown error'}`}
-        </div>
+        <ErrorStateCard
+          title={
+            result.reason === 'supabase_unconfigured'
+              ? 'Supabase is not configured'
+              : 'Branches could not load'
+          }
+          body={
+            result.reason === 'supabase_unconfigured'
+              ? 'Set the Supabase env vars in apps/web/.env.local to connect this dashboard.'
+              : (result.message ?? 'An unknown error occurred while loading branches.')
+          }
+        />
       ) : (
         <>
           <section className="grid grid-cols-1 gap-3 sm:grid-cols-4">
@@ -132,6 +141,7 @@ export default async function BranchesPage() {
               <thead className="bg-ink-50 text-[12px] uppercase text-ink-500">
                 <tr>
                   <th className="px-4 py-3 font-semibold">Branch</th>
+                  <th className="px-4 py-3 font-semibold">Code</th>
                   <th className="px-4 py-3 font-semibold">Region</th>
                   <th className="px-4 py-3 font-semibold">Address</th>
                   <th className="px-4 py-3 font-semibold">Status</th>
@@ -140,7 +150,7 @@ export default async function BranchesPage() {
               <tbody className="divide-y divide-ink-100">
                 {result.branches.length === 0 ? (
                   <tr>
-                    <td className="px-4 py-10 text-center" colSpan={4}>
+                    <td className="px-4 py-10 text-center" colSpan={5}>
                       <p className="m-0 text-base font-semibold text-ink-800">No branches yet</p>
                       <p className="mt-1 text-sm text-ink-500">
                         Use “Validate branch scaffold” above to add your first selling point.
@@ -151,6 +161,9 @@ export default async function BranchesPage() {
                   result.branches.map((branch) => (
                     <tr key={branch.id}>
                       <td className="px-4 py-3 font-semibold text-ink-900">{branch.name}</td>
+                      <td className="px-4 py-3 font-mono text-[13px] font-semibold text-ink-700">
+                        {branch.branchCode}
+                      </td>
                       <td className="px-4 py-3 text-ink-600">{branch.region ?? '--'}</td>
                       <td className="px-4 py-3 text-ink-600">{branch.address ?? '--'}</td>
                       <td className="px-4 py-3">

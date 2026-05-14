@@ -10,6 +10,7 @@ import {
   eraseCustomerPiiScaffoldAction,
   updateModulesScaffoldAction,
 } from '@/app/(dashboard)/actions'
+import { ErrorStateCard } from '@/components/error-state-card'
 import { ScaffoldActionButton } from '@/components/scaffold-action-button'
 import { getCustomerPrivacyRows, getModuleManagementRows } from '@/lib/queries/management'
 import {
@@ -127,11 +128,18 @@ export default async function ModulesPage() {
       </header>
 
       {!result.ready ? (
-        <div role="status" className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm">
-          {result.reason === 'supabase_unconfigured'
-            ? 'Supabase is not configured.'
-            : `Modules could not load: ${result.message ?? 'unknown error'}`}
-        </div>
+        <ErrorStateCard
+          title={
+            result.reason === 'supabase_unconfigured'
+              ? 'Supabase is not configured'
+              : 'Modules could not load'
+          }
+          body={
+            result.reason === 'supabase_unconfigured'
+              ? 'Set the Supabase env vars in apps/web/.env.local to connect this dashboard.'
+              : (result.message ?? 'An unknown error occurred while loading modules.')
+          }
+        />
       ) : (
         <>
           {/* Owner-facing hero — business name + tier + limits in one card */}
@@ -222,13 +230,19 @@ export default async function ModulesPage() {
             </div>
 
             {!customersResult.ready ? (
-              <div
-                role="status"
-                className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700"
-              >
-                {customersResult.reason === 'supabase_unconfigured'
-                  ? 'Supabase is not configured.'
-                  : `Customer privacy rows could not load: ${customersResult.message ?? 'unknown error'}`}
+              <div className="mt-3">
+                <ErrorStateCard
+                  title={
+                    customersResult.reason === 'supabase_unconfigured'
+                      ? 'Supabase is not configured'
+                      : 'Customer privacy rows could not load'
+                  }
+                  body={
+                    customersResult.reason === 'supabase_unconfigured'
+                      ? 'Set the Supabase env vars to enable customer erasure tooling.'
+                      : (customersResult.message ?? 'An unknown error occurred.')
+                  }
+                />
               </div>
             ) : !customersResult.canErase ? (
               <p className="mt-3 text-sm text-ink-500">
@@ -241,6 +255,8 @@ export default async function ModulesPage() {
                     <ScaffoldActionButton
                       action={eraseCustomerPiiScaffoldAction}
                       label="Erase selected customer PII"
+                      intent="danger"
+                      confirmationLabel="I understand this blanks customer-identifying fields while retaining required transaction records."
                       fields={[
                         {
                           kind: 'select',

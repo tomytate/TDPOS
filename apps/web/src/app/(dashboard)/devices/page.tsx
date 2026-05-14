@@ -5,6 +5,7 @@
 // replacement) above the live device table, and tone-aware status
 // pill so an offline / lost device reads at a glance.
 
+import { ErrorStateCard } from '@/components/error-state-card'
 import { TierLockBanner } from '@/components/tier-lock-banner'
 import { ScaffoldActionButton } from '@/components/scaffold-action-button'
 import {
@@ -43,6 +44,13 @@ function freshnessPillClass(freshness: string): string {
   if (freshness === 'stale') return `${PILL_BASE} bg-amber-100 text-amber-700`
   if (freshness === 'offline') return `${PILL_BASE} bg-danger-500/10 text-danger-600`
   if (freshness === 'lost') return `${PILL_BASE} bg-danger-500/15 text-danger-600`
+  return `${PILL_BASE} bg-ink-100 text-ink-500`
+}
+
+function pairingPillClass(status: string): string {
+  if (status === 'paired') return `${PILL_BASE} bg-success-500/10 text-success-600`
+  if (status === 'fallback') return `${PILL_BASE} bg-amber-100 text-amber-700`
+  if (status === 'unpaired') return `${PILL_BASE} bg-danger-500/10 text-danger-600`
   return `${PILL_BASE} bg-ink-100 text-ink-500`
 }
 
@@ -147,11 +155,18 @@ export default async function DevicesPage() {
       ) : null}
 
       {!result.ready ? (
-        <div role="status" className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm">
-          {result.reason === 'supabase_unconfigured'
-            ? 'Supabase is not configured.'
-            : `Devices could not load: ${result.message ?? 'unknown error'}`}
-        </div>
+        <ErrorStateCard
+          title={
+            result.reason === 'supabase_unconfigured'
+              ? 'Supabase is not configured'
+              : 'Devices could not load'
+          }
+          body={
+            result.reason === 'supabase_unconfigured'
+              ? 'Set the Supabase env vars in apps/web/.env.local to connect this dashboard.'
+              : (result.message ?? 'An unknown error occurred while loading devices.')
+          }
+        />
       ) : (
         <>
           {/* Metrics top — owners look here first */}
@@ -204,7 +219,7 @@ export default async function DevicesPage() {
                       name: 'branch_id',
                       label: 'Branch',
                       options: result.branches.map((branch) => ({
-                        label: branch.name,
+                        label: `${branch.branchCode} · ${branch.name}`,
                         value: branch.id,
                       })),
                     },
@@ -316,6 +331,8 @@ export default async function DevicesPage() {
               <ScaffoldActionButton
                 action={markDeviceLostForReplacementAction}
                 label="Prepare replacement"
+                intent="danger"
+                confirmationLabel="I understand this marks the device lost and preserves its last reported recovery snapshot."
                 fields={[
                   {
                     kind: 'select',
@@ -355,6 +372,7 @@ export default async function DevicesPage() {
                   <th className="px-4 py-3 font-semibold">Device</th>
                   <th className="px-4 py-3 font-semibold">Branch</th>
                   <th className="px-4 py-3 font-semibold">Surface</th>
+                  <th className="px-4 py-3 font-semibold">Pairing</th>
                   <th className="px-4 py-3 font-semibold">Queue</th>
                   <th className="px-4 py-3 font-semibold">Last seen</th>
                   <th className="px-4 py-3 font-semibold">Status</th>
@@ -363,7 +381,7 @@ export default async function DevicesPage() {
               <tbody className="divide-y divide-ink-100">
                 {result.devices.length === 0 ? (
                   <tr>
-                    <td className="px-4 py-10 text-center" colSpan={6}>
+                    <td className="px-4 py-10 text-center" colSpan={7}>
                       <p className="m-0 text-base font-semibold text-ink-800">
                         No devices have heartbeated yet
                       </p>
@@ -387,6 +405,21 @@ export default async function DevicesPage() {
                       <td className="px-4 py-3 text-ink-600">{device.branchName ?? '--'}</td>
                       <td className="px-4 py-3 font-mono text-[12px] text-ink-700">
                         {device.surface}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={pairingPillClass(device.pairingStatus)}>
+                          {device.pairingStatus}
+                        </span>
+                        {device.pairingCodeTail ? (
+                          <div className="mt-1 font-mono text-[11px] text-ink-500">
+                            {device.pairingCodeTail}
+                          </div>
+                        ) : null}
+                        {device.pairedAt ? (
+                          <div className="mt-1 text-[11px] text-ink-500">
+                            Paired {formatTimestamp(device.pairedAt)}
+                          </div>
+                        ) : null}
                       </td>
                       <td className="px-4 py-3 text-[12px] text-ink-700">
                         <div>{formatQueue(device.unsyncedRows)} unsynced</div>
@@ -455,6 +488,7 @@ export default async function DevicesPage() {
               <ScaffoldActionButton
                 action={updateDeviceStatusScaffoldAction}
                 label="Set status"
+                confirmationLabel="I reviewed the selected device and understand this status change affects lane access."
                 fields={[
                   {
                     kind: 'select',

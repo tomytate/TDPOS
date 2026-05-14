@@ -4,11 +4,13 @@
 // and a softer empty state. Real mutations still flow through the
 // existing Server Action; this is presentation polish only.
 
+import { ErrorStateCard } from '@/components/error-state-card'
 import { ScaffoldActionButton } from '@/components/scaffold-action-button'
 import { TierLockBanner } from '@/components/tier-lock-banner'
 import {
   createCategoryScaffoldAction,
   createProductScaffoldAction,
+  importProductsCsvScaffoldAction,
 } from '@/app/(dashboard)/actions'
 import {
   getBusinessEntitlements,
@@ -224,12 +226,44 @@ export default async function ProductsPage() {
         </div>
       </section>
 
-      {!result.ready ? (
-        <div role="status" className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm">
-          {result.reason === 'supabase_unconfigured'
-            ? 'Supabase is not configured.'
-            : `Products could not load: ${result.message ?? 'unknown error'}`}
+      <section className="rounded-lg border border-ink-200 bg-ink-50 p-4">
+        <div className="mb-3">
+          <h2 className="m-0 text-base font-semibold text-ink-900">Bulk catalog import</h2>
+          <p className="mt-1 text-sm text-ink-600">
+            Paste a CSV with headers: <code>name,sku,price_per_piece,stock_pieces</code>. Optional
+            headers: <code>pieces_per_pack,unit_label,price_per_pack,is_tingi</code>.
+          </p>
         </div>
+        <ScaffoldActionButton
+          action={importProductsCsvScaffoldAction}
+          label="Import CSV products"
+          fields={[
+            {
+              kind: 'textarea',
+              name: 'catalog_csv',
+              label: 'Catalog CSV',
+              required: true,
+              rows: 7,
+              placeholder:
+                'name,sku,price_per_piece,stock_pieces,pieces_per_pack,unit_label,is_tingi\nTest Sachet,SACHET-001,7,120,12,sachet,true',
+            },
+          ]}
+        />
+      </section>
+
+      {!result.ready ? (
+        <ErrorStateCard
+          title={
+            result.reason === 'supabase_unconfigured'
+              ? 'Supabase is not configured'
+              : 'Products could not load'
+          }
+          body={
+            result.reason === 'supabase_unconfigured'
+              ? 'Set the Supabase env vars in apps/web/.env.local to connect this dashboard.'
+              : (result.message ?? 'An unknown error occurred while loading products.')
+          }
+        />
       ) : (
         <>
           <section className="grid grid-cols-1 gap-3 sm:grid-cols-4">
