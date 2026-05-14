@@ -1,0 +1,27 @@
+# CODEOWNERS — TD POS
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owner for everything
+* @tomytate
+
+# Mobile app
+apps/mobile/ @tomytate
+
+# Web dashboard
+apps/web/ @tomytate
+
+# Marketing site
+apps/marketing/ @tomytate
+
+# Shared packages (types, validators, constants)
+packages/ @tomytate
+
+# Supabase (migrations, Edge Functions, RLS)
+supabase/ @tomytate
+
+# Documentation and skills
+docs/ @tomytate
+
+# CI, scripts, and project config
+.github/ @tomytate
+scripts/ @tomytate

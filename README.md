@@ -183,4 +183,4 @@ bun run check:foundation
 
 ## License
 
-Proprietary — TomyTate Studios © 2026
+[MIT](LICENSE) — TomyTate Studios © 2026
