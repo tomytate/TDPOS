@@ -1,8 +1,14 @@
-// Phase W0.7 — Sync health view.
+// Phase W0.7 — Sync health view. Polished for v0.9 visual QA: 7-tile
+// metric grid split into "Operations" + "Devices" eyebrows so the
+// dashboard reads as two related groups instead of one wall of
+// numbers, tone-aware device freshness pill (fresh/stale/offline/lost
+// share the same palette as the /devices page), and a softer
+// registered-devices empty state.
 //
-// Server Component snapshot of `applied_operations` for the caller's tenant.
-// Surfaces stuck operations, recent failures, and 24h throughput. Reasons are
-// operation-classification labels from the race-safe RPC, never PII (ADR-014).
+// Server Component snapshot of `applied_operations` for the caller's
+// tenant. Surfaces stuck operations, recent failures, and 24h
+// throughput. Reasons are operation-classification labels from the
+// race-safe RPC, never PII (ADR-014).
 
 import { TierLockBanner } from '@/components/tier-lock-banner'
 import { getBusinessEntitlements } from '@/lib/queries/management'
@@ -26,6 +32,17 @@ function formatDeviceTimestamp(value: string | number | null): string {
 
 function tailRef(value: string): string {
   return value.length > 8 ? `…${value.slice(-8)}` : value
+}
+
+const PILL_BASE =
+  'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase'
+
+function freshnessPillClass(freshness: string): string {
+  if (freshness === 'fresh') return `${PILL_BASE} bg-success-500/10 text-success-600`
+  if (freshness === 'stale') return `${PILL_BASE} bg-amber-100 text-amber-700`
+  if (freshness === 'offline') return `${PILL_BASE} bg-danger-500/10 text-danger-600`
+  if (freshness === 'lost') return `${PILL_BASE} bg-danger-500/15 text-danger-600`
+  return `${PILL_BASE} bg-ink-100 text-ink-600`
 }
 
 function statusToneFor(
@@ -73,6 +90,31 @@ function statusToneFor(
   }
 }
 
+function MetricArticle({
+  label,
+  value,
+  tone = 'neutral',
+}: {
+  label: string
+  value: number | string
+  tone?: 'neutral' | 'good' | 'warn' | 'danger'
+}) {
+  const color =
+    tone === 'good'
+      ? 'text-teal-700'
+      : tone === 'warn'
+        ? 'text-amber-700'
+        : tone === 'danger'
+          ? 'text-danger-600'
+          : 'text-ink-700'
+  return (
+    <article className="rounded-xl border border-ink-200 bg-white p-4 shadow-sm">
+      <p className="m-0 text-[11px] font-semibold uppercase tracking-[1px] text-ink-500">{label}</p>
+      <p className={`mt-2 text-3xl font-semibold tabular-nums ${color}`}>{value}</p>
+    </article>
+  )
+}
+
 export default async function SyncHealthPage() {
   const entitlementsResult = await getBusinessEntitlements()
   const entitlements = entitlementsResult.ready ? entitlementsResult.entitlements : null
@@ -107,7 +149,7 @@ export default async function SyncHealthPage() {
   const result = await getSyncHealthSnapshot()
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-5">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="m-0 text-2xl font-semibold text-ink-900">Sync health</h1>
@@ -159,79 +201,53 @@ export default async function SyncHealthPage() {
             )
           })()}
 
-          <section className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
-            <article className="rounded-xl border border-ink-200 bg-white p-4 shadow-sm">
-              <p className="m-0 text-[11px] font-semibold uppercase tracking-[1px] text-ink-500">
-                Completed (24h)
-              </p>
-              <p className="mt-2 text-3xl font-semibold tabular-nums text-teal-700">
-                {result.snapshot.completedCount24h}
-              </p>
-            </article>
-            <article className="rounded-xl border border-ink-200 bg-white p-4 shadow-sm">
-              <p className="m-0 text-[11px] font-semibold uppercase tracking-[1px] text-ink-500">
-                In progress
-              </p>
-              <p className="mt-2 text-3xl font-semibold tabular-nums text-ink-700">
-                {result.snapshot.inProgressCount}
-              </p>
-            </article>
-            <article className="rounded-xl border border-ink-200 bg-white p-4 shadow-sm">
-              <p className="m-0 text-[11px] font-semibold uppercase tracking-[1px] text-ink-500">
-                Stuck (&gt;60s)
-              </p>
-              <p
-                className={`mt-2 text-3xl font-semibold tabular-nums ${
-                  result.snapshot.stuckCount > 0 ? 'text-danger-600' : 'text-ink-700'
-                }`}
-              >
-                {result.snapshot.stuckCount}
-              </p>
-            </article>
-            <article className="rounded-xl border border-ink-200 bg-white p-4 shadow-sm">
-              <p className="m-0 text-[11px] font-semibold uppercase tracking-[1px] text-ink-500">
-                Failed (24h)
-              </p>
-              <p
-                className={`mt-2 text-3xl font-semibold tabular-nums ${
-                  result.snapshot.failedCount > 0 ? 'text-amber-700' : 'text-ink-700'
-                }`}
-              >
-                {result.snapshot.failedCount}
-              </p>
-            </article>
-            <article className="rounded-xl border border-ink-200 bg-white p-4 shadow-sm">
-              <p className="m-0 text-[11px] font-semibold uppercase tracking-[1px] text-ink-500">
-                Active devices
-              </p>
-              <p className="mt-2 text-3xl font-semibold tabular-nums text-teal-700">
-                {result.snapshot.activeDeviceCount}
-              </p>
-            </article>
-            <article className="rounded-xl border border-ink-200 bg-white p-4 shadow-sm">
-              <p className="m-0 text-[11px] font-semibold uppercase tracking-[1px] text-ink-500">
-                Stale devices
-              </p>
-              <p
-                className={`mt-2 text-3xl font-semibold tabular-nums ${
-                  result.snapshot.staleDeviceCount > 0 ? 'text-amber-700' : 'text-ink-700'
-                }`}
-              >
-                {result.snapshot.staleDeviceCount}
-              </p>
-            </article>
-            <article className="rounded-xl border border-ink-200 bg-white p-4 shadow-sm">
-              <p className="m-0 text-[11px] font-semibold uppercase tracking-[1px] text-ink-500">
-                Offline devices
-              </p>
-              <p
-                className={`mt-2 text-3xl font-semibold tabular-nums ${
-                  result.snapshot.offlineDeviceCount > 0 ? 'text-danger-600' : 'text-ink-700'
-                }`}
-              >
-                {result.snapshot.offlineDeviceCount}
-              </p>
-            </article>
+          {/* Operations group */}
+          <section className="flex flex-col gap-2">
+            <p className="m-0 text-[11px] font-semibold uppercase tracking-[1px] text-ink-500">
+              Operations
+            </p>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <MetricArticle
+                label="Completed (24h)"
+                value={result.snapshot.completedCount24h}
+                tone="good"
+              />
+              <MetricArticle label="In progress" value={result.snapshot.inProgressCount} />
+              <MetricArticle
+                label="Stuck (>60s)"
+                value={result.snapshot.stuckCount}
+                tone={result.snapshot.stuckCount > 0 ? 'danger' : 'neutral'}
+              />
+              <MetricArticle
+                label="Failed (24h)"
+                value={result.snapshot.failedCount}
+                tone={result.snapshot.failedCount > 0 ? 'warn' : 'neutral'}
+              />
+            </div>
+          </section>
+
+          {/* Devices group */}
+          <section className="flex flex-col gap-2">
+            <p className="m-0 text-[11px] font-semibold uppercase tracking-[1px] text-ink-500">
+              Devices
+            </p>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <MetricArticle
+                label="Active devices"
+                value={result.snapshot.activeDeviceCount}
+                tone="good"
+              />
+              <MetricArticle
+                label="Stale devices"
+                value={result.snapshot.staleDeviceCount}
+                tone={result.snapshot.staleDeviceCount > 0 ? 'warn' : 'neutral'}
+              />
+              <MetricArticle
+                label="Offline devices"
+                value={result.snapshot.offlineDeviceCount}
+                tone={result.snapshot.offlineDeviceCount > 0 ? 'danger' : 'neutral'}
+              />
+            </div>
           </section>
 
           <article className="rounded-xl border border-ink-200 bg-white p-4 shadow-sm">
@@ -242,16 +258,21 @@ export default async function SyncHealthPage() {
               </span>
             </header>
             {result.snapshot.devices.length === 0 ? (
-              <p className="mt-2 text-sm text-ink-500">
-                No devices registered yet. Mobile heartbeat wiring lands in the device-management
-                scaffold.
-              </p>
+              <div className="mt-4 rounded-lg border border-dashed border-ink-200 p-6 text-center">
+                <p className="m-0 text-base font-semibold text-ink-800">
+                  No devices registered yet
+                </p>
+                <p className="mt-1 text-sm text-ink-500">
+                  Mobile heartbeats register here automatically when a cashier first signs in. Issue
+                  a pairing code from <code>/devices</code> to onboard a phone or tablet.
+                </p>
+              </div>
             ) : (
               <ul className="mt-3 flex flex-col divide-y divide-ink-100">
                 {result.snapshot.devices.map((device) => (
                   <li
                     key={device.id}
-                    className="grid grid-cols-1 gap-2 py-2 text-[13px] sm:grid-cols-[1fr_auto_auto]"
+                    className="grid grid-cols-1 gap-2 py-3 text-[13px] sm:grid-cols-[1fr_auto_auto]"
                   >
                     <div className="flex flex-col">
                       <span className="font-semibold text-ink-900">
@@ -274,10 +295,10 @@ export default async function SyncHealthPage() {
                         </span>
                       ) : null}
                     </div>
-                    <span className="rounded bg-ink-50 px-2 py-0.5 text-[12px] font-semibold uppercase text-ink-600">
+                    <span className={freshnessPillClass(device.freshness)}>
                       {device.status} · {device.freshness}
                     </span>
-                    <span className="text-[12px] text-ink-500">
+                    <span className="text-[12px] text-ink-500 sm:text-right">
                       Seen {formatTimestamp(device.lastSeenAt)}
                     </span>
                   </li>
@@ -323,8 +344,8 @@ export default async function SyncHealthPage() {
             Stuck reservations older than 60s are normally cleaned up by the
             <code className="mx-1">applied_operations</code> stale-cleanup job. If the stuck count
             stays positive across reloads, check the cron task or contact support. Device rows come
-            from the paid-tier `business_devices` scaffold and intentionally expose only device
-            labels, surfaces, status, branch, and last-seen time.
+            from the paid-tier <code>business_devices</code> scaffold and intentionally expose only
+            device labels, surfaces, status, branch, and last-seen time.
           </p>
         </>
       )}

@@ -1,9 +1,14 @@
-// Phase W0.7 — Audit log view.
+// Phase W0.7 — Audit log view. Polished for v0.9 visual QA:
+// tone-aware action chip (create/update is teal, delete/erase is
+// danger, others stay teal), softer empty-state card with an
+// explainer about when entries appear, and a count indicator in the
+// table header so owners know they're looking at the most recent 50.
 //
-// Read-only Server Component listing the most recent audit_logs entries for
-// the caller's tenant. Surfaces field *names* that changed (never values) so
-// owners get accountability without the page becoming a free-form PII viewer.
-// See ADR-011 (immutability) + ADR-014 (diagnostics privacy).
+// Read-only Server Component listing the most recent audit_logs
+// entries for the caller's tenant. Surfaces field *names* that
+// changed (never values) so owners get accountability without the
+// page becoming a free-form PII viewer. See ADR-011 (immutability) +
+// ADR-014 (diagnostics privacy).
 
 import { TierLockBanner } from '@/components/tier-lock-banner'
 import { getRecentAuditEntries } from '@/lib/queries/audit-log'
@@ -29,6 +34,17 @@ function formatTimestamp(iso: string): string {
 function tailRef(value: string | null): string {
   if (!value) return '—'
   return value.length > 8 ? `…${value.slice(-8)}` : value
+}
+
+function actionToneClass(action: string): string {
+  const lower = action.toLowerCase()
+  if (lower.includes('delete') || lower.includes('erase') || lower.includes('void')) {
+    return 'bg-danger-500/10 text-danger-600'
+  }
+  if (lower.includes('lost') || lower.includes('disable') || lower.includes('override')) {
+    return 'bg-amber-100 text-amber-700'
+  }
+  return 'bg-teal-50 text-teal-700'
 }
 
 export default async function AuditLogPage() {
@@ -59,15 +75,23 @@ export default async function AuditLogPage() {
   }
 
   const result = await getRecentAuditEntries(50)
+  const entriesCount = result.ready ? result.entries.length : 0
 
   return (
     <div className="flex flex-col gap-4">
-      <header>
-        <h1 className="m-0 text-2xl font-semibold text-ink-900">Audit log</h1>
-        <p className="mt-1 text-sm text-ink-600">
-          Append-only record of tenant changes. Field names only — values are not surfaced
-          (ADR-014).
-        </p>
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="m-0 text-2xl font-semibold text-ink-900">Audit log</h1>
+          <p className="mt-1 text-sm text-ink-600">
+            Append-only record of tenant changes. Field names only — values are not surfaced
+            (ADR-014).
+          </p>
+        </div>
+        {result.ready && entriesCount > 0 ? (
+          <span className="rounded-full bg-ink-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-ink-600">
+            Showing latest {entriesCount}
+          </span>
+        ) : null}
       </header>
 
       {!result.ready ? (
@@ -80,59 +104,71 @@ export default async function AuditLogPage() {
             : `Couldn’t load: ${result.message ?? 'unknown error'}`}
         </div>
       ) : result.entries.length === 0 ? (
-        <article className="rounded-xl border border-ink-200 bg-white p-6 text-sm text-ink-600 shadow-sm">
-          No audit entries yet. Tenant-changing actions will appear here once they happen.
+        <article className="rounded-xl border border-dashed border-ink-200 bg-white p-10 text-center shadow-sm">
+          <p className="m-0 text-base font-semibold text-ink-800">No audit entries yet</p>
+          <p className="mt-1 text-sm text-ink-500">
+            Tenant-changing actions (product edits, role changes, module toggles, lost-device
+            reports, customer erasures) appear here as they happen. Reads and ordinary sales do not.
+          </p>
         </article>
       ) : (
         <article className="overflow-hidden rounded-xl border border-ink-200 bg-white shadow-sm">
-          <table className="min-w-full divide-y divide-ink-100 text-[13px]">
-            <thead className="bg-ink-50">
-              <tr className="text-left text-[11px] uppercase tracking-[1px] text-ink-500">
-                <th scope="col" className="px-4 py-2 font-semibold">
-                  When
-                </th>
-                <th scope="col" className="px-4 py-2 font-semibold">
-                  Action
-                </th>
-                <th scope="col" className="px-4 py-2 font-semibold">
-                  Resource
-                </th>
-                <th scope="col" className="px-4 py-2 font-semibold">
-                  Resource ID
-                </th>
-                <th scope="col" className="px-4 py-2 font-semibold">
-                  User
-                </th>
-                <th scope="col" className="px-4 py-2 font-semibold">
-                  Changed fields
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-ink-100">
-              {result.entries.map((entry) => (
-                <tr key={entry.id} className="hover:bg-ink-50">
-                  <td className="whitespace-nowrap px-4 py-2 text-ink-700">
-                    {formatTimestamp(entry.createdAt)}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-2">
-                    <span className="rounded bg-teal-50 px-1.5 py-0.5 font-mono text-[12px] text-teal-700">
-                      {entry.action}
-                    </span>
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-2 text-ink-700">{entry.resourceType}</td>
-                  <td className="whitespace-nowrap px-4 py-2 font-mono text-ink-500">
-                    {tailRef(entry.resourceId)}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-2 font-mono text-ink-500">
-                    {tailRef(entry.userId)}
-                  </td>
-                  <td className="px-4 py-2 text-ink-600">
-                    {changeSummary(entry.beforeKeys, entry.afterKeys)}
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-ink-100 text-[13px]">
+              <thead className="bg-ink-50">
+                <tr className="text-left text-[11px] uppercase tracking-[1px] text-ink-500">
+                  <th scope="col" className="px-4 py-2 font-semibold">
+                    When
+                  </th>
+                  <th scope="col" className="px-4 py-2 font-semibold">
+                    Action
+                  </th>
+                  <th scope="col" className="px-4 py-2 font-semibold">
+                    Resource
+                  </th>
+                  <th scope="col" className="px-4 py-2 font-semibold">
+                    Resource ID
+                  </th>
+                  <th scope="col" className="px-4 py-2 font-semibold">
+                    User
+                  </th>
+                  <th scope="col" className="px-4 py-2 font-semibold">
+                    Changed fields
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-ink-100">
+                {result.entries.map((entry) => (
+                  <tr key={entry.id} className="hover:bg-ink-50">
+                    <td className="whitespace-nowrap px-4 py-2 text-ink-700">
+                      {formatTimestamp(entry.createdAt)}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-2">
+                      <span
+                        className={`rounded px-1.5 py-0.5 font-mono text-[12px] ${actionToneClass(
+                          entry.action,
+                        )}`}
+                      >
+                        {entry.action}
+                      </span>
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-2 text-ink-700">
+                      {entry.resourceType}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-2 font-mono text-ink-500">
+                      {tailRef(entry.resourceId)}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-2 font-mono text-ink-500">
+                      {tailRef(entry.userId)}
+                    </td>
+                    <td className="px-4 py-2 text-ink-600">
+                      {changeSummary(entry.beforeKeys, entry.afterKeys)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </article>
       )}
 
