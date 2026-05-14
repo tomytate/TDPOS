@@ -22,11 +22,14 @@ import {
 import { useState } from 'react'
 
 import { useAppTheme } from '@/constants/theme'
+import { formatThermalReceipt } from '@/features/receipts/lib/thermal-receipt'
 import { executeVoidSale } from '@/features/sales/lib/execute-void-sale'
 import { useHaptics } from '@/hooks/use-haptics'
 import { useT } from '@/i18n/translations'
+import { printBleReceipt } from '@/services/thermal-printer'
 import { useAuthStore } from '@/stores/auth-store'
 import { useCartStore } from '@/stores/cart-store'
+import { useSettingsStore } from '@/stores/settings-store'
 import {
   APP_BRANDING_FOOTER,
   BIR_RECEIPT_FOOTER,
@@ -81,10 +84,15 @@ export default function ReceiptScreen() {
   const storeName = useAuthStore((s) => s.storeName) ?? 'TD POS Store'
   const storeAddress = useAuthStore((s) => s.storeAddress) ?? ''
   const tin = useAuthStore((s) => s.tin) ?? ''
+  const selectedPrinter = useSettingsStore((s) => s.selectedThermalPrinter)
 
-  const [snackbar, setSnackbar] = useState<string | null>(null)
+  const [snackbar, setSnackbar] = useState<{
+    message: string
+    action?: { label: string; onPress: () => void }
+  } | null>(null)
   const [voidDialogVisible, setVoidDialogVisible] = useState(false)
   const [voidSubmitting, setVoidSubmitting] = useState(false)
+  const [printSubmitting, setPrintSubmitting] = useState(false)
 
   if (!lastSaleResult) {
     return (
@@ -157,14 +165,71 @@ export default function ReceiptScreen() {
       ]
       await Share.share({ message: lines.join('\n') })
     } catch {
-      setSnackbar('Could not open share sheet.')
+      setSnackbar({ message: 'Could not open share sheet.' })
+    }
+  }
+
+  const handlePrint = async () => {
+    if (printSubmitting) return
+    if (!selectedPrinter) {
+      setSnackbar({
+        message: 'No printer selected. Pair a Bluetooth printer to enable Print.',
+        action: {
+          label: 'Open settings',
+          onPress: () => router.push('/(app)/printer-settings'),
+        },
+      })
+      void haptics.error()
+      return
+    }
+
+    setPrintSubmitting(true)
+    void haptics.tapMedium()
+    const result = await printBleReceipt({
+      printer: selectedPrinter,
+      receiptText: formatThermalReceipt({
+        storeName,
+        storeAddress,
+        tin,
+        receiptNumber: lastSaleResult.receiptNumber,
+        status: lastSaleResult.status,
+        voidedOriginalReceiptNumber: lastSaleResult.voidedOriginalReceiptNumber,
+        total: lastSaleResult.total,
+        tendered: lastSaleResult.tendered,
+        change: lastSaleResult.change,
+        paymentMethod: lastSaleResult.paymentMethod,
+        isUtang: lastSaleResult.isUtang,
+        items: lastSaleResult.items,
+        createdAt: lastSaleResult.createdAt,
+      }),
+    })
+    setPrintSubmitting(false)
+
+    if (result.ok) {
+      setSnackbar({ message: 'Receipt sent to printer.' })
+      void haptics.success()
+    } else {
+      setSnackbar({
+        message: `${result.message} Receipt remains visible on-screen.`,
+        action: {
+          label: 'Printer settings',
+          onPress: () => router.push('/(app)/printer-settings'),
+        },
+      })
+      void haptics.error()
     }
   }
 
   const handleVoidSale = async () => {
     if (!lastSaleResult || voidSubmitting) return
     if (!branchId || !branchCode || !cashierCode) {
-      setSnackbar('Device not configured. Sign out and re-pair.')
+      setSnackbar({
+        message: 'Device not configured. Pair this register before voiding.',
+        action: {
+          label: 'Pair device',
+          onPress: () => router.push('/(app)/device-pairing'),
+        },
+      })
       void haptics.error()
       return
     }
@@ -183,7 +248,7 @@ export default function ReceiptScreen() {
       })
 
       if (!result.ok) {
-        setSnackbar(describeVoidFailure(result.reason))
+        setSnackbar({ message: describeVoidFailure(result.reason) })
         void haptics.error()
         return
       }
@@ -204,10 +269,12 @@ export default function ReceiptScreen() {
         createdAt: result.createdAt * 1000,
       })
       setVoidDialogVisible(false)
-      setSnackbar(t('receipt.voidSuccess'))
+      setSnackbar({ message: t('receipt.voidSuccess') })
       void haptics.success()
     } catch (err) {
-      setSnackbar(err instanceof Error ? err.message : t('receipt.voidFailed'))
+      setSnackbar({
+        message: err instanceof Error ? err.message : t('receipt.voidFailed'),
+      })
       void haptics.error()
     } finally {
       setVoidSubmitting(false)
@@ -421,8 +488,8 @@ export default function ReceiptScreen() {
         </Card>
       </ScrollView>
 
-      {/* Docked footer — Print is a placeholder until @haroldtran/react-
-          native-thermal-printer wiring lands; Share + New sale are live. */}
+      {/* Docked footer — Print is wired, while physical printer proof remains
+          part of the 0.9 hardware pass. Share + New sale are live fallbacks. */}
       <Surface
         mode="elevated"
         elevation={4}
@@ -438,11 +505,12 @@ export default function ReceiptScreen() {
           <Button
             mode="outlined"
             icon="printer-outline"
-            onPress={() => setSnackbar('Receipt printing arrives with the thermal-printer pair.')}
-            disabled={false}
+            onPress={handlePrint}
+            loading={printSubmitting}
+            disabled={printSubmitting}
             style={{ flex: 1 }}
             accessibilityLabel="Print receipt"
-            accessibilityHint="Send to paired thermal printer (coming soon)"
+            accessibilityHint="Send to selected Bluetooth receipt printer"
           >
             Print
           </Button>
@@ -506,8 +574,23 @@ export default function ReceiptScreen() {
         </Dialog>
       </Portal>
 
-      <Snackbar visible={snackbar !== null} onDismiss={() => setSnackbar(null)} duration={3500}>
-        {snackbar ?? ''}
+      <Snackbar
+        visible={snackbar !== null}
+        onDismiss={() => setSnackbar(null)}
+        duration={3500}
+        action={
+          snackbar?.action
+            ? {
+                label: snackbar.action.label,
+                onPress: () => {
+                  snackbar.action?.onPress()
+                  setSnackbar(null)
+                },
+              }
+            : undefined
+        }
+      >
+        {snackbar?.message ?? ''}
       </Snackbar>
     </View>
   )
