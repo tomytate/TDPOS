@@ -60,15 +60,17 @@ export default async function DashboardLayout({ children }: { children: ReactNod
 
   return (
     <div className="flex min-h-screen flex-col bg-ink-50">
-      <header className="flex flex-wrap items-center justify-between gap-3 bg-teal-700 px-6 py-3 text-white shadow-sm">
+      <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 bg-teal-700 px-4 py-3 text-white shadow-sm sm:px-6">
         <div className="flex items-baseline gap-3">
           <Link href="/dashboard" className="text-base font-semibold text-white">
             TD POS
           </Link>
-          <span className="text-[13px] opacity-85">Owner Dashboard</span>
+          <span className="hidden text-[13px] opacity-85 sm:inline">Owner Dashboard</span>
         </div>
-        <DashboardNav items={navItems} />
-        <div className="flex items-center gap-3 text-[13px]">
+        <div className="order-3 w-full sm:order-2 sm:w-auto sm:flex-1 sm:justify-center sm:flex">
+          <DashboardNav items={navItems} />
+        </div>
+        <div className="order-2 flex items-center gap-2 text-[13px] sm:order-3 sm:gap-3">
           {tierShortLabel ? (
             <Link
               href="/pricing"
@@ -78,7 +80,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
               Tier · {tierShortLabel}
             </Link>
           ) : null}
-          <span className="font-mono opacity-85" title="Signed-in phone (masked)">
+          <span className="hidden font-mono opacity-85 md:inline" title="Signed-in phone (masked)">
             {maskPhone(phone)}
           </span>
           <form action={signOutAction}>
@@ -91,12 +93,17 @@ export default async function DashboardLayout({ children }: { children: ReactNod
           </form>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-6xl flex-1 p-6">{children}</main>
-      <footer className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-2 px-6 py-4 text-[12px] text-ink-500">
+      <main className="mx-auto w-full max-w-6xl flex-1 p-4 sm:p-6">{children}</main>
+      <footer className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-2 px-4 py-4 text-[12px] text-ink-500 sm:px-6">
         <span>BIR-ready provisional cashier formats. BIR accreditation pending.</span>
-        <Link href="/pricing" className="font-semibold text-teal-700 hover:underline">
-          Compare tiers
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link href="/privacy" className="font-semibold text-teal-700 hover:underline">
+            Privacy notice
+          </Link>
+          <Link href="/pricing" className="font-semibold text-teal-700 hover:underline">
+            Compare tiers
+          </Link>
+        </div>
       </footer>
     </div>
   )
