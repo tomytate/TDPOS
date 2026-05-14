@@ -299,6 +299,37 @@ export const translations = {
     'receipt.voidReasonWindowClosed':
       'This sale can only be voided on the same local business day.',
     'receipt.voidReasonNoItems': 'This sale has no item lines to return to inventory.',
+    'checkout.devicePairedTitle': 'Device not paired',
+    'checkout.devicePairedBody':
+      'Pair this register with a manager-issued code before recording customer receipts.',
+    'checkout.pairDevice': 'Pair device',
+    'checkout.openDevicePairing': 'Open device pairing',
+    'checkout.backToCart': 'Back to cart',
+    'checkout.cart': 'Cart',
+    'checkout.cartEmpty': 'No items in cart. Go back and add a product first.',
+    'checkout.cartEmptyError': 'Cart is empty',
+    'checkout.pickPayment': 'Pick a payment method',
+    'checkout.shortError': 'Tendered amount is less than total',
+    'checkout.deviceUnpairedError':
+      'Device not paired. Ask the manager for a device code before checkout.',
+    'checkout.failureFallback': 'Checkout could not complete. Try again.',
+    'checkout.utang': 'Utang',
+    'checkout.utangSubtitle': 'Credit sale',
+    'checkout.tendered': 'Tendered',
+    'checkout.exact': 'Exact',
+    'checkout.shortBy': 'Short by',
+    'checkout.shortByHint': 'Tap a higher denomination or Exact.',
+    'checkout.chargeToUtang': 'Charge to utang',
+    'checkout.total': 'Total',
+    'checkout.confirmHintCash': 'Complete the sale and print receipt',
+    'checkout.confirmHintUtang': 'Record this sale as utang (credit) and print receipt',
+    'checkout.failure.insufficientStock':
+      'Not enough stock for one of the items. Refresh the cart or remove the item.',
+    'checkout.failure.cartEmpty': 'Cart is empty. Add a product first.',
+    'checkout.failure.tenderShort': 'Tendered amount is less than the total.',
+    'checkout.failure.deviceUnpaired':
+      'Device not paired. Ask the manager to re-pair this register.',
+    'checkout.failure.clockSkew': 'Set this device date and time, reconnect, then try again.',
   },
   tl: {
     'app.loading': 'Binubuksan ang TD POS',
@@ -602,6 +633,38 @@ export const translations = {
     'receipt.voidReasonAlreadyVoided': 'Na-void na ang bentang ito.',
     'receipt.voidReasonWindowClosed': 'Sa parehong araw lang ng benta maaari itong i-void.',
     'receipt.voidReasonNoItems': 'Walang item lines ang bentang ito na pwedeng ibalik sa stock.',
+    'checkout.devicePairedTitle': 'Hindi naka-pair ang device',
+    'checkout.devicePairedBody':
+      'I-pair muna ang register gamit ang code mula sa manager bago mag-record ng resibo.',
+    'checkout.pairDevice': 'I-pair ang device',
+    'checkout.openDevicePairing': 'Buksan ang device pairing',
+    'checkout.backToCart': 'Bumalik sa cart',
+    'checkout.cart': 'Cart',
+    'checkout.cartEmpty': 'Walang item sa cart. Bumalik at magdagdag muna ng produkto.',
+    'checkout.cartEmptyError': 'Walang laman ang cart',
+    'checkout.pickPayment': 'Pumili ng paraan ng bayad',
+    'checkout.shortError': 'Kulang ang ibinigay na cash',
+    'checkout.deviceUnpairedError':
+      'Hindi naka-pair ang device. Humingi ng device code sa manager bago mag-checkout.',
+    'checkout.failureFallback': 'Hindi natapos ang checkout. Subukan ulit.',
+    'checkout.utang': 'Utang',
+    'checkout.utangSubtitle': 'Bayaran sa susunod',
+    'checkout.tendered': 'Ibinigay',
+    'checkout.exact': 'Tama',
+    'checkout.shortBy': 'Kulang ng',
+    'checkout.shortByHint': 'I-tap ang mas malaking denominasyon o ang Tama.',
+    'checkout.chargeToUtang': 'I-utang',
+    'checkout.total': 'Total',
+    'checkout.confirmHintCash': 'Tapusin ang benta at i-print ang resibo',
+    'checkout.confirmHintUtang': 'I-record bilang utang at i-print ang resibo',
+    'checkout.failure.insufficientStock':
+      'Kulang ang stock ng isa sa mga item. I-refresh ang cart o tanggalin ang item.',
+    'checkout.failure.cartEmpty': 'Walang laman ang cart. Magdagdag muna ng produkto.',
+    'checkout.failure.tenderShort': 'Kulang ang ibinigay na bayad sa total.',
+    'checkout.failure.deviceUnpaired':
+      'Hindi naka-pair ang device. Patulungin ang manager mag-pair ulit ng register.',
+    'checkout.failure.clockSkew':
+      'I-set ang oras at petsa ng device, kumonekta ulit, tapos subukan ulit.',
   },
 } as const
 

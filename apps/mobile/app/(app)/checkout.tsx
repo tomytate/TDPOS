@@ -30,18 +30,20 @@ const PAYMENT_METHODS: { method: PaymentMethod; label: string }[] = [
 // Maps the executeCheckout failure reasons to cashier-facing copy. The
 // underlying enum values are stable contract; copy lives here so the wording
 // stays consistent across receipt errors + retry flows.
-function describeCheckoutFailure(reason: string): string {
+type Translate = ReturnType<typeof useT>
+
+function describeCheckoutFailure(reason: string, t: Translate): string {
   switch (reason) {
     case 'insufficient_stock':
-      return 'Not enough stock for one of the items. Refresh the cart or remove the item.'
+      return t('checkout.failure.insufficientStock')
     case 'empty_cart':
-      return 'Cart is empty. Add a product first.'
+      return t('checkout.failure.cartEmpty')
     case 'invalid_tendered':
-      return 'Tendered amount is less than the total.'
+      return t('checkout.failure.tenderShort')
     case 'missing_device_identity':
-      return 'Device not paired. Ask the manager to re-pair this register.'
+      return t('checkout.failure.deviceUnpaired')
     case 'clock_skew_detected':
-      return 'Set this device date and time, reconnect, then try again.'
+      return t('checkout.failure.clockSkew')
     default:
       return `Checkout could not complete (${reason}). Try again or call support.`
   }
@@ -106,6 +108,7 @@ export default function CheckoutScreen() {
   const branchId = useAuthStore((s) => s.branchId)
   const branchCode = useAuthStore((s) => s.branchCode)
   const cashierCode = useAuthStore((s) => s.cashierCode)
+  const devicePairingStatus = useAuthStore((s) => s.devicePairingStatus)
   const userId = useAuthStore((s) => s.userId)
   const businessId = useAuthStore((s) => s.businessId)
   const modules = useAuthStore((s) => s.modules)
@@ -124,9 +127,13 @@ export default function CheckoutScreen() {
   )
 
   const cashShort = paymentMethod === 'cash' && !isUtangPayment && tendered < total
+  const deviceReady = Boolean(
+    branchId && branchCode && cashierCode && devicePairingStatus === 'paired',
+  )
   const confirmDisabled =
     submitting ||
     items.length === 0 ||
+    !deviceReady ||
     (!isUtangPayment && paymentMethod === null) ||
     (!isUtangPayment && paymentMethod === 'cash' && tendered < total)
 
@@ -135,22 +142,22 @@ export default function CheckoutScreen() {
     void haptics.tapMedium()
 
     if (items.length === 0) {
-      setError('Cart is empty')
+      setError(t('checkout.cartEmptyError'))
       void haptics.error()
       return
     }
     if (!isUtangPayment && paymentMethod === null) {
-      setError('Pick a payment method')
+      setError(t('checkout.pickPayment'))
       void haptics.error()
       return
     }
     if (!isUtangPayment && paymentMethod === 'cash' && tendered < total) {
-      setError('Tendered amount is less than total')
+      setError(t('checkout.shortError'))
       void haptics.error()
       return
     }
-    if (!branchId || !branchCode || !cashierCode) {
-      setError('Device not configured. Sign out and re-pair.')
+    if (!deviceReady) {
+      setError(t('checkout.deviceUnpairedError'))
       void haptics.error()
       return
     }
@@ -169,12 +176,18 @@ export default function CheckoutScreen() {
           paymentMethod: checkoutPaymentMethod,
           isUtang: isUtangPayment,
         },
-        device: { branchId, branchCode, cashierCode, userId, businessId },
+        device: {
+          branchId: branchId!,
+          branchCode: branchCode!,
+          cashierCode: cashierCode!,
+          userId,
+          businessId,
+        },
         lastServerHandshakeAt,
       })
 
       if (!result.ok) {
-        setError(describeCheckoutFailure(result.reason))
+        setError(describeCheckoutFailure(result.reason, t))
         setSubmitting(false)
         void haptics.error()
         return
@@ -204,7 +217,7 @@ export default function CheckoutScreen() {
       void haptics.success()
       router.replace('/(app)/receipt')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Checkout could not complete. Try again.')
+      setError(err instanceof Error ? err.message : t('checkout.failureFallback'))
       setSubmitting(false)
       void haptics.error()
     }
@@ -221,7 +234,7 @@ export default function CheckoutScreen() {
         <Appbar.BackAction
           color={theme.colors.onPrimary}
           onPress={() => router.back()}
-          accessibilityLabel="Back to cart"
+          accessibilityLabel={t('checkout.backToCart')}
         />
         <Appbar.Content title={t('checkout.title')} color={theme.colors.onPrimary} />
       </Appbar.Header>
@@ -230,6 +243,27 @@ export default function CheckoutScreen() {
         contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: footerReserve + 12 }}
       >
         {/* Cart summary — every line so the cashier can verify before charging */}
+        {!deviceReady ? (
+          <Card mode="contained" style={{ backgroundColor: theme.colors.errorContainer }}>
+            <Card.Content style={{ gap: 8 }}>
+              <Text variant="titleMedium" style={{ color: theme.colors.onErrorContainer }}>
+                {t('checkout.devicePairedTitle')}
+              </Text>
+              <Text variant="bodyMedium" style={{ color: theme.colors.onErrorContainer }}>
+                {t('checkout.devicePairedBody')}
+              </Text>
+              <Button
+                mode="contained"
+                icon="cellphone-link"
+                onPress={() => router.push('/(app)/device-pairing')}
+                accessibilityLabel={t('checkout.openDevicePairing')}
+              >
+                {t('checkout.pairDevice')}
+              </Button>
+            </Card.Content>
+          </Card>
+        ) : null}
+
         <Card mode="contained">
           <Card.Content style={{ gap: 8 }}>
             <View
@@ -240,7 +274,7 @@ export default function CheckoutScreen() {
               }}
             >
               <Text variant="labelLarge" style={{ color: theme.colors.onSurfaceVariant }}>
-                Cart · {pluralItems(itemCount)}
+                {t('checkout.cart')} · {pluralItems(itemCount)}
               </Text>
               <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
                 {pieceCount}{' '}
@@ -249,7 +283,7 @@ export default function CheckoutScreen() {
             </View>
             {items.length === 0 ? (
               <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
-                No items in cart. Go back and add a product first.
+                {t('checkout.cartEmpty')}
               </Text>
             ) : (
               <View style={{ gap: 2 }}>
@@ -321,9 +355,9 @@ export default function CheckoutScreen() {
                   }
                 >
                   <Card.Content>
-                    <Text variant="titleMedium">Utang</Text>
+                    <Text variant="titleMedium">{t('checkout.utang')}</Text>
                     <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-                      Credit sale
+                      {t('checkout.utangSubtitle')}
                     </Text>
                   </Card.Content>
                 </Card>
@@ -361,15 +395,15 @@ export default function CheckoutScreen() {
                   setTendered(total)
                   void haptics.selection()
                 }}
-                accessibilityLabel={`Tender exact change, ${formatMoney(total)}`}
+                accessibilityLabel={`${t('checkout.exact')} · ${formatMoney(total)}`}
               >
-                Exact · {formatMoney(total)}
+                {t('checkout.exact')} · {formatMoney(total)}
               </Button>
             ) : null}
             <Card mode="contained">
               <Card.Content style={{ gap: 4 }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                  <Text variant="bodyMedium">Tendered</Text>
+                  <Text variant="bodyMedium">{t('checkout.tendered')}</Text>
                   <Text variant="bodyMedium" style={{ fontVariant: ['tabular-nums'] }}>
                     {formatMoney(tendered)}
                   </Text>
@@ -396,7 +430,7 @@ export default function CheckoutScreen() {
             </Card>
             {cashShort ? (
               <HelperText type="error" visible>
-                Short by {formatMoney(total - tendered)}. Tap a higher denomination or Exact.
+                {t('checkout.shortBy')} {formatMoney(total - tendered)}. {t('checkout.shortByHint')}
               </HelperText>
             ) : null}
           </View>
@@ -421,7 +455,7 @@ export default function CheckoutScreen() {
           style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' }}
         >
           <Text variant="labelLarge" style={{ color: theme.colors.onSurfaceVariant }}>
-            {isUtangPayment ? 'Charge to utang' : 'Total'}
+            {isUtangPayment ? t('checkout.chargeToUtang') : t('checkout.total')}
           </Text>
           <Text
             variant="displaySmall"
@@ -442,9 +476,7 @@ export default function CheckoutScreen() {
           labelStyle={{ fontWeight: '700' }}
           accessibilityLabel={`${t('checkout.confirm')}, ${formatMoney(total)}`}
           accessibilityHint={
-            isUtangPayment
-              ? 'Record this sale as utang (credit) and print receipt'
-              : 'Complete the sale and print receipt'
+            isUtangPayment ? t('checkout.confirmHintUtang') : t('checkout.confirmHintCash')
           }
         >
           {t('checkout.confirm')}
