@@ -286,7 +286,7 @@ return <Text>Sale</Text>
 
 ## Sources
 
-- Packages: mobile `react@19.2.0`, mobile `react-native@0.83.6`, web `react@19.2.6`, web `react-dom@19.2.6` (verified against `apps/mobile/package.json` and `apps/web/package.json`)
+- Packages: mobile `react@19.2.0`, mobile `react-native@0.83.6`, web `react@19.2.0`, web `react-dom@19.2.0` (verified against `apps/mobile/package.json` and `apps/web/package.json`)
 - React 19 release: <https://react.dev/blog/2025/10/01/react-19-2>
 - Hooks reference: <https://react.dev/reference/react/hooks>
 - Rules of Hooks lint reference: <https://react.dev/reference/eslint-plugin-react-hooks/lints/rules-of-hooks>
@@ -294,4 +294,4 @@ return <Text>Sale</Text>
 - New Architecture overview: <https://docs.expo.dev/guides/new-architecture/>
 - React Native 0.83 release notes: <https://reactnative.dev/blog>
 - Implementation: every component in `apps/mobile/`; lint enforced by `eslint-plugin-react-hooks` in `eslint.config.mjs`.
-- Last verified: 2026-05-09
+- Last verified: 2026-05-15

@@ -101,6 +101,11 @@ import { BLEPrinter } from '@haroldtran/react-native-thermal-printer'
 - npm: <https://www.npmjs.com/package/@haroldtran/react-native-thermal-printer>
 - Forbidden-patterns scanner enforces that the fabricated `react-native-thermal-printer-driver` does not appear in code: `scripts/check-forbidden-patterns.mjs`
 - ESC/POS reference: <https://reference.epson-biz.com/modules/ref_escpos/>
-- Implementation: pending P8.3 — printer service not yet wired
-- Fabric / New Architecture status: works on SDK 55 via the legacy bridge interop layer; verify connection on a real device before relying on print UI
-- Last verified: 2026-05-09
+- Implementation: `apps/mobile/src/services/thermal-printer.ts`,
+  `apps/mobile/src/features/receipts/lib/thermal-receipt.ts`, and
+  `apps/mobile/app/(app)/printer-settings.tsx`
+- TypeScript note: the package publishes TS source as `main`, so the mobile app maps
+  `@haroldtran/react-native-thermal-printer` to `src/types/thermal-printer.d.ts` for
+  strict local typecheck while Metro still bundles the real package at runtime.
+- Fabric / New Architecture status: works on SDK 55 via the legacy bridge interop layer; verify connection on a real device before relying on print UI for a pilot.
+- Last verified: 2026-05-14

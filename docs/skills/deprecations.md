@@ -2,7 +2,7 @@
 name: deprecations
 description: Single source of truth for "do not use X, use Y" rules across the TD POS stack. CLAUDE.md, AGENTS.md, GEMINI.md, and CODEX.md must reference this file rather than duplicating the table.
 version: 1.0.0
-last_verified: 2026-05-09
+last_verified: 2026-05-15
 ---
 
 # Deprecations And Replacements (Single Source)
@@ -29,7 +29,7 @@ When adding or changing an entry here:
 | `react-native-thermal-printer-driver`      | `@haroldtran/react-native-thermal-printer`                    | The first package name does not exist on npm. The second is the verified Fabric-compatible printer. |
 | `turbo.json` `pipeline` key                | `tasks` key                                                   | Turborepo 2.x deprecated `pipeline`. |
 | `turbo.build/schema.json` URL              | `turborepo.dev/schema.json`                                   | Domain migrated. |
-| recharts v2 (CategoricalChartState)        | recharts v3 (3.8+, hooks API)                                 | Web dashboard uses v3. |
+| recharts v2 (CategoricalChartState)        | recharts v3 (3.8+, hooks API)                                 | v3 is the target if/when recharts is added to the web dashboard. |
 | `react-pdf` viewer package for generation  | `@react-pdf/renderer` 4.x for generation or `react-pdf` v10 for viewing | Generation and viewing use different packages. |
 | lucide-react v0.460                        | lucide-react v1.14+                                           | Brand icons removed; v1 is ESM-only. |
 | `expo build:ios/android`                   | EAS Build (`eas build --profile production`)                  | Classic build was removed in 2023. |
@@ -72,4 +72,4 @@ This skill consolidates per-package deprecation notes. Per-package authoritative
 
 - Mechanical enforcement: `scripts/check-forbidden-patterns.mjs` (regex subset) + `scripts/check-skill-docs.mjs` (skill-doc structure).
 - Cross-references: every other doc that mentions a deprecation links here instead of duplicating the table (DocGate-2).
-- Last verified: 2026-05-09.
+- Last verified: 2026-05-15.

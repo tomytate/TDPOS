@@ -8,7 +8,7 @@ TD POS is a mobile-first, offline-capable SaaS POS and inventory management syst
 
 ## Release Posture
 
-- **Current baseline:** v0.8 Scaffold Complete — all five tier surfaces implemented, 130 tests passing, 13-stage foundation gate green.
+- **Current baseline:** v0.8 Scaffold Complete — all five tier surfaces implemented, 136 tests passing, 14-stage foundation gate green.
 - **Next real milestone:** v0.9 — full test suite (screenshot parity, accessibility, performance), hosted Supabase staging, EAS dev builds, physical-device airplane-mode sale.
 - **Then:** v0.1alpha — first pilot store.
 - **Target:** v1.0 Public Launch — mobile + web dashboard + marketing site simultaneously.
@@ -108,10 +108,10 @@ TDPOS/
 ├── packages/db/             # Database schema types + re-exported Zod validators
 ├── packages/typescript-config/
 ├── packages/eslint-config/
-├── scripts/                 # 9 check scripts (foundation gate, secrets, patterns, migrations)
+├── scripts/                 # 11 scripts (foundation gate, secrets, patterns, migrations, RLS)
 ├── supabase/                # PG17 migrations (16+), Edge Functions (4), seed
-├── docs/                    # Spec, architecture (18 ADRs), schema reference
-│   └── skills/              # 22 anti-hallucination skill docs (DocGate-3 enforced)
+├── docs/                    # Spec, architecture (19 ADRs), schema reference
+│   └── skills/              # 27 anti-hallucination skill docs (DocGate-3 enforced)
 └── UI/                      # Suki POS design canvas (reference only)
 ```
 
@@ -137,7 +137,7 @@ This project includes comprehensive anti-hallucination documentation for AI codi
 | `CODEX.md`  | OpenAI Codex  | Architecture notes, 17 critical rules, style guide              |
 | `GEMINI.md` | Google Gemini | Key decisions, deprecation-source pointer, coding standards     |
 
-### Skills (22 procedural docs in `docs/skills/`, DocGate-3 enforced)
+### Skills (27 procedural docs in `docs/skills/`, DocGate-3 enforced)
 
 **Domain (5):** `inventory-tingi-model`, `sync-engine`, `receipt-numbering`, `bir-compliance`, `supabase-rls`
 
@@ -163,16 +163,17 @@ This project includes comprehensive anti-hallucination documentation for AI codi
 ## Development
 
 ```bash
-bun run check:foundation       # Full 13-stage foundation gate
+bun run check:foundation       # Full 14-stage foundation gate
 bun run check:secrets          # Verify no committed secret patterns
 bun run check:sqlite-migrations # Local migration ordering gate
+bun run check:supabase-rls     # Verify every Supabase table enables RLS
 bun run check:patterns         # Forbidden pattern scanner (console.log, etc.)
 bun run check:tier-ui-sources  # Verify every tier points at an existing UI reference
 bun run check:expo-doctor      # Expo native dependency health check
 bun run check:mobile-bundle    # Android Metro bundle/export check
 bun run lint                   # ESLint 10 (flat config)
 bun run typecheck              # TypeScript strict
-bun run test                   # All tests (130 across 23 files)
+bun run test                   # All tests (136 across 25 files)
 ```
 
 Always run before committing:

@@ -1,8 +1,8 @@
 ---
 name: supabase-server-edge-functions
 description: Use this skill when writing Supabase Edge Functions, server-side auth verification, or RPC handlers. Agents hallucinate manual JWT verification, shared utility files, and old SUPABASE_ANON_KEY patterns. TD POS uses @supabase/server (announced 2026-05-06, public beta) for all Edge Functions.
-version: 1.0.0
-verified: 2026-05-09
+version: 1.1.0
+verified: 2026-05-15
 sources:
   - https://supabase.com/blog/introducing-supabase-server
   - https://supabase.com/docs/guides/functions
@@ -178,6 +178,16 @@ The new auth key system uses **plural-form** env vars:
 | `eod-report` | `['user', 'secret']` | End-of-day report (cashier-triggered or scheduled via cron) | report scaffold exists; SMS delivery pending P11.5.8 |
 | `tenant-data-export` | `user` | Owner-only JSON export of tenant-scoped tables; requires `client_operation_id` because `record_tenant_export` writes an idempotent audit marker | scaffold exists; hosted exercise pending P11.5.6 |
 
+### Security Posture Audit (P10.4)
+
+**Last audited:** 2026-05-15.
+
+- **Anonymous mode is forbidden.** No Edge Function accepts `auth: 'anon'`. Adding one without an explicit security review is a regression.
+- **User-only is the default.** Three of four functions (`apply-inventory-delta`, `create-sale`, `tenant-data-export`) require a valid authenticated user JWT. RLS does the tenant-isolation work; `current_business_id()` derives the tenant from the caller's claims.
+- **`eod-report` is the only multi-mode function.** It accepts `'user'` (owner-triggered same-day preview from the dashboard) and `'secret'` (server-to-server invocation reserved for the future scheduled SMS cron in P11.5.8). The `secret` mode never returns customer-identifying fields; it returns totals.
+- **No service-role keys on the wire.** Functions rely on the per-request user JWT plus `ctx.supabaseAdmin` for the narrow RPCs that still need elevated privilege (privacy erasure, lost-device replacement). `ctx.supabaseAdmin` only exists server-side; mobile cannot reach it. `scripts/check-mobile-no-service-key.mjs` enforces that the mobile binary holds no service-role credential, including JWTs whose claim is `role=service_role`.
+- **Regression rule.** A new Edge Function (or a mode change on an existing one) must update this table in the same PR. Reviewers reject PRs that add an Edge Function without listing it here.
+
 ## ❌ DO NOT USE
 
 ```typescript
@@ -214,4 +224,4 @@ export default {
 - API key naming: <https://supabase.com/docs/guides/api/api-keys>
 - Edge Function quickstart: <https://supabase.com/docs/guides/functions/quickstart>
 - Implementation in this repo: `supabase/functions/apply-inventory-delta/index.ts`, `supabase/functions/create-sale/index.ts`, `supabase/functions/eod-report/index.ts`. End-to-end deployment is gated on a real Supabase project (P7 / Phase W staging).
-- Last verified: 2026-05-09 against the official announcement.
+- Last verified: 2026-05-15 against the official announcement; the P10.4 auth-mode audit re-confirmed every function uses `user` (or `['user','secret']` for `eod-report`) and that no Edge Function accepts anonymous traffic.

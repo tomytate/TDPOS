@@ -46,16 +46,17 @@ bun run dev                    # Start all (turbo)
 bun run dev:mobile             # Expo only
 bun run dev:web                # Next.js only
 bun run dev:marketing          # Marketing site only
-bun run check:foundation       # Full 13-stage gate
+bun run check:foundation       # Full 14-stage gate
 bun run check:secrets          # Committed secret scanner
 bun run check:sqlite-migrations # Local migration ordering
+bun run check:supabase-rls     # Supabase migration RLS coverage gate
 bun run check:patterns         # Forbidden pattern scanner
 bun run check:expo-doctor      # Expo native dependency health check
 bun run check:mobile-bundle    # Android Metro bundle/export check
 bun run check:tier-ui-sources  # Tier reference source check
 bun run lint                   # ESLint 10
 bun run typecheck              # TS strict
-bun run test                   # All tests (130 across 23 files)
+bun run test                   # All tests (136 across 25 files)
 eas build --profile development --platform all  # Dev builds
 eas build --profile production --platform all   # Store builds
 eas submit --profile production --platform all  # Submit
@@ -71,7 +72,7 @@ Always:
 - Use `@supabase/server` `withSupabase()` in Edge Functions, never manual JWT or `_shared/supabase.ts` boilerplate.
 - Run `bun run check:foundation` before committing.
 
-## Skills Reference (22 docs in `docs/skills/`, DocGate-3 enforced)
+## Skills Reference (27 docs in `docs/skills/`, DocGate-3 enforced)
 
 Domain: `inventory-tingi-model`, `sync-engine`, `receipt-numbering`, `bir-compliance`, `supabase-rls`
 API/Framework: `react-19-patterns`, `expo-router-patterns`, `expo-sqlite-patterns`, `expo-file-system`, `expo-clipboard`, `zustand-mmkv-stores`, `supabase-auth-phone-otp`, `thermal-printer-integration`, `nextjs-16-proxy-pattern`, `react-native-paper-theming`, `tanstack-query-offline`

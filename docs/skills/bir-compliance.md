@@ -21,13 +21,12 @@ version: 1.0.0
 ## Tiered BIR Strategy
 
 | Tier | Status | Approach |
-|---|---|---|
-| Free | Provisional receipts only | Legal for non-VAT micro <₱3M |
-| Starter | Provisional receipts | BIR-spec format, ready for accreditation |
-| Growth | Partner-accredited | Umbrella Cloud-Based POS Provider accreditation |
-| Pro | Full accreditation + eSales | Automated BIR portal submission |
-| Business | Full + EOPT-ready | e-invoice schema active |
-| Enterprise | Custom + EOPT certified | Dedicated compliance support |
+| --- | --- | --- |
+| Tier A Free | Provisional receipts only | Legal for non-VAT micro <₱3M |
+| Tier B Pro | Provisional receipts | BIR-spec format, ready for accreditation |
+| Tier C Plus | Partner-accredited | Umbrella Cloud-Based POS Provider accreditation |
+| Tier D Premium | Full accreditation + eSales | Automated BIR portal submission + EOPT-ready |
+| Tier E Enterprise | Custom + EOPT certified | Dedicated compliance support, e-invoice schema active |
 
 ## Receipt Required Fields
 

@@ -80,10 +80,11 @@ bun run dev:mobile             # Expo dev server only
 bun run dev:web                # Next.js dev server only
 bun run dev:marketing          # Marketing site scaffold only
 bun run build                  # Build all
-bun run check:foundation       # Full 13-stage foundation gate
+bun run check:foundation       # Full 15-stage foundation gate
 bun run check:secrets          # Scan for committed secrets
 bun run check:sqlite-schema    # Local SQLite schema drift check
 bun run check:sqlite-migrations # Local migration ordering gate
+bun run check:supabase-rls     # Supabase migration RLS coverage gate
 bun run check:patterns         # Forbidden pattern scanner
 bun run check:expo-doctor      # Expo native dependency health check
 bun run check:mobile-bundle    # Android Metro bundle/export check
@@ -132,7 +133,7 @@ The canonical deprecations table lives in [`docs/skills/deprecations.md`](docs/s
 
 The canonical wording rules live in [`docs/skills/bir-compliance.md`](docs/skills/bir-compliance.md), and regex-detectable forbidden patterns live in [`docs/skills/deprecations.md`](docs/skills/deprecations.md). Do not duplicate the phrase table here; DocGate-2 keeps BIR wording single-sourced.
 
-## Skills Reference (22 procedural docs in `docs/skills/`)
+## Skills Reference (27 procedural docs in `docs/skills/`)
 
 ### Domain Skills
 
@@ -141,6 +142,7 @@ The canonical wording rules live in [`docs/skills/bir-compliance.md`](docs/skill
 - `receipt-numbering.md` — BRANCH-CASHIER-DATE-SEQUENCE, offline-safe
 - `bir-compliance.md` — BIR language discipline, tiered strategy, EOPT
 - `supabase-rls.md` — RLS patterns, audit immutability, tenant isolation
+- `tier-entitlement-gating.md` — A-E tier gates, surface access, module unlocks, entitlement cache
 
 ### API/Framework Skills (Anti-Hallucination)
 
@@ -156,6 +158,8 @@ The canonical wording rules live in [`docs/skills/bir-compliance.md`](docs/skill
 - `react-pdf-renderer.md` — server-side PDF reports and BIR-ready exports
 - `react-native-paper-theming.md` — MD3 color tokens, typography variants
 - `tanstack-query-offline.md` — React Query v5 offline patterns, v3→v5 migration
+- `zod-4-validation.md` — Zod 4 error: param, top-level validators, project schemas
+- `i18n-localization.md` — centralized translations, Tagalog/English, BIR wording guards
 
 ### Platform & Infrastructure Skills
 
@@ -163,10 +167,12 @@ The canonical wording rules live in [`docs/skills/bir-compliance.md`](docs/skill
 - `eas-build-deploy.md` — EAS Build profiles, app.config.ts, store submission
 - `background-sync-task.md` — expo-background-task, sync processor, iOS config
 - `supabase-server-edge-functions.md` — @supabase/server withSupabase, auth modes, context
+- `monorepo-workspace.md` — Turborepo 2.9 + Bun workspace, cross-package imports, turbo.json
+- `testing-patterns.md` — bun:test, bun:sqlite in-memory DB, pure function testing, §14 specs
 
 ## Testing Requirements
 
-Always run `bun run check:foundation` before committing. Current: 130 tests across 23 files (21 mobile + 2 shared).
+Always run `bun run check:foundation` before committing. Current: 136 tests across 25 files (23 mobile + 2 shared).
 
 Six required Phase 1 tests (§14 of spec):
 
@@ -189,10 +195,10 @@ TDPOS/
 ├── packages/db/          # Database schema types
 ├── packages/typescript-config/
 ├── packages/eslint-config/
-├── scripts/              # 9 check scripts (foundation gate, secrets, patterns)
+├── scripts/              # 11 scripts (foundation gate, secrets, patterns, RLS)
 ├── supabase/             # PG17 migrations (16+), Edge Functions (4), seed
-├── docs/                 # Spec, architecture, schema reference
-│   └── skills/           # 22 procedural skill docs (shared by ALL agents)
+├── docs/                 # Spec, architecture (19 ADRs), schema reference
+│   └── skills/           # 27 procedural skill docs (shared by ALL agents)
 └── UI/                   # Suki POS design canvas (reference only)
 ```
 
