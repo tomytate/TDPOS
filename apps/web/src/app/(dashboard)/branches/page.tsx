@@ -1,10 +1,76 @@
+// Web branches management. Polished for v0.9 visual QA: shared
+// MetricTile pattern with tone-aware colors, a tier-aware limit
+// usage progress bar (amber at >=80%, danger at >=95%), softer
+// empty state, and a status pill on every row.
+
 import { createBranchScaffoldAction } from '@/app/(dashboard)/actions'
 import { ScaffoldActionButton } from '@/components/scaffold-action-button'
 import { TierLockBanner } from '@/components/tier-lock-banner'
 import { getBranchManagementRows, getBusinessEntitlements } from '@/lib/queries/management'
 
+function MetricTile({
+  label,
+  value,
+  tone = 'neutral',
+}: {
+  label: string
+  value: string | number
+  tone?: 'neutral' | 'good' | 'warn'
+}) {
+  const color =
+    tone === 'good' ? 'text-teal-700' : tone === 'warn' ? 'text-amber-700' : 'text-ink-800'
+  return (
+    <div className="rounded-lg border border-ink-200 bg-white p-4">
+      <p className="m-0 text-[11px] font-semibold uppercase text-ink-500">{label}</p>
+      <p className={`mt-2 text-2xl font-semibold tabular-nums ${color}`}>{value}</p>
+    </div>
+  )
+}
+
 function formatLimit(limit: number | null): string {
   return limit === null ? 'Unlimited' : limit.toLocaleString('en-PH')
+}
+
+function LimitUsageBar({
+  used,
+  limit,
+  tierLabel,
+}: {
+  used: number
+  limit: number | null
+  tierLabel: string
+}) {
+  if (limit === null) {
+    return (
+      <div className="rounded-lg border border-ink-200 bg-white p-4">
+        <p className="m-0 text-[11px] font-semibold uppercase text-ink-500">{tierLabel} limit</p>
+        <p className="mt-2 text-2xl font-semibold text-ink-800">Unlimited</p>
+        <p className="mt-1 text-[12px] text-ink-500">No cap at this tier.</p>
+      </div>
+    )
+  }
+  const pct = Math.min(100, (used / Math.max(1, limit)) * 100)
+  const tone = pct >= 95 ? 'bg-danger-500' : pct >= 80 ? 'bg-amber-500' : 'bg-teal-600'
+  const valueColor = pct >= 95 ? 'text-danger-600' : pct >= 80 ? 'text-amber-700' : 'text-teal-700'
+  return (
+    <div className="rounded-lg border border-ink-200 bg-white p-4">
+      <p className="m-0 text-[11px] font-semibold uppercase text-ink-500">{tierLabel} limit</p>
+      <p className={`mt-2 text-2xl font-semibold tabular-nums ${valueColor}`}>
+        {used.toLocaleString('en-PH')}
+        <span className="text-base font-normal text-ink-500"> / {formatLimit(limit)}</span>
+      </p>
+      <div
+        className="mt-3 h-2 w-full overflow-hidden rounded-full bg-ink-100"
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={limit}
+        aria-valuenow={used}
+        aria-label={`${used} of ${limit} branches used`}
+      >
+        <div className={`h-2 rounded-full ${tone}`} style={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  )
 }
 
 export default async function BranchesPage() {
@@ -14,6 +80,7 @@ export default async function BranchesPage() {
   ])
   const entitlements = entitlementsResult.ready ? entitlementsResult.entitlements : null
   const canManage = entitlements?.isSurfaceEnabled('web.branches') ?? false
+  const totalBranches = result.ready ? result.branches.length : 0
 
   return (
     <div className="flex flex-col gap-5">
@@ -50,26 +117,14 @@ export default async function BranchesPage() {
       ) : (
         <>
           <section className="grid grid-cols-1 gap-3 sm:grid-cols-4">
-            <div className="rounded-lg border border-ink-200 bg-white p-4">
-              <p className="m-0 text-[11px] font-semibold uppercase text-ink-500">Total</p>
-              <p className="mt-2 text-2xl font-semibold text-teal-700">{result.branches.length}</p>
-            </div>
-            <div className="rounded-lg border border-ink-200 bg-white p-4">
-              <p className="m-0 text-[11px] font-semibold uppercase text-ink-500">Active</p>
-              <p className="mt-2 text-2xl font-semibold text-success-600">{result.activeCount}</p>
-            </div>
-            <div className="rounded-lg border border-ink-200 bg-white p-4">
-              <p className="m-0 text-[11px] font-semibold uppercase text-ink-500">Inactive</p>
-              <p className="mt-2 text-2xl font-semibold text-ink-700">{result.inactiveCount}</p>
-            </div>
-            <div className="rounded-lg border border-ink-200 bg-white p-4">
-              <p className="m-0 text-[11px] font-semibold uppercase text-ink-500">
-                {entitlements?.tierShortLabel ?? 'Tier'} limit
-              </p>
-              <p className="mt-2 text-2xl font-semibold text-ink-700">
-                {formatLimit(entitlements?.maxBranches ?? null)}
-              </p>
-            </div>
+            <MetricTile label="Total" value={totalBranches} tone="good" />
+            <MetricTile label="Active" value={result.activeCount} tone="good" />
+            <MetricTile label="Inactive" value={result.inactiveCount} />
+            <LimitUsageBar
+              used={totalBranches}
+              limit={entitlements?.maxBranches ?? null}
+              tierLabel={entitlements?.tierShortLabel ?? 'Tier'}
+            />
           </section>
 
           <div className="overflow-hidden rounded-lg border border-ink-200 bg-white">
@@ -85,8 +140,11 @@ export default async function BranchesPage() {
               <tbody className="divide-y divide-ink-100">
                 {result.branches.length === 0 ? (
                   <tr>
-                    <td className="px-4 py-6 text-center text-ink-500" colSpan={4}>
-                      No branches found.
+                    <td className="px-4 py-10 text-center" colSpan={4}>
+                      <p className="m-0 text-base font-semibold text-ink-800">No branches yet</p>
+                      <p className="mt-1 text-sm text-ink-500">
+                        Use “Validate branch scaffold” above to add your first selling point.
+                      </p>
                     </td>
                   </tr>
                 ) : (

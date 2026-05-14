@@ -1,3 +1,9 @@
+// Web product catalog. Polished for v0.9 visual QA: tier-aware limit
+// usage progress bar that turns amber at >=80% and danger at >=95%,
+// per-row stock-status pill (out / low / ok), tone-aware metric tiles,
+// and a softer empty state. Real mutations still flow through the
+// existing Server Action; this is presentation polish only.
+
 import { ScaffoldActionButton } from '@/components/scaffold-action-button'
 import { TierLockBanner } from '@/components/tier-lock-banner'
 import {
@@ -8,6 +14,7 @@ import {
   getBusinessEntitlements,
   getCategoryManagementRows,
   getProductManagementRows,
+  type ProductManagementRow,
 } from '@/lib/queries/management'
 
 function StatusBadge({ active }: { active: boolean }) {
@@ -24,8 +31,95 @@ function StatusBadge({ active }: { active: boolean }) {
   )
 }
 
+type StockTone = 'out' | 'low' | 'ok'
+
+function stockTone(product: ProductManagementRow): StockTone {
+  if (product.stockPieces <= 0) return 'out'
+  if (product.reorderPointPieces !== null && product.stockPieces <= product.reorderPointPieces) {
+    return 'low'
+  }
+  return 'ok'
+}
+
+function StockBadge({ tone }: { tone: StockTone }) {
+  const styles: Record<StockTone, string> = {
+    out: 'bg-danger-500/10 text-danger-600',
+    low: 'bg-amber-500/10 text-amber-700',
+    ok: 'bg-success-500/10 text-success-600',
+  }
+  const label: Record<StockTone, string> = { out: 'Out', low: 'Low', ok: 'OK' }
+  return (
+    <span
+      className={`rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase ${styles[tone]}`}
+    >
+      {label[tone]}
+    </span>
+  )
+}
+
 function formatLimit(limit: number | null): string {
   return limit === null ? 'Unlimited' : limit.toLocaleString('en-PH')
+}
+
+function MetricTile({
+  label,
+  value,
+  tone = 'neutral',
+}: {
+  label: string
+  value: string | number
+  tone?: 'neutral' | 'good' | 'warn'
+}) {
+  const color =
+    tone === 'good' ? 'text-teal-700' : tone === 'warn' ? 'text-amber-700' : 'text-ink-800'
+  return (
+    <div className="rounded-lg border border-ink-200 bg-white p-4">
+      <p className="m-0 text-[11px] font-semibold uppercase text-ink-500">{label}</p>
+      <p className={`mt-2 text-2xl font-semibold tabular-nums ${color}`}>{value}</p>
+    </div>
+  )
+}
+
+function LimitUsageBar({
+  used,
+  limit,
+  tierLabel,
+}: {
+  used: number
+  limit: number | null
+  tierLabel: string
+}) {
+  if (limit === null) {
+    return (
+      <div className="rounded-lg border border-ink-200 bg-white p-4">
+        <p className="m-0 text-[11px] font-semibold uppercase text-ink-500">{tierLabel} limit</p>
+        <p className="mt-2 text-2xl font-semibold text-ink-800">Unlimited</p>
+        <p className="mt-1 text-[12px] text-ink-500">No cap at this tier.</p>
+      </div>
+    )
+  }
+  const pct = Math.min(100, (used / Math.max(1, limit)) * 100)
+  const tone = pct >= 95 ? 'bg-danger-500' : pct >= 80 ? 'bg-amber-500' : 'bg-teal-600'
+  const valueColor = pct >= 95 ? 'text-danger-600' : pct >= 80 ? 'text-amber-700' : 'text-teal-700'
+  return (
+    <div className="rounded-lg border border-ink-200 bg-white p-4">
+      <p className="m-0 text-[11px] font-semibold uppercase text-ink-500">{tierLabel} limit</p>
+      <p className={`mt-2 text-2xl font-semibold tabular-nums ${valueColor}`}>
+        {used.toLocaleString('en-PH')}
+        <span className="text-base font-normal text-ink-500"> / {formatLimit(limit)}</span>
+      </p>
+      <div
+        className="mt-3 h-2 w-full overflow-hidden rounded-full bg-ink-100"
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={limit}
+        aria-valuenow={used}
+        aria-label={`${used} of ${limit} products used`}
+      >
+        <div className={`h-2 rounded-full ${tone}`} style={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  )
 }
 
 export default async function ProductsPage() {
@@ -36,6 +130,7 @@ export default async function ProductsPage() {
   ])
   const entitlements = entitlementsResult.ready ? entitlementsResult.entitlements : null
   const canManage = entitlements?.isSurfaceEnabled('web.products') ?? false
+  const totalCount = result.ready ? result.activeCount + result.inactiveCount : 0
 
   return (
     <div className="flex flex-col gap-5">
@@ -138,26 +233,18 @@ export default async function ProductsPage() {
       ) : (
         <>
           <section className="grid grid-cols-1 gap-3 sm:grid-cols-4">
-            <div className="rounded-lg border border-ink-200 bg-white p-4">
-              <p className="m-0 text-[11px] font-semibold uppercase text-ink-500">Active</p>
-              <p className="mt-2 text-2xl font-semibold text-teal-700">{result.activeCount}</p>
-            </div>
-            <div className="rounded-lg border border-ink-200 bg-white p-4">
-              <p className="m-0 text-[11px] font-semibold uppercase text-ink-500">Hidden</p>
-              <p className="mt-2 text-2xl font-semibold text-ink-700">{result.inactiveCount}</p>
-            </div>
-            <div className="rounded-lg border border-ink-200 bg-white p-4">
-              <p className="m-0 text-[11px] font-semibold uppercase text-ink-500">Low stock</p>
-              <p className="mt-2 text-2xl font-semibold text-amber-700">{result.lowStockCount}</p>
-            </div>
-            <div className="rounded-lg border border-ink-200 bg-white p-4">
-              <p className="m-0 text-[11px] font-semibold uppercase text-ink-500">
-                {entitlements?.tierShortLabel ?? 'Tier'} limit
-              </p>
-              <p className="mt-2 text-2xl font-semibold text-ink-700">
-                {formatLimit(entitlements?.maxProducts ?? null)}
-              </p>
-            </div>
+            <MetricTile label="Active" value={result.activeCount} tone="good" />
+            <MetricTile label="Hidden" value={result.inactiveCount} />
+            <MetricTile
+              label="Low stock"
+              value={result.lowStockCount}
+              tone={result.lowStockCount > 0 ? 'warn' : 'neutral'}
+            />
+            <LimitUsageBar
+              used={totalCount}
+              limit={entitlements?.maxProducts ?? null}
+              tierLabel={entitlements?.tierShortLabel ?? 'Tier'}
+            />
           </section>
 
           <div className="overflow-x-auto rounded-lg border border-ink-200 bg-white">
@@ -174,38 +261,53 @@ export default async function ProductsPage() {
               <tbody className="divide-y divide-ink-100">
                 {result.products.length === 0 ? (
                   <tr>
-                    <td className="px-4 py-6 text-center text-ink-500" colSpan={5}>
-                      No products found.
+                    <td className="px-4 py-10 text-center" colSpan={5}>
+                      <p className="m-0 text-base font-semibold text-ink-800">No products yet</p>
+                      <p className="mt-1 text-sm text-ink-500">
+                        Use “Validate product scaffold” above to add a row, or sync from your
+                        existing catalog.
+                      </p>
                     </td>
                   </tr>
                 ) : (
-                  result.products.map((product) => (
-                    <tr key={product.id}>
-                      <td className="px-4 py-3">
-                        <div className="font-semibold text-ink-900">{product.name}</div>
-                        <div className="mt-0.5 text-[12px] text-ink-500">
-                          {product.sku ?? 'No SKU'} {product.isTingi ? '· Tingi' : ''}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-ink-600">
-                        {product.categoryName ?? 'Uncategorized'}
-                      </td>
-                      <td className="px-4 py-3 tabular-nums text-ink-700">
-                        {product.stockDisplay}
-                      </td>
-                      <td className="px-4 py-3 tabular-nums text-ink-700">
-                        <div>{product.formattedPricePerPiece}</div>
-                        {product.formattedPricePerPack ? (
-                          <div className="text-[12px] text-ink-500">
-                            Pack {product.formattedPricePerPack}
+                  result.products.map((product) => {
+                    const tone = stockTone(product)
+                    return (
+                      <tr key={product.id}>
+                        <td className="px-4 py-3">
+                          <div className="font-semibold text-ink-900">{product.name}</div>
+                          <div className="mt-0.5 text-[12px] text-ink-500">
+                            {product.sku ?? 'No SKU'} {product.isTingi ? '· Tingi' : ''}
                           </div>
-                        ) : null}
-                      </td>
-                      <td className="px-4 py-3">
-                        <StatusBadge active={product.isActive} />
-                      </td>
-                    </tr>
-                  ))
+                        </td>
+                        <td className="px-4 py-3 text-ink-600">
+                          {product.categoryName ?? 'Uncategorized'}
+                        </td>
+                        <td className="px-4 py-3 tabular-nums text-ink-700">
+                          <div className="flex items-center gap-2">
+                            <span>{product.stockDisplay}</span>
+                            <StockBadge tone={tone} />
+                          </div>
+                          {product.reorderPointPieces !== null ? (
+                            <div className="mt-0.5 text-[11px] text-ink-500">
+                              Reorder at {product.reorderPointPieces.toLocaleString('en-PH')}
+                            </div>
+                          ) : null}
+                        </td>
+                        <td className="px-4 py-3 tabular-nums text-ink-700">
+                          <div>{product.formattedPricePerPiece}</div>
+                          {product.formattedPricePerPack ? (
+                            <div className="text-[12px] text-ink-500">
+                              Pack {product.formattedPricePerPack}
+                            </div>
+                          ) : null}
+                        </td>
+                        <td className="px-4 py-3">
+                          <StatusBadge active={product.isActive} />
+                        </td>
+                      </tr>
+                    )
+                  })
                 )}
               </tbody>
             </table>
