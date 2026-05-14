@@ -1,3 +1,9 @@
+// Marketing landing page. Polished for v0.9 visual QA: stronger hero
+// (tagline pill + larger headline + clearer CTAs), an explicit "Why
+// TD POS" three-up grid that explains the wedge, a "Built for"
+// segment band that previews who each tier serves, and an honest
+// pilot-status banner so visitors know we are still pre-accreditation.
+
 import Link from 'next/link'
 
 const PROOF_POINTS = [
@@ -15,6 +21,29 @@ const PROOF_POINTS = [
     label: 'Launch posture',
     value: 'BIR-ready',
     detail: 'Receipt and export language stays ready for accreditation without overclaiming.',
+  },
+]
+
+const SEGMENTS = [
+  {
+    name: 'Sari-sari / micro-stall',
+    tier: 'Tier A · Free',
+    body: 'Solo cashier on a single phone. Inventory + sales + owner monitoring.',
+  },
+  {
+    name: 'Mini-mart / Alfamart-scale',
+    tier: 'Tier B · Pro',
+    body: 'Tablet POS, shift handoff, owner lanes, utang ledger, customer SMS.',
+  },
+  {
+    name: 'Convenience / 7-11-scale',
+    tier: 'Tier C · Plus',
+    body: 'Multi-branch, manager-phone overrides, supplier management, loyalty.',
+  },
+  {
+    name: 'Supermarket / Enterprise',
+    tier: 'Tier D / E',
+    body: 'Scanner lanes, weighted PLU, kiosk, returns desk, franchise rollup.',
   },
 ]
 
@@ -80,27 +109,36 @@ function PosPreview() {
 export default function MarketingHomePage() {
   return (
     <main>
+      {/* Hero */}
       <section className="bg-teal-800 text-white">
         <div className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-6xl grid-cols-1 items-center gap-8 px-5 py-10 lg:grid-cols-[0.9fr_1.1fr]">
           <div className="flex flex-col gap-5">
-            <p className="m-0 text-sm font-semibold uppercase tracking-wide text-teal-200">
-              Philippine commerce POS
-            </p>
-            <h1 className="m-0 text-4xl font-semibold tracking-normal sm:text-5xl">TD POS</h1>
+            <span className="inline-flex w-fit items-center rounded-full bg-teal-200/20 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-teal-100">
+              Tama ang stock mo. Lagi.
+            </span>
+            <h1 className="m-0 text-4xl font-semibold tracking-normal sm:text-5xl">
+              POS that survives the brownout.
+            </h1>
             <p className="m-0 max-w-xl text-lg text-teal-50">
-              Tama ang stock mo. Lagi. Offline-first cashier, tingi inventory, and owner monitoring
-              for stores that cannot afford wrong stock.
+              Offline-first cashier, tingi-safe inventory, and owner monitoring for stores that
+              cannot afford wrong stock.
             </p>
             <div className="flex flex-wrap gap-3">
               <Link
                 href="/pricing"
                 className="rounded-md bg-amber-400 px-4 py-2 text-sm font-semibold text-ink-900 hover:bg-amber-500"
               >
+                Start free
+              </Link>
+              <Link
+                href="/pricing"
+                className="rounded-md border border-white/40 px-4 py-2 text-sm font-semibold text-white hover:bg-white/10"
+              >
                 View tiers
               </Link>
               <Link
                 href="/privacy"
-                className="rounded-md border border-white/40 px-4 py-2 text-sm font-semibold text-white hover:bg-white/10"
+                className="rounded-md border border-white/0 px-4 py-2 text-sm font-semibold text-teal-100 hover:bg-white/10"
               >
                 Data posture
               </Link>
@@ -110,14 +148,68 @@ export default function MarketingHomePage() {
         </div>
       </section>
 
-      <section className="mx-auto grid max-w-6xl grid-cols-1 gap-4 px-5 py-10 md:grid-cols-3">
-        {PROOF_POINTS.map((point) => (
-          <article key={point.label} className="rounded-lg border border-ink-200 bg-white p-5">
-            <p className="m-0 text-[11px] font-semibold uppercase text-teal-700">{point.label}</p>
-            <h2 className="mt-2 text-xl font-semibold text-ink-900">{point.value}</h2>
-            <p className="m-0 text-sm text-ink-600">{point.detail}</p>
-          </article>
-        ))}
+      {/* Why TD POS — the wedge */}
+      <section className="mx-auto max-w-6xl px-5 py-12">
+        <div className="mb-6 flex flex-col gap-2">
+          <p className="m-0 text-sm font-semibold uppercase tracking-wide text-teal-700">
+            Why TD POS
+          </p>
+          <h2 className="m-0 text-3xl font-semibold text-ink-900">
+            Built around the realities of PH retail.
+          </h2>
+        </div>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          {PROOF_POINTS.map((point) => (
+            <article key={point.label} className="rounded-lg border border-ink-200 bg-white p-5">
+              <p className="m-0 text-[11px] font-semibold uppercase text-teal-700">{point.label}</p>
+              <h3 className="mt-2 text-xl font-semibold text-ink-900">{point.value}</h3>
+              <p className="m-0 mt-2 text-sm text-ink-600">{point.detail}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      {/* Segments band */}
+      <section className="bg-ink-50">
+        <div className="mx-auto max-w-6xl px-5 py-12">
+          <div className="mb-6 flex flex-col gap-2">
+            <p className="m-0 text-sm font-semibold uppercase tracking-wide text-teal-700">
+              Built for
+            </p>
+            <h2 className="m-0 text-3xl font-semibold text-ink-900">
+              From sari-sari to franchise HQ.
+            </h2>
+            <p className="m-0 max-w-2xl text-sm text-ink-600">
+              The same product source of truth powers every tier — cashier, multi-branch, and HQ.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {SEGMENTS.map((segment) => (
+              <article
+                key={segment.name}
+                className="flex flex-col gap-2 rounded-lg border border-ink-200 bg-white p-4"
+              >
+                <span className="inline-flex w-fit rounded-full bg-teal-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-teal-700">
+                  {segment.tier}
+                </span>
+                <h3 className="m-0 text-base font-semibold text-ink-900">{segment.name}</h3>
+                <p className="m-0 text-sm text-ink-600">{segment.body}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Honest pilot disclaimer */}
+      <section className="mx-auto max-w-6xl px-5 py-10">
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-5">
+          <p className="m-0 text-sm font-semibold uppercase text-amber-700">Pilot status</p>
+          <p className="m-0 mt-2 text-sm text-ink-700">
+            TD POS is in pilot. Receipts are BIR-ready and clearly marked while accreditation is in
+            progress. Sales, inventory, and sync are production-quality; printer integration and
+            physical barcode scanning are validated per pilot store.
+          </p>
+        </div>
       </section>
     </main>
   )
