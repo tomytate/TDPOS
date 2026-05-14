@@ -26,6 +26,7 @@ import {
 
 import { useAppTheme } from '@/constants/theme'
 import { useHaptics } from '@/hooks/use-haptics'
+import { useT } from '@/i18n/translations'
 import {
   consumeDevicePairingCode,
   type SupabaseDevicePairingClient,
@@ -44,6 +45,7 @@ export default function DevicePairingScreen() {
   const theme = useAppTheme()
   const insets = useSafeAreaInsets()
   const haptics = useHaptics()
+  const t = useT()
   const db = useSQLiteContext()
   const branchName = useAuthStore((state) => state.branchName)
   const branchCode = useAuthStore((state) => state.branchCode)
@@ -75,20 +77,20 @@ export default function DevicePairingScreen() {
           bg: theme.tdpos.teal[50],
           chipBg: theme.tdpos.teal[100],
           chipColor: theme.tdpos.teal[800],
-          label: 'Paired',
+          label: t('pairing.statusPaired'),
         }
       : pairingStatus === 'fallback'
         ? {
             bg: theme.tdpos.amber[50],
             chipBg: theme.tdpos.amber[100],
             chipColor: theme.tdpos.amber[700],
-            label: 'Fallback identity',
+            label: t('pairing.statusFallback'),
           }
         : {
             bg: theme.colors.surfaceVariant,
             chipBg: theme.colors.surface,
             chipColor: theme.colors.onSurfaceVariant,
-            label: 'Not paired',
+            label: t('pairing.statusNotPaired'),
           }
 
   const pairDevice = async () => {
@@ -98,7 +100,7 @@ export default function DevicePairingScreen() {
     void haptics.tapLight()
 
     if (!supabase) {
-      setError('Supabase is not configured on this build.')
+      setError(t('pairing.supabaseMissing'))
       return
     }
 
@@ -141,12 +143,17 @@ export default function DevicePairingScreen() {
       void haptics.success()
       setSnackbar(
         heartbeat.ok
-          ? `Paired to ${outcome.branchName} / ${outcome.cashierCode}.`
-          : `Paired locally. Heartbeat will retry: ${heartbeat.message ?? heartbeat.reason}.`,
+          ? t('pairing.pairedSuccess')
+              .replace('{branch}', outcome.branchName)
+              .replace('{cashier}', outcome.cashierCode)
+          : t('pairing.pairedLocalRetry').replace(
+              '{reason}',
+              heartbeat.message ?? heartbeat.reason,
+            ),
       )
     } catch (err) {
       void haptics.error()
-      setError(err instanceof Error ? err.message : 'Could not pair this device.')
+      setError(err instanceof Error ? err.message : t('pairing.unknownError'))
     } finally {
       setSubmitting(false)
     }
@@ -160,7 +167,7 @@ export default function DevicePairingScreen() {
           onPress={() => router.back()}
           accessibilityLabel="Back"
         />
-        <Appbar.Content title="Device pairing" color={theme.colors.onPrimary} />
+        <Appbar.Content title={t('pairing.title')} color={theme.colors.onPrimary} />
       </Appbar.Header>
 
       <ScrollView
@@ -176,7 +183,7 @@ export default function DevicePairingScreen() {
           <Card.Content style={{ gap: 8 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <Text variant="labelLarge" style={{ color: theme.colors.onSurfaceVariant }}>
-                Current device
+                {t('pairing.currentDevice')}
               </Text>
               <Chip
                 compact
@@ -188,12 +195,19 @@ export default function DevicePairingScreen() {
                 {heroTone.label}
               </Chip>
             </View>
-            <InfoRow label="Branch" value={branchName ?? 'Not paired'} />
-            <InfoRow label="Branch code" value={branchCode ?? '—'} mono />
-            <InfoRow label="Cashier" value={cashierCode ?? 'Not paired'} mono />
+            <InfoRow
+              label={t('pairing.labelBranch')}
+              value={branchName ?? t('pairing.notPaired')}
+            />
+            <InfoRow label={t('pairing.labelBranchCode')} value={branchCode ?? '—'} mono />
+            <InfoRow
+              label={t('pairing.labelCashier')}
+              value={cashierCode ?? t('pairing.notPaired')}
+              mono
+            />
             {devicePairedAt ? (
               <InfoRow
-                label="Paired at"
+                label={t('pairing.labelPairedAt')}
                 value={new Date(devicePairedAt).toLocaleString('en-PH', {
                   month: 'short',
                   day: 'numeric',
@@ -210,16 +224,16 @@ export default function DevicePairingScreen() {
         <Card mode="contained">
           <Card.Content style={{ gap: 10 }}>
             <Text variant="titleMedium" accessibilityRole="header">
-              Pair this register
+              {t('pairing.pairRegisterTitle')}
             </Text>
             <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-              Enter the 8-character code issued from the web Devices page.
+              {t('pairing.pairRegisterBody')}
             </Text>
             <TextInput
               ref={codeInputRef}
               mode="outlined"
-              label="Device code"
-              placeholder="ABCD-1234"
+              label={t('pairing.codeLabel')}
+              placeholder={t('pairing.codePlaceholder')}
               autoCapitalize="characters"
               autoCorrect={false}
               autoComplete="off"
@@ -230,8 +244,8 @@ export default function DevicePairingScreen() {
               left={<TextInput.Icon icon="key-outline" />}
               returnKeyType="send"
               onSubmitEditing={() => void pairDevice()}
-              accessibilityLabel="Device pairing code"
-              accessibilityHint="Pair codes are generated from the web dashboard"
+              accessibilityLabel={t('pairing.codeLabel')}
+              accessibilityHint={t('pairing.codeHintAccessibility')}
             />
             {error ? (
               <HelperText type="error" visible>
@@ -239,7 +253,7 @@ export default function DevicePairingScreen() {
               </HelperText>
             ) : (
               <HelperText type="info" visible>
-                Codes look like 8 letters and digits, no easily-confused characters.
+                {t('pairing.codeHint')}
               </HelperText>
             )}
           </Card.Content>
@@ -253,12 +267,10 @@ export default function DevicePairingScreen() {
               style={{ color: theme.tdpos.amber[700], fontWeight: '600' }}
               accessibilityRole="header"
             >
-              Where do I get a code?
+              {t('pairing.whereTitle')}
             </Text>
             <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
-              The owner opens the web dashboard → Devices → “Issue device code,” picks the branch
-              and cashier, then reads the full code out to the cashier here. Codes expire after the
-              chosen window (default 30 minutes).
+              {t('pairing.whereBody')}
             </Text>
           </Card.Content>
         </Card>
@@ -282,9 +294,9 @@ export default function DevicePairingScreen() {
           disabled={submitting || normalizedCode.length < 8}
           onPress={pairDevice}
           contentStyle={{ paddingVertical: 4 }}
-          accessibilityLabel="Pair this device"
+          accessibilityLabel={t('pairing.pairAction')}
         >
-          {submitting ? 'Pairing…' : 'Pair device'}
+          {submitting ? t('pairing.pairingProgress') : t('pairing.pairAction')}
         </Button>
       </Surface>
 

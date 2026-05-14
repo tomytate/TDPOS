@@ -14,6 +14,7 @@ import { Appbar, Button, Card, Chip, Snackbar, Surface, Text } from 'react-nativ
 
 import { useAppTheme } from '@/constants/theme'
 import { useHaptics } from '@/hooks/use-haptics'
+import { useT } from '@/i18n/translations'
 import {
   discoverBlePrinters,
   printBleTestSlip,
@@ -25,6 +26,7 @@ export default function PrinterSettingsScreen() {
   const theme = useAppTheme()
   const insets = useSafeAreaInsets()
   const haptics = useHaptics()
+  const t = useT()
   const selectedPrinter = useSettingsStore((state) => state.selectedThermalPrinter)
   const setSelectedThermalPrinter = useSettingsStore((state) => state.setSelectedThermalPrinter)
   const clearSelectedThermalPrinter = useSettingsStore((state) => state.clearSelectedThermalPrinter)
@@ -44,10 +46,12 @@ export default function PrinterSettingsScreen() {
       setPrinters(devices)
       setHasScannedOnce(true)
       setSnackbar(
-        devices.length === 0 ? 'No Bluetooth receipt printers found.' : `${devices.length} found.`,
+        devices.length === 0
+          ? t('printer.scanFoundNone')
+          : t('printer.scanFoundSome').replace('{count}', String(devices.length)),
       )
     } catch {
-      setSnackbar('Could not scan printers. Use a development build with Bluetooth permission.')
+      setSnackbar(t('printer.scanError'))
     } finally {
       setScanning(false)
     }
@@ -61,7 +65,7 @@ export default function PrinterSettingsScreen() {
     const result = await printBleTestSlip(selectedPrinter)
     setTesting(false)
     if (result.ok) {
-      setSnackbar('Test slip sent to printer.')
+      setSnackbar(t('printer.testSent'))
       void haptics.success()
     } else {
       setSnackbar(result.message)
@@ -77,7 +81,7 @@ export default function PrinterSettingsScreen() {
           onPress={() => router.back()}
           accessibilityLabel="Back"
         />
-        <Appbar.Content title="Receipt printer" color={theme.colors.onPrimary} />
+        <Appbar.Content title={t('printer.title')} color={theme.colors.onPrimary} />
       </Appbar.Header>
 
       <ScrollView
@@ -95,12 +99,10 @@ export default function PrinterSettingsScreen() {
               style={{ color: theme.tdpos.amber[700], fontWeight: '600' }}
               accessibilityRole="alert"
             >
-              Hardware proof pending
+              {t('printer.hardwarePendingTitle')}
             </Text>
             <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-              Discovery and saved selection are wired locally. Physical thermal-printer proof is
-              part of the 0.9 device pass. Receipts stay readable on-screen when no printer is
-              connected.
+              {t('printer.hardwarePendingBody')}
             </Text>
           </Card.Content>
         </Card>
@@ -115,7 +117,7 @@ export default function PrinterSettingsScreen() {
           <Card.Content style={{ gap: 10 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <Text variant="labelLarge" style={{ color: theme.colors.onSurfaceVariant }}>
-                Selected printer
+                {t('printer.selectedTitle')}
               </Text>
               <Chip
                 compact
@@ -129,7 +131,7 @@ export default function PrinterSettingsScreen() {
                   fontWeight: '600',
                 }}
               >
-                {selectedPrinter ? 'Configured' : 'On-screen only'}
+                {selectedPrinter ? t('printer.statusConfigured') : t('printer.statusOnScreen')}
               </Chip>
             </View>
 
@@ -153,9 +155,9 @@ export default function PrinterSettingsScreen() {
                     loading={testing}
                     disabled={testing}
                     onPress={testSelectedPrinter}
-                    accessibilityLabel="Print test slip"
+                    accessibilityLabel={t('printer.testPrint')}
                   >
-                    Test print
+                    {t('printer.testPrint')}
                   </Button>
                   <Button
                     mode="outlined"
@@ -164,20 +166,19 @@ export default function PrinterSettingsScreen() {
                     onPress={() => {
                       void haptics.tapLight()
                       clearSelectedThermalPrinter()
-                      setSnackbar('Printer selection cleared.')
+                      setSnackbar(t('printer.clearedSnackbar'))
                     }}
-                    accessibilityLabel="Clear selected printer"
+                    accessibilityLabel={t('printer.clear')}
                   >
-                    Clear
+                    {t('printer.clear')}
                   </Button>
                 </View>
               </>
             ) : (
               <>
-                <Text variant="titleMedium">No printer selected</Text>
+                <Text variant="titleMedium">{t('printer.noneSelectedTitle')}</Text>
                 <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
-                  Receipts still display on-screen. Pair a Bluetooth printer below before tapping
-                  Print from the receipt screen.
+                  {t('printer.noneSelectedBody')}
                 </Text>
               </>
             )}
@@ -190,10 +191,10 @@ export default function PrinterSettingsScreen() {
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 8 }}>
               <View style={{ flex: 1 }}>
                 <Text variant="titleMedium" accessibilityRole="header">
-                  Bluetooth printers
+                  {t('printer.discoveryTitle')}
                 </Text>
                 <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-                  Make sure Bluetooth is on and the printer is in pairing mode before scanning.
+                  {t('printer.discoveryHint')}
                 </Text>
               </View>
             </View>
@@ -212,12 +213,14 @@ export default function PrinterSettingsScreen() {
                 }}
               >
                 <Text variant="bodyMedium" style={{ fontWeight: '600' }}>
-                  {hasScannedOnce ? 'No printers in range' : 'Tap Scan below to discover printers'}
+                  {hasScannedOnce
+                    ? t('printer.emptyAfterScanTitle')
+                    : t('printer.emptyBeforeScanTitle')}
                 </Text>
                 <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
                   {hasScannedOnce
-                    ? 'Move closer to the printer or check that Bluetooth is on, then scan again.'
-                    : 'Discovery uses Bluetooth Low Energy. Some printers wake up only while their pairing button is held.'}
+                    ? t('printer.emptyAfterScanBody')
+                    : t('printer.emptyBeforeScanBody')}
                 </Text>
               </View>
             ) : (
@@ -250,7 +253,7 @@ export default function PrinterSettingsScreen() {
                             style={{ backgroundColor: theme.tdpos.teal[100] }}
                             textStyle={{ color: theme.tdpos.teal[800], fontWeight: '600' }}
                           >
-                            Selected
+                            {t('printer.selected')}
                           </Chip>
                         ) : null}
                       </View>
@@ -265,12 +268,12 @@ export default function PrinterSettingsScreen() {
                             address: printer.address,
                             selectedAt: new Date().toISOString(),
                           })
-                          setSnackbar(`${printer.name} selected.`)
+                          setSnackbar(t('printer.selectedSnackbar').replace('{name}', printer.name))
                           void haptics.selection()
                         }}
-                        accessibilityLabel={`Select printer ${printer.name}`}
+                        accessibilityLabel={`${t('printer.selectAction')}: ${printer.name}`}
                       >
-                        {isSelected ? 'Selected' : 'Select printer'}
+                        {isSelected ? t('printer.selected') : t('printer.selectAction')}
                       </Button>
                     </Card.Content>
                   </Card>
@@ -299,9 +302,9 @@ export default function PrinterSettingsScreen() {
           disabled={scanning}
           onPress={scan}
           contentStyle={{ paddingVertical: 4 }}
-          accessibilityLabel="Scan Bluetooth printers"
+          accessibilityLabel={t('printer.scanAccessibility')}
         >
-          {scanning ? 'Scanning…' : 'Scan for printers'}
+          {scanning ? t('printer.scanningAction') : t('printer.scanAction')}
         </Button>
       </Surface>
 
