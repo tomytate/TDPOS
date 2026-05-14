@@ -271,6 +271,10 @@ export const translations = {
     'upgrade.openScaffold': 'Open scaffold',
     'upgrade.compareTiersWeb': 'Compare tiers on the web',
     'upgrade.compareTiersHint': 'Opens the pricing page in your browser',
+    'sale.openSubscription': 'Open subscription',
+    'sale.openLastReceipt': 'Open last receipt',
+    'sale.openScanner': 'Open scanner',
+    'sale.syncAccessibility': 'Sync products and categories',
   },
   tl: {
     'app.loading': 'Binubuksan ang TD POS',
@@ -545,6 +549,10 @@ export const translations = {
     'upgrade.openScaffold': 'Buksan ang scaffold',
     'upgrade.compareTiersWeb': 'Ikumpara ang tier sa web',
     'upgrade.compareTiersHint': 'Bubuksan ang pricing page sa browser',
+    'sale.openSubscription': 'Buksan ang Subscription',
+    'sale.openLastReceipt': 'Buksan ang huling resibo',
+    'sale.openScanner': 'Buksan ang scanner',
+    'sale.syncAccessibility': 'I-sync ang mga produkto at kategorya',
   },
 } as const
 

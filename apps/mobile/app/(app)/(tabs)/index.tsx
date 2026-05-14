@@ -4,16 +4,19 @@
 // state, MD3 Paper components throughout for cross-tier visual consistency.
 
 import { router } from 'expo-router'
+import { useSQLiteContext } from 'expo-sqlite'
 import { useState } from 'react'
 import { Pressable, ScrollView, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { Appbar, Button, Card, Chip, Surface, Text } from 'react-native-paper'
+import { Appbar, Button, Card, Chip, Snackbar, Surface, Text } from 'react-native-paper'
 
 import { useAppTheme } from '@/constants/theme'
+import { useCatalogReadiness } from '@/features/products/hooks/use-catalog-readiness'
 import { useCategories } from '@/features/products/hooks/use-categories'
 import { useProducts } from '@/features/products/hooks/use-products'
 import { useHaptics } from '@/hooks/use-haptics'
 import { useT } from '@/i18n/translations'
+import { runSyncQueueOnce } from '@/services/sync-executor'
 import { useAuthStore } from '@/stores/auth-store'
 import { useCartStore } from '@/stores/cart-store'
 import type { DbProduct } from '@tdpos/db'
@@ -120,13 +123,18 @@ export default function SaleScreen() {
   const t = useT()
   const haptics = useHaptics()
   const insets = useSafeAreaInsets()
-  const branchName = useAuthStore((state) => state.branchName) ?? 'Demo branch'
+  const db = useSQLiteContext()
+  const branchName = useAuthStore((state) => state.branchName) ?? 'Unpaired device'
+  const devicePairingStatus = useAuthStore((state) => state.devicePairingStatus)
   const items = useCartStore((state) => state.items)
   const lastSaleResult = useCartStore((state) => state.lastSaleResult)
   const addItem = useCartStore((state) => state.addItem)
 
   const [activeCategory, setActiveCategory] = useState<string>(ALL_CATEGORY)
-  const { data: categories = [] } = useCategories()
+  const [catalogSyncing, setCatalogSyncing] = useState(false)
+  const [snackbar, setSnackbar] = useState<string | null>(null)
+  const { data: categories = [], refetch: refetchCategories } = useCategories()
+  const { data: readiness, refetch: refetchReadiness } = useCatalogReadiness()
   const {
     data: products = [],
     isPending,
@@ -136,12 +144,18 @@ export default function SaleScreen() {
 
   const total = items.reduce((sum, item) => sum + item.lineTotal, 0)
   const itemCount = items.length
+  const devicePaired = devicePairingStatus === 'paired'
   const pieceCount = items.reduce(
     (sum, item) => sum + item.qty * (item.wasSoldAs === 'pack' ? item.piecesPerPack : 1),
     0,
   )
 
   const handleAddProduct = (product: DbProduct) => {
+    if (!devicePaired) {
+      setSnackbar(t('sale.devicePairingRequiredSnackbar'))
+      void haptics.error()
+      return
+    }
     addItem(
       {
         id: product.id,
@@ -164,8 +178,42 @@ export default function SaleScreen() {
 
   const handleCharge = () => {
     if (items.length === 0) return
+    if (!devicePaired) {
+      setSnackbar(t('sale.devicePairingRequiredSnackbar'))
+      void haptics.error()
+      return
+    }
     void haptics.tapMedium()
     router.push('/(app)/checkout')
+  }
+
+  const handleCatalogSync = async () => {
+    if (catalogSyncing) return
+    setCatalogSyncing(true)
+    setSnackbar(null)
+    void haptics.tapMedium()
+    try {
+      const outcome = await runSyncQueueOnce(db)
+      await Promise.all([refetch(), refetchCategories(), refetchReadiness()])
+
+      if ('reason' in outcome && outcome.reason === 'supabase_unconfigured') {
+        setSnackbar(t('sale.syncNeedsSupabase'))
+        void haptics.error()
+        return
+      }
+      if ('skipped' in outcome && outcome.skipped) {
+        setSnackbar(t('sale.syncAlreadyRunning'))
+        return
+      }
+
+      setSnackbar(t('sale.syncFinished'))
+      void haptics.success()
+    } catch {
+      setSnackbar(t('sale.syncFailed'))
+      void haptics.error()
+    } finally {
+      setCatalogSyncing(false)
+    }
   }
 
   // Leave room for the docked cart bar AND the system tab bar. Tab bar adds
@@ -173,6 +221,7 @@ export default function SaleScreen() {
   // ScrollView contentContainer needs roughly (cart-bar-height + safe-bottom)
   // when the cart has items.
   const dockedCartHeight = itemCount > 0 ? 96 + insets.bottom : 0
+  const showCartBar = itemCount > 0 && devicePaired
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
@@ -185,94 +234,160 @@ export default function SaleScreen() {
         <Appbar.Action
           icon="card-account-details-outline"
           color={theme.colors.onPrimary}
-          accessibilityLabel="Open subscription"
+          accessibilityLabel={t('sale.openSubscription')}
           onPress={() => router.push('/(app)/subscription')}
         />
         {lastSaleResult ? (
           <Appbar.Action
             icon="receipt-text-outline"
             color={theme.colors.onPrimary}
-            accessibilityLabel={`Open last receipt ${lastSaleResult.receiptNumber}`}
+            accessibilityLabel={`${t('sale.openLastReceipt')} ${lastSaleResult.receiptNumber}`}
             onPress={() => router.push('/(app)/receipt')}
           />
         ) : null}
         <Appbar.Action
           icon="barcode-scan"
           color={theme.colors.onPrimary}
-          accessibilityLabel="Open scanner"
-          onPress={() => router.push('/(app)/scanner')}
+          accessibilityLabel={t('sale.openScanner')}
+          disabled={!devicePaired}
+          onPress={() => {
+            if (!devicePaired) {
+              setSnackbar(t('sale.devicePairingRequiredSnackbar'))
+              return
+            }
+            router.push('/(app)/scanner')
+          }}
         />
       </Appbar.Header>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ gap: 8, paddingHorizontal: 12, paddingVertical: 12 }}
-        style={{ flexGrow: 0 }}
-      >
-        <Chip
-          selected={activeCategory === ALL_CATEGORY}
-          mode={activeCategory === ALL_CATEGORY ? 'flat' : 'outlined'}
-          onPress={() => handleCategorySelect(ALL_CATEGORY)}
-          accessibilityLabel={t('sale.showAllCategories')}
-        >
-          {t('inventory.all')}
-        </Chip>
-        {categories.map((cat) => (
-          <Chip
-            key={cat.id}
-            selected={activeCategory === cat.id}
-            mode={activeCategory === cat.id ? 'flat' : 'outlined'}
-            onPress={() => handleCategorySelect(cat.id)}
-            accessibilityLabel={`${t('sale.filterCategory')}: ${cat.name}, ${cat.product_count} ${t('inventory.products')}`}
-          >
-            {cat.name} · {cat.product_count}
-          </Chip>
-        ))}
-      </ScrollView>
-
-      {isPending ? (
-        <ScrollView contentContainerStyle={{ paddingBottom: dockedCartHeight + 12 }}>
-          <ProductSkeletonGrid />
-        </ScrollView>
-      ) : products.length === 0 ? (
-        <View style={{ flex: 1, padding: 16 }}>
+      {!devicePaired ? (
+        <View style={{ flex: 1, justifyContent: 'center', padding: 16 }}>
           <Card mode="contained">
             <Card.Content style={{ gap: 12 }}>
-              <Text variant="titleMedium">{t('sale.empty')}</Text>
+              <Text variant="titleMedium">{t('sale.devicePairingTitle')}</Text>
               <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
-                {activeCategory === ALL_CATEGORY ? t('sale.emptyAll') : t('sale.emptyCategory')}
+                {t('sale.devicePairingBody')}
               </Text>
+              {itemCount > 0 ? (
+                <Text variant="bodySmall" style={{ color: theme.tdpos.amber[700] }}>
+                  {t('sale.devicePairingCartSaved')}
+                </Text>
+              ) : null}
               <Button
-                mode="outlined"
-                icon="refresh"
-                loading={isFetching}
-                disabled={isFetching}
-                onPress={() => {
-                  void haptics.tapLight()
-                  void refetch()
-                }}
+                mode="contained"
+                icon="cellphone-key"
+                onPress={() => router.push('/(app)/device-pairing')}
+                accessibilityLabel={t('sale.devicePairingAction')}
               >
-                {t('sale.refresh')}
+                {t('sale.devicePairingAction')}
               </Button>
             </Card.Content>
           </Card>
         </View>
       ) : (
-        <ScrollView contentContainerStyle={{ padding: 12, paddingBottom: dockedCartHeight + 12 }}>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
-            {products.map((product) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                onAdd={() => handleAddProduct(product)}
-              />
+        <>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: 8, paddingHorizontal: 12, paddingVertical: 12 }}
+            style={{ flexGrow: 0 }}
+          >
+            <Chip
+              selected={activeCategory === ALL_CATEGORY}
+              mode={activeCategory === ALL_CATEGORY ? 'flat' : 'outlined'}
+              onPress={() => handleCategorySelect(ALL_CATEGORY)}
+              accessibilityLabel={t('sale.showAllCategories')}
+            >
+              {t('inventory.all')}
+            </Chip>
+            {categories.map((cat) => (
+              <Chip
+                key={cat.id}
+                selected={activeCategory === cat.id}
+                mode={activeCategory === cat.id ? 'flat' : 'outlined'}
+                onPress={() => handleCategorySelect(cat.id)}
+                accessibilityLabel={`${t('sale.filterCategory')}: ${cat.name}, ${cat.product_count} ${t('inventory.products')}`}
+              >
+                {cat.name} · {cat.product_count}
+              </Chip>
             ))}
-          </View>
-        </ScrollView>
+          </ScrollView>
+
+          {readiness ? (
+            <View style={{ paddingHorizontal: 12, paddingBottom: 4 }}>
+              <Chip
+                compact
+                icon={readiness.ready ? 'check-circle-outline' : 'cloud-sync-outline'}
+                mode={readiness.ready ? 'flat' : 'outlined'}
+                accessibilityLabel={
+                  readiness.ready
+                    ? `Offline catalog ready with ${readiness.activeProducts} products`
+                    : 'Offline catalog not ready'
+                }
+              >
+                {readiness.ready
+                  ? `${t('sale.catalogReady')} · ${readiness.activeProducts} ${t('inventory.products').toLowerCase()}`
+                  : t('sale.catalogNotReady')}
+              </Chip>
+            </View>
+          ) : null}
+
+          {isPending ? (
+            <ScrollView contentContainerStyle={{ paddingBottom: dockedCartHeight + 12 }}>
+              <ProductSkeletonGrid />
+            </ScrollView>
+          ) : products.length === 0 ? (
+            <View style={{ flex: 1, padding: 16 }}>
+              <Card mode="contained">
+                <Card.Content style={{ gap: 12 }}>
+                  <Text variant="titleMedium">{t('sale.empty')}</Text>
+                  <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
+                    {activeCategory === ALL_CATEGORY ? t('sale.emptyAll') : t('sale.emptyCategory')}
+                  </Text>
+                  <Button
+                    mode="outlined"
+                    icon="refresh"
+                    loading={isFetching}
+                    disabled={isFetching}
+                    onPress={() => {
+                      void haptics.tapLight()
+                      void refetch()
+                    }}
+                  >
+                    {t('sale.refresh')}
+                  </Button>
+                  <Button
+                    mode="contained-tonal"
+                    icon="cloud-sync-outline"
+                    loading={catalogSyncing}
+                    disabled={catalogSyncing}
+                    onPress={handleCatalogSync}
+                    accessibilityLabel={t('sale.syncAccessibility')}
+                  >
+                    {t('sale.syncCatalog')}
+                  </Button>
+                </Card.Content>
+              </Card>
+            </View>
+          ) : (
+            <ScrollView
+              contentContainerStyle={{ padding: 12, paddingBottom: dockedCartHeight + 12 }}
+            >
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+                {products.map((product) => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    onAdd={() => handleAddProduct(product)}
+                  />
+                ))}
+              </View>
+            </ScrollView>
+          )}
+        </>
       )}
 
-      {itemCount > 0 ? (
+      {showCartBar ? (
         <Surface
           mode="elevated"
           elevation={4}
@@ -324,6 +439,9 @@ export default function SaleScreen() {
           </Button>
         </Surface>
       ) : null}
+      <Snackbar visible={snackbar !== null} onDismiss={() => setSnackbar(null)} duration={3500}>
+        {snackbar ?? ''}
+      </Snackbar>
     </View>
   )
 }
