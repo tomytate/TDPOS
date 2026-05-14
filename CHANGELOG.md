@@ -28,15 +28,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Forbidden pattern scanner** — blocks `console.log()` in production code
 - **Local migration ordering gate** — `check:sqlite-migrations` verifies contiguous versioning
 - **Visual QA polish** — all mobile, web, and marketing surfaces polished for v0.9 review
-- **128 automated tests** across 23 files (94 mobile + 34 shared)
-- **13-stage foundation gate** — format → secrets → SQLite schema → migration ordering → forbidden patterns → tier UI sources → doc links → skill docs → Expo Doctor → Android bundle → typecheck → lint → tests
+- **136 automated tests** across 25 files (100 mobile + 36 shared)
+- **15-stage foundation gate** — format → secrets → SQLite schema → migration ordering → Supabase RLS → forbidden patterns → mobile service-key containment → tier UI sources → doc links → skill docs → Expo Doctor → Android bundle → typecheck → lint → tests
+- **27 anti-hallucination skill docs** (5 new: Zod 4, tier gating, testing, monorepo, i18n)
 
 ### Infrastructure
 
 - 16 Supabase PostgreSQL migrations
 - 4 Edge Functions (apply-inventory-delta, create-sale, eod-report, tenant-data-export)
 - 9 local SQLite migrations (v1–v9)
-- 9 check scripts in `scripts/`
+- 11 check scripts in `scripts/`
 - CI workflow (`.github/workflows/foundation.yml`)
 
 ## [0.8.0] — 2026-05-11
@@ -79,5 +80,5 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Shared types, validators, constants (`@tdpos/shared`)
 - Database schema types (`@tdpos/db`)
 - Supabase PostgreSQL 17 migrations and RLS policies
-- 22 anti-hallucination skill docs
+- 27 anti-hallucination skill docs
 - AI agent context files (AGENTS.md, CLAUDE.md, CODEX.md, GEMINI.md)

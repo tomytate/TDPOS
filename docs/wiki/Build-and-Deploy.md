@@ -118,7 +118,7 @@ Key settings:
 
 ## CI/CD
 
-The GitHub Actions workflow (`.github/workflows/foundation.yml`) runs the full 13-stage foundation gate on every PR. Store builds and submissions are triggered manually via EAS CLI.
+The GitHub Actions workflow (`.github/workflows/foundation.yml`) runs the full 15-stage foundation gate on every PR. Store builds and submissions are triggered manually via EAS CLI.
 
 ## Supabase Deployment
 

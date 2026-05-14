@@ -63,24 +63,26 @@ bunx supabase db seed   # Seed with demo data
 
 ```bash
 source scripts/use-toolchain.sh    # Ensure correct Node version
-bun run check:foundation           # Run all 13 gate stages
+bun run check:foundation           # Run all 15 gate stages
 ```
 
-All 13 stages should pass:
+All 15 stages should pass:
 
 1. Prettier format check
 2. Committed secret scan
 3. SQLite schema drift check
 4. SQLite migration ordering
-5. Forbidden pattern scan
-6. Tier UI source check
-7. Doc link integrity
-8. Skill doc gate
-9. Expo Doctor
-10. Android bundle export
-11. TypeScript strict check
-12. ESLint
-13. Tests (130 across 23 files)
+5. Supabase RLS coverage check
+6. Forbidden pattern scan
+7. Mobile service-role containment scan
+8. Tier UI source check
+9. Doc link integrity
+10. Skill doc gate
+11. Expo Doctor
+12. Android bundle export
+13. TypeScript strict check
+14. ESLint
+15. Tests (136 across 25 files)
 
 ## Project Structure
 
@@ -120,9 +122,9 @@ TDPOS/
 │   ├── migrations/          # 16 PostgreSQL migrations
 │   ├── functions/           # 4 Edge Functions
 │   └── seed.sql             # Demo data
-├── scripts/                 # 9 check scripts
+├── scripts/                 # 11 scripts
 ├── docs/
-│   ├── skills/              # 22 anti-hallucination skill docs
+│   ├── skills/              # 27 anti-hallucination skill docs
 │   └── wiki/                # This wiki
 └── UI/                      # Design reference (not production code)
 ```

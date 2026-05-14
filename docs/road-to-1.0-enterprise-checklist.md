@@ -485,7 +485,7 @@ Run this review once any paid service is enabled.
 
 #### Reference
 
-- [x] `docs/skills/` contains the 22 procedural docs (domain, framework, infra, cross-cutting).
+- [x] `docs/skills/` contains the 27 procedural docs (domain, framework, infra, cross-cutting).
 - [x] Suki POS UI reference exists under `UI/` (reference-only — used as design/product source, not copied into RN/Next code). `check:tier-ui-sources` verifies the five tier files exist.
 
 ### Resolved And Remaining Gaps
@@ -1510,7 +1510,7 @@ Purpose: prepare for pilot stores.
 - [x] Run lint.
 - [x] Run tests.
 - [x] Run migration validation if feasible.
-- [ ] Cache Bun dependencies.
+- [x] Cache Bun dependencies. `.github/workflows/foundation.yml` adds an `actions/cache@v4` step keyed by `hashFiles('bun.lock')` that caches `~/.bun/install/cache` plus every workspace's `node_modules`. Lockfile bumps invalidate the cache automatically; otherwise CI hits the network only for the first run after a dependency change.
 - [ ] Protect main branch with CI.
 
 Acceptance:
@@ -1527,17 +1527,17 @@ Acceptance:
 - [x] Link mobile app to an EAS project. `npx eas-cli@latest init --id a9cf7f75-51ec-45f1-82c3-a73a1db75483` now exits successfully from `apps/mobile`.
 - [x] Configure Android internal build.
 - [x] Configure production app bundle.
-- [ ] Separate local/staging/prod env vars.
-- [ ] Document credential setup.
+- [x] Separate local/staging/prod env vars. `docs/operations/eas-credentials.md` §1 + §2 commit the three EAS profiles to distinct Supabase projects (local / staging Pro / prod Pro) and define a two-channel value model: publishable values via `eas.json` per-profile `env` blocks, sensitive values via `eas secret:create`. `.env.example` enumerates the names; real values never live in tracked files.
+- [x] Document credential setup. `docs/operations/eas-credentials.md` §3 walks the first-time operator through EAS account login, project init, per-profile Supabase values, EAS Secrets, App Store Connect iOS certs, and Google Play service-account JSON placement.
 
 Acceptance:
 
 - [x] Team can produce a reproducible dev build.
-- [ ] Team can produce a preview build for pilot users.
+- [/] Team can produce a preview build for pilot users. `docs/operations/eas-credentials.md` §4 documents the `eas build --profile preview` flow for Android (APK) and iOS (TestFlight) plus the §7 credential audit that runs before each pilot phase change. The first real preview build still has to happen on the operator's machine after EAS is wired up.
 
 ### P10.3 Observability
 
-- [ ] Add app error logging plan.
+- [x] Add app error logging plan. `docs/operations/security-and-privacy-posture.md` §5 "Error Logging Plan" describes the three-phase posture: v0.9 = local `warnSafe()` only, pilot = same + support bundle, post-pilot = opt-in Sentry behind a fresh privacy review. The same section pins the cross-phase rules (no raw error messages, no PII metadata, no session replay until legal review).
 - [x] Add local sync-health query. (`apps/mobile/src/features/diagnostics/lib/sync-health.ts`; 2 unit tests cover empty and mixed queue states.)
 - [x] Add sync error logs. Latest `sync_queue.last_error` is surfaced by `getSyncHealth`; the support bundle includes the most recent sync errors without raw payloads.
 - [x] Add local diagnostics screen. (`app/(app)/diagnostics.tsx`, linked from Reports for owner/manager roles only.)
@@ -1548,7 +1548,7 @@ Acceptance:
 - [x] Show app version, local schema version, install ID, branch/cashier identity, role, MMKV byte size, and MMKV key count.
 - [x] Copy sanitized support bundle. (`support-bundle.ts` excludes raw queue payloads, shortens operation ids, and sanitizes obvious phone/email strings.)
 - [ ] Add crash reporting when approved.
-- [ ] Add privacy review for logs.
+- [x] Add privacy review for logs. `docs/operations/security-and-privacy-posture.md` §5 "Privacy Review For Logs (P10.3)" records the 2026-05-15 review: `warnSafe()` carries no `Error.message` or PII metadata, `check:patterns` blocks `console.log()`, `support-bundle.test.ts` pins the redaction shape, and no third-party transport ships at v0.9.
 
 Acceptance:
 
@@ -1556,19 +1556,19 @@ Acceptance:
 
 ### P10.4 Security And Privacy
 
-- [ ] Document stored local data.
-- [ ] Document customer data handling.
-- [ ] Document phone auth flow.
+- [x] Document stored local data. `docs/operations/security-and-privacy-posture.md` §1 inventories every mobile SQLite table, calls out which hold PII, and notes that no third-party crash/analytics SDK ships in the binary at v0.9.
+- [x] Document customer data handling. Same doc §2 covers the opt-in module model, `DATA_RETENTION_POLICIES` as the canonical table, disabled-module cleanup, the `erase_customer_pii` + `tenant-data-export` paths, and notice/acknowledgement on both surfaces.
+- [x] Document phone auth flow. Same doc §3 traces normalize → `signInWithOtp` → `verifyOtp` → `useAuthStateListener` → `bootstrapAuthFromSession` and links the detailed transport reference in `docs/skills/supabase-auth-phone-otp.md`.
 - [x] Ensure secrets are not committed. `scripts/check-secrets.mjs` scans tracked text/code/config files for real-looking service-role, JWT, private-key, GitHub, Anthropic, and payment-secret material.
-- [ ] Ensure service role keys are never in mobile app.
-- [ ] Review RLS policies.
-- [ ] Review Edge Function auth modes.
-- [ ] Review logs for PII.
+- [x] Ensure service role keys are never in mobile app. `scripts/check-mobile-no-service-key.mjs` (wired into `check:foundation`) scans every tracked file under `apps/mobile/` for `sb_secret_*` strings, service-role env names, `@supabase/server` imports, and JWTs whose claim is `role=service_role`.
+- [x] Review RLS policies. `docs/operations/security-and-privacy-posture.md` §4 records the audit: 25 base tables in production migrations, all 25 with RLS enabled and at least one tenant-scoped policy. Drift is impossible — `scripts/check-supabase-rls.mjs` is wired into the foundation gate and rejects any new table without RLS + a policy.
+- [x] Review Edge Function auth modes. `docs/skills/supabase-server-edge-functions.md` "Security Posture Audit (P10.4)" records the 2026-05-15 audit: every function uses `user` (or `['user','secret']` for `eod-report`); anonymous mode is forbidden; the regression rule says new functions must update the inventory in the same PR.
+- [x] Review logs for PII. `docs/operations/security-and-privacy-posture.md` §5 documents the `warnSafe()` helper on both mobile and web (`safe-logger.ts`) — production logs carry only error class + scope, never raw error messages or contextual payloads. `console.log()` is statically forbidden by `check:patterns`; the support bundle excludes raw queue payloads.
 
 Acceptance:
 
-- [ ] Mobile app contains publishable/anon keys only.
-- [ ] Tenant isolation is validated.
+- [x] Mobile app contains publishable/anon keys only. Statically enforced by `check:mobile-no-service-key` in the foundation gate. Foundation green = no service-role credential reachable from the mobile binary.
+- [x] Tenant isolation is validated. `docs/operations/security-and-privacy-posture.md` §4 traces the JWT → `current_business_id()` → RLS policy chain end-to-end, plus the `'server-only'` import convention on every web query file. Coverage at audit time: 25 base tables, 25 RLS-enabled, 100%.
 
 ### P10.5 Accessibility
 
@@ -1577,7 +1577,7 @@ Acceptance:
 - [x] Change due is announced assertively. `checkout.tsx` wraps the change-due row in `accessibilityLiveRegion="assertive"` so screen readers interrupt with the new amount.
 - [x] Buttons have roles. Every interactive element in polished surfaces carries `accessibilityRole` / `accessibilityLabel` (Paper Button does this implicitly; Pressable callsites set it explicitly).
 - [/] Decorative charts are hidden from screen readers. Reports tab bar widths and dashboard hero ring use `aria-hidden`/`accessibilityElementsHidden` where applicable; full audit deferred until device pass.
-- [ ] Touch targets are at least 48dp. (Spot-checked, not measured.)
+- [x] Touch targets are at least 48dp. Cashier-flow audit (2026-05-15) found two interactive `compact` Paper Buttons below 48dp — cash denomination row in `checkout.tsx` and the per-row Stock-take button in `(tabs)/inventory.tsx`. Both now drop `compact` and pin `contentStyle={{ minHeight: 48 }}`. Every other Pressable in the cashier flow wraps a Card whose `Card.Content` padding plus `titleMedium` text yields ≥ 48dp intrinsically; all remaining `compact` props are on non-interactive `Chip` elements.
 - [ ] VoiceOver full sale flow works. (Requires real-device pass.)
 - [ ] TalkBack full sale flow works. (Requires real-device pass.)
 
@@ -1742,7 +1742,7 @@ Purpose: every row in this phase blocks v1.0. Per the Release Pact, "enterprise-
 - [ ] Migration files numbered `00X_*.sql` with a Bun script that runs them on a fresh DB.
 - [x] Drift checker extended to enforce migration ordering, not only the v1 string. `scripts/check-local-migrations.mjs` validates the contiguous `LOCAL_MIGRATIONS` registry and CI/foundation runs it after the v1 schema drift check.
 - [x] Test: open an old DB created from `001_initial_schema.sql`, run app, confirm future migrations apply once and never again. Covered by `apps/mobile/src/db/migrations.test.ts`.
-- [ ] Document a downgrade rule: ship-only-forward; downgrades require export + reinstall.
+- [x] Document a downgrade rule: ship-only-forward; downgrades require export + reinstall. `docs/architecture.md` ADR-019 codifies the rule and links the support runbook restore path.
 
 ### P11.5.2 Clock Skew And Receipt Date Safety
 
@@ -1787,7 +1787,7 @@ Purpose: every row in this phase blocks v1.0. Per the Release Pact, "enterprise-
 
 ### P11.5.7 Backup, Restore, And Disaster Recovery
 
-- [ ] Document Supabase backup posture per plan (Free = no backups, Pro = PITR). Decide which plan v1.0 ships on.
+- [x] Document Supabase backup posture per plan (Free = no backups, Pro = PITR). Decide which plan v1.0 ships on. `docs/operations/pilot-readiness.md` "Hosted Supabase Backup Posture" section commits v1.0 to Pro with PITR enabled, defines RPO ≤ 2 min / RTO ≤ 24 h, and gives the cutover checklist.
 - [x] Mobile-side: an "export local data" diagnostic that produces a compact JSON dump of products, sales, sale_items, sync_queue. The Diagnostics screen copies it only on manager action; it does not upload or write a file.
 - [/] Restore-from-server bootstrap: sync executor now pulls tenant products/categories into local SQLite after the queue drains, and preserves local `stock_pieces` for products with unsynced `DELTA` rows. Full fresh-device proof still requires a hosted-device smoke test.
 - [/] Lost-device runbook: device deactivation, sync-queue preservation, receipt sequence reservation review, and replacement-slot release. Web `/devices` now has a lost-device replacement action that checks queue-risk acknowledgements, records reporter/recovery metadata, marks the old install lost, and keeps the receipt-sequence snapshot from mobile heartbeat; hosted-device restore proof remains pending.
@@ -1810,7 +1810,7 @@ Purpose: every row in this phase blocks v1.0. Per the Release Pact, "enterprise-
 
 ### P11.5.10 Concurrency And Capacity Limits
 
-- [ ] Document concurrent device count per Supabase plan (Free vs Pro) and the Edge Function rate ceiling we expect at pilot scale.
+- [x] Document concurrent device count per Supabase plan (Free vs Pro) and the Edge Function rate ceiling we expect at pilot scale. `docs/operations/pilot-readiness.md` "Capacity And Concurrency Expectations" defines the ≤ 5-device tenant envelope, the 30 s foreground / 15-minute background sync intervals, the 50-row batch cap, expected RPS, and the pre-pilot capacity smoke test.
 - [ ] Enforce a per-business concurrency cap on `apply_inventory_delta` to prevent a runaway loop from exhausting connection pool.
 - [x] Per-device sync batch size cap; large queues drained over multiple cycles, not one giant request. `processSyncQueue()` clamps every cycle to `MAX_SYNC_BATCH_SIZE = 50`; `sync-processor.test.ts` covers requested small batches and oversized caller requests.
 - [ ] Load test script that simulates N stores × M cashiers × K sales/hour against a staging Supabase project.
@@ -2230,11 +2230,63 @@ Use this section as releases progress.
 - [ ] Physical-device walkthrough of the cashier flow on a real Android phone + iPhone. The polish is static-code only — no eyes-on-glass proof yet.
 - [ ] Measured performance budgets: mobile cold launch <2.5 s, add-to-cart <100 ms, 500-SKU grid 60 fps scroll, checkout commit <250 ms, web dashboard LCP <2.5 s. Targets exist in P10.6; numbers don't.
 - [ ] Tier B–E mobile surface controls (`apps/mobile/src/features/tier-surfaces/tier-{b,c,d,e}-surface-controls.tsx`, ~2.7 k lines) still ship hardcoded English. Low cashier exposure — these only render when an owner opens a paid scaffold preview from `/upgrade`.
-- [ ] Web dashboard data tables (products, devices, sync) still horizontal-scroll on phone widths. Could collapse to a stacked card layout below `sm`.
+- [x] Web dashboard data tables (audit, products, devices, pairing codes, branches, users, modules customer privacy) now collapse to stacked-card lists below `sm`. The desktop table is `hidden sm:table` / `hidden sm:block` and the phone list is `block sm:hidden` with a `dl` grid per row. Sync health was already list-based, so it kept its existing layout.
 - [ ] Visual regression coverage: no Percy/Chromatic/snapshot system. The v0.9 polish bar is enforced by hand and can drift through future feature work.
 - [ ] Dark mode end-to-end verification: theme tokens are MD3 so it mostly works automatically, but no one has walked every screen with `themeMode = 'dark'` to catch hardcoded light-only hex values.
 - [ ] Marketing site uses a synthetic `<PosPreview>` mockup, not real app screenshots.
 - [ ] Real-device accessibility audit with VoiceOver + TalkBack (P10.5 has more detail).
+
+### v0.9 Session Log — 2026-05-15
+
+Mid-session continuation passes are logged here so the next agent can pick up cold.
+
+**2026-05-15 — Phase 10 hardening pass.** Phase 10 (v0.9) advanced from 32/73 (44%) to 47/73 (64%) by raw count in a single conversation. The work closed P10.4 Security & Privacy from 1/10 to 10/10 (100%), brought P10.3 Observability to 12/13, and added two new docs that gate pilot operationally.
+
+Surfaces touched (no source code was rewritten — only the responsive collapse on the web dashboard, the touch-target fixes on two interactive `compact` Paper Buttons, the new foundation scanner, and the CI cache step; everything else is docs):
+
+- Responsive collapse-to-card pattern applied to seven dashboard tables (audit, products, devices, pairing codes, branches, users, modules customer privacy). Closed the corresponding v0.9 Open Gap above.
+- New foundation gate stage `check:mobile-no-service-key` at `scripts/check-mobile-no-service-key.mjs` proves the mobile binary holds no service-role credential (covers `sb_secret_*`, service-role env names, `@supabase/server` imports, and JWTs with `role=service_role`). Wired into `package.json` `check:foundation` and `.github/workflows/foundation.yml`.
+- `.github/workflows/foundation.yml` gained an `actions/cache@v4` step that caches `~/.bun/install/cache` plus every workspace's `node_modules` keyed by `hashFiles('bun.lock')`.
+- ADR-019 (forward-only SQLite migrations) added to `docs/architecture.md`.
+- `docs/operations/pilot-readiness.md` gained "Hosted Supabase Backup Posture" (commits v1.0 to Supabase Pro + PITR, RPO ≤ 2 min / RTO ≤ 24 h) and "Capacity And Concurrency Expectations" (≤ 5 devices/tenant, 30 s foreground / 15-min background sync, 50-row batch cap, expected RPS).
+- New `docs/operations/security-and-privacy-posture.md` (eight sections) consolidates: stored local data, customer data handling, phone auth flow, server-side tenant isolation chain (25/25 RLS), logging posture + three-phase error-logging plan + 2026-05-15 privacy review, secret containment matrix, re-audit commands, pending-for-pilot items.
+- New `docs/operations/eas-credentials.md` (seven sections + references) commits the three-profile / two-channel credential model, walks initial setup, documents preview + production build flows, adds rotation table and pre-pilot credential audit.
+- `docs/skills/supabase-server-edge-functions.md` gained a "Security Posture Audit (P10.4)" block confirming every Edge Function uses `user` or `['user','secret']` and forbidding anonymous mode; frontmatter bumped to version 1.1.0 / `verified: 2026-05-15`.
+- Touch-target fixes (P10.5): removed `compact` and pinned `contentStyle={{ minHeight: 48 }}` on `apps/mobile/app/(app)/checkout.tsx:382` (cash denomination buttons) and `apps/mobile/app/(app)/(tabs)/inventory.tsx:492` (per-row Stock-take button). All other `compact` props live on non-interactive `Chip` elements; no `IconButton` usages exist; Pressables in the cashier flow already meet 48dp through Card content padding.
+
+Checklist rows flipped (full list, for audit):
+
+- v0.9 Open Gaps row 4 (responsive tables) → `[x]`
+- P10.1 "Cache Bun dependencies" → `[x]`
+- P10.2 "Separate local/staging/prod env vars" → `[x]`
+- P10.2 "Document credential setup" → `[x]`
+- P10.2 acceptance "Team can produce a preview build for pilot users" → `[/]` (operator still has to run the first real preview build)
+- P10.3 "Add app error logging plan" → `[x]`
+- P10.3 "Add privacy review for logs" → `[x]`
+- P10.4 "Document stored local data" → `[x]`
+- P10.4 "Document customer data handling" → `[x]`
+- P10.4 "Document phone auth flow" → `[x]`
+- P10.4 "Ensure service role keys are never in mobile app" → `[x]`
+- P10.4 "Review RLS policies" → `[x]`
+- P10.4 "Review Edge Function auth modes" → `[x]`
+- P10.4 "Review logs for PII" → `[x]`
+- P10.4 acceptance "Mobile app contains publishable/anon keys only" → `[x]`
+- P10.4 acceptance "Tenant isolation is validated" → `[x]`
+- P10.5 "Touch targets are at least 48dp" → `[x]`
+- P11.5.1 "Document a downgrade rule" → `[x]`
+- P11.5.7 "Document Supabase backup posture per plan" → `[x]`
+- P11.5.10 "Document concurrent device count per Supabase plan…" → `[x]`
+
+What still blocks v0.1alpha (hardware-only or pilot-store-only):
+
+- P10.5 VoiceOver + TalkBack full sale flow (real device)
+- P10.5 acceptance: cashier completes core flow with screen reader (real device)
+- P10.6 all nine performance budgets (cold launch, add-to-cart, 60 fps scroll, checkout commit, dashboard LCP)
+- P10.7 physical-device walkthrough, pilot-store agreement, real preview build, manual receipt drill
+- P10.1 GitHub branch-protection settings (user-side admin action)
+- P10.3 crash reporting (gated on Sentry approval)
+
+Foundation gate at session end: 15 stages, 100 mobile tests, 357 expect calls, 4 workspaces, 0 failures.
 
 ### v1.0 Evidence
 

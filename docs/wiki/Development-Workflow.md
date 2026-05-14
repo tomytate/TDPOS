@@ -39,27 +39,29 @@ chore(deps): bump expo to SDK 55.0.24
 
 ## Foundation Gate
 
-The 13-stage gate must pass before every commit:
+The 15-stage gate must pass before every commit:
 
 ```bash
 bun run check:foundation
 ```
 
-| Stage | Command                   | What it checks                         |
-| ----- | ------------------------- | -------------------------------------- |
-| 1     | `format:check`            | Prettier formatting                    |
-| 2     | `check:secrets`           | No committed API keys or tokens        |
-| 3     | `check:sqlite-schema`     | Local SQLite schema drift              |
-| 4     | `check:sqlite-migrations` | Migration ordering (contiguous v1–v9)  |
-| 5     | `check:patterns`          | No `console.log()`, forbidden patterns |
-| 6     | `check:tier-ui-sources`   | All 5 tier UI references exist         |
-| 7     | `check:doc-links`         | Internal doc links resolve             |
-| 8     | `check:skill-docs`        | All 22 skill docs present              |
-| 9     | `check:expo-doctor`       | Expo native dependency health          |
-| 10    | `check:mobile-bundle`     | Android Metro bundle exports           |
-| 11    | `typecheck`               | TypeScript strict across workspaces    |
-| 12    | `lint`                    | ESLint 10 (flat config)                |
-| 13    | `test`                    | All tests (130 across 23 files)        |
+| Stage | Command                       | What it checks                         |
+| ----- | ----------------------------- | -------------------------------------- |
+| 1     | `format:check`                | Prettier formatting                    |
+| 2     | `check:secrets`               | No committed API keys or tokens        |
+| 3     | `check:sqlite-schema`         | Local SQLite schema drift              |
+| 4     | `check:sqlite-migrations`     | Migration ordering (contiguous v1–v9)  |
+| 5     | `check:supabase-rls`          | Every Supabase table enables RLS       |
+| 6     | `check:patterns`              | No `console.log()`, forbidden patterns |
+| 7     | `check:mobile-no-service-key` | No service-role key reaches mobile     |
+| 8     | `check:tier-ui-sources`       | All 5 tier UI references exist         |
+| 9     | `check:doc-links`             | Internal doc links resolve             |
+| 10    | `check:skill-docs`            | All 27 skill docs present              |
+| 11    | `check:expo-doctor`           | Expo native dependency health          |
+| 12    | `check:mobile-bundle`         | Android Metro bundle exports           |
+| 13    | `typecheck`                   | TypeScript strict across workspaces    |
+| 14    | `lint`                        | ESLint 10 (flat config)                |
+| 15    | `test`                        | All tests (136 across 25 files)        |
 
 ## Code Organization
 
@@ -102,7 +104,7 @@ import { TIER_DEFINITIONS } from '../../../packages/shared/src/constants'
 Every PR must:
 
 - [ ] `bun.lock` committed after dependency changes
-- [ ] `bun run check:foundation` passes all 13 stages
+- [ ] `bun run check:foundation` passes all 15 stages
 - [ ] No "BIR-compliant/certified/approved" language (use "BIR-ready")
 - [ ] All new RPCs take `client_operation_id` parameter
 - [ ] Inventory changes use deltas, not absolute values
