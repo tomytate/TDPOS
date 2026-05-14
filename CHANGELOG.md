@@ -33,7 +33,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Infrastructure
 
-- 17 Supabase PostgreSQL migrations
+- 16 Supabase PostgreSQL migrations
 - 4 Edge Functions (apply-inventory-delta, create-sale, eod-report, tenant-data-export)
 - 9 local SQLite migrations (v1–v9)
 - 9 check scripts in `scripts/`

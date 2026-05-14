@@ -55,7 +55,7 @@ bun run check:mobile-bundle    # Android Metro bundle/export check
 bun run check:tier-ui-sources  # Tier reference source check
 bun run lint                   # ESLint 10
 bun run typecheck              # TS strict
-bun run test                   # All tests (128 across 23 files)
+bun run test                   # All tests (130 across 23 files)
 eas build --profile development --platform all  # Dev builds
 eas build --profile production --platform all   # Store builds
 eas submit --profile production --platform all  # Submit

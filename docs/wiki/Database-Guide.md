@@ -97,27 +97,23 @@ receipt_sequence (branch_code TEXT, cashier_code TEXT, date TEXT, sequence INTEG
 
 ## Supabase Migrations
 
-17 PostgreSQL migrations in `supabase/migrations/`:
+16 committed PostgreSQL migrations in `supabase/migrations/`:
 
 | Migration                                    | Purpose                                       |
 | -------------------------------------------- | --------------------------------------------- |
-| `20260508000000_initial_schema`              | Core tables with RLS                          |
-| `20260508000001_sales_immutability`          | Immutability triggers                         |
-| `20260508000002_sync_infrastructure`         | Sync queue, applied_operations                |
-| `20260508000003_inventory_deltas`            | Delta-based inventory RPC                     |
-| `20260508000004_receipt_sequence`            | Receipt namespace partitioning                |
-| `20260509000000_audit_log`                   | Append-only audit trail                       |
-| `20260509000001_eod_reports`                 | End-of-day report tables                      |
-| `20260509000002_create_sale_atomic`          | Atomic sale creation RPC                      |
-| `20260509000003_sync_health_views`           | Sync monitoring views                         |
+| `20260508000000_initial_schema`              | Core tables, RLS, base RPCs                   |
+| `20260509000000_immutability_triggers`       | Sales immutability enforcement                |
+| `20260509000001_create_sale_atomic`          | Atomic sale creation RPC                      |
 | `20260510000000_tier_normalization`          | A-E tier model                                |
 | `20260510000001_entitlement_guards`          | Entitlement validation                        |
 | `20260511000000_tier_surface_scaffold`       | Device, shift, approval, kiosk, return tables |
+| `20260511000001_pending_invites`             | Pending team invitations                      |
+| `20260511000002_business_limit_triggers`     | Tier-based limit enforcement                  |
 | `20260512000000_customer_erasure`            | PII erasure markers + RPC                     |
 | `20260512000001_tenant_export_audit`         | Export audit logging                          |
 | `20260512000002_sale_clock_metadata`         | Clock skew detection                          |
 | `20260512000003_server_clock_handshake`      | Server time handshake RPC                     |
-| `20260512000004_inventory_adjustment_reason` | Stock take reasons                            |
+| `20260512000004_inventory_adjustment_reason` | Stock take reasons + delta RPC refresh        |
 | `20260512000005_stock_take_counts`           | Physical count records                        |
 | `20260512000006_sale_voids`                  | Void link table                               |
 | `20260513000000_device_recovery_metadata`    | Lost device recovery                          |

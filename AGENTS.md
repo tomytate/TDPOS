@@ -25,7 +25,7 @@ TD POS uses five canonical product tiers. New code must use these values only:
 
 `packages/shared/src/constants/index.ts` owns `TIER_DEFINITIONS`, module unlocks, limits, UI reference paths, and upgrade targets. The old six-name subscription values are migration-only through `LEGACY_TIER_MAP`; do not add new features against them. Root `UI/` is visual/product reference only, not production code.
 
-## Tech Stack (Verified May 13, 2026)
+## Tech Stack (Verified May 14, 2026)
 
 ### Mobile (apps/mobile)
 
@@ -37,23 +37,22 @@ TD POS uses five canonical product tiers. New code must use these values only:
 - React Native Paper 5.15.2 (Material Design 3, NOT MD2)
 - react-native-mmkv 4.3.1 (fast synchronous storage — NOT AsyncStorage)
 - @haroldtran/react-native-thermal-printer 1.2.0 (BLE/USB/LAN — the ONLY verified printer package)
-- Zod 4.4.3 (validation, shorthand string or `error:` param — NOT `message:`)
+- Zod 4.4.3 (in `@tdpos/shared` and `@tdpos/db`; validation uses `error:` param — NOT `message:`)
 - TypeScript strict mode (root/web/shared: 6.0.3; mobile: Expo SDK 55-compatible 5.9.3)
 
 ### Web Dashboard (apps/web)
 
 - Next.js 16.2.6 (App Router, `proxy.ts` replaces `middleware.ts`)
-- TailwindCSS 4.2.4 + shadcn/ui
-- Recharts 3.8.1, @react-pdf/renderer 4.5.1, papaparse 5.5.3, date-fns 4.1.0
-- @supabase/ssr 0.10.2 (`getClaims()` not `getSession()`)
-- lucide-react 1.14.0, react-hook-form 7.75.0
+- TailwindCSS 4.3.0 + shadcn/ui
+- @react-pdf/renderer 4.5.1
+- @supabase/ssr 0.10.3 (`getClaims()` not `getSession()`)
 
 ### Backend
 
 - Supabase: PostgreSQL 17, Auth (phone OTP), Realtime, Storage, Edge Functions, RLS, Cron, pgvector
-- @supabase/supabase-js 2.105.3
+- @supabase/supabase-js 2.105.4
 - @supabase/server (public beta, May 6 2026) — Edge Function auth/context (`withSupabase`)
-- @supabase/ssr 0.10.2 — web dashboard cookie auth (`getClaims`)
+- @supabase/ssr 0.10.3 — web dashboard cookie auth (`getClaims`)
 - `gen_random_uuid()` is built-in PG13+ — NO `uuid-ossp` extension needed
 - Claude API via Edge Function (AI insights)
 
@@ -167,7 +166,7 @@ The canonical wording rules live in [`docs/skills/bir-compliance.md`](docs/skill
 
 ## Testing Requirements
 
-Always run `bun run check:foundation` before committing. Current: 128 tests across 23 files (21 mobile + 2 shared).
+Always run `bun run check:foundation` before committing. Current: 130 tests across 23 files (21 mobile + 2 shared).
 
 Six required Phase 1 tests (§14 of spec):
 
@@ -191,7 +190,7 @@ TDPOS/
 ├── packages/typescript-config/
 ├── packages/eslint-config/
 ├── scripts/              # 9 check scripts (foundation gate, secrets, patterns)
-├── supabase/             # PG17 migrations (17), Edge Functions (4), seed
+├── supabase/             # PG17 migrations (16+), Edge Functions (4), seed
 ├── docs/                 # Spec, architecture, schema reference
 │   └── skills/           # 22 procedural skill docs (shared by ALL agents)
 └── UI/                   # Suki POS design canvas (reference only)

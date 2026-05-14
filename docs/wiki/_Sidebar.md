@@ -4,29 +4,29 @@
 
 **Getting Started**
 
-- [Home](Home)
-- [Getting Started](Getting-Started)
-- [Architecture Overview](Architecture-Overview)
+- [Home](Home.md)
+- [Getting Started](Getting-Started.md)
+- [Architecture Overview](Architecture-Overview.md)
 
 **Core Concepts**
 
-- [Tier System](Tier-System)
-- [Inventory Model](Inventory-Model)
-- [Offline-First Design](Offline-First-Design)
-- [Sales & Receipts](Sales-and-Receipts)
+- [Tier System](Tier-System.md)
+- [Inventory Model](Inventory-Model.md)
+- [Offline-First Design](Offline-First-Design.md)
+- [Sales & Receipts](Sales-and-Receipts.md)
 
 **Development**
 
-- [Development Workflow](Development-Workflow)
-- [Testing Guide](Testing-Guide)
-- [Database Guide](Database-Guide)
+- [Development Workflow](Development-Workflow.md)
+- [Testing Guide](Testing-Guide.md)
+- [Database Guide](Database-Guide.md)
 
 **Deployment**
 
-- [Build & Deploy](Build-and-Deploy)
-- [Supabase Backend](Supabase-Backend)
+- [Build & Deploy](Build-and-Deploy.md)
+- [Supabase Backend](Supabase-Backend.md)
 
 **Reference**
 
-- [Glossary](Glossary)
-- [FAQ](FAQ)
+- [Glossary](Glossary.md)
+- [FAQ](FAQ.md)

@@ -94,16 +94,16 @@ After any code change, run:
 bun run check:foundation
 ```
 
-## Tech Stack Quick Reference (Verified May 13, 2026)
+## Tech Stack Quick Reference (Verified May 14, 2026)
 
 | Layer          | Package                                  | Version       |
 | -------------- | ---------------------------------------- | ------------- |
 | Framework      | expo                                     | 55.0.24       |
-| Router         | expo-router                              | 55.x          |
-| Local DB       | expo-sqlite                              | 55.x          |
+| Router         | expo-router                              | 55.0.14       |
+| Local DB       | expo-sqlite                              | 55.0.16       |
 | State (client) | zustand                                  | 5.0.13        |
 | State (server) | @tanstack/react-query                    | 5.100.9       |
-| Backend        | @supabase/supabase-js                    | 2.105.3       |
+| Backend        | @supabase/supabase-js                    | 2.105.4       |
 | UI             | react-native-paper                       | 5.15.2        |
 | Storage        | react-native-mmkv                        | 4.3.1         |
 | Printer        | @haroldtran/react-native-thermal-printer | 1.2.0         |
@@ -111,6 +111,6 @@ bun run check:foundation
 | Language       | typescript                               | 6.0.3 / 5.9.3 |
 | Node runtime   | node                                     | 24 LTS        |
 | Web framework  | next                                     | 16.2.6        |
-| CSS            | tailwindcss                              | 4.2.4         |
-| SSR auth       | @supabase/ssr                            | 0.10.2        |
+| CSS            | tailwindcss                              | 4.3.0         |
+| SSR auth       | @supabase/ssr                            | 0.10.3        |
 | Monorepo       | turbo                                    | 2.9.12        |

@@ -8,7 +8,7 @@ TD POS is a mobile-first, offline-capable SaaS POS and inventory management syst
 
 ## Release Posture
 
-- **Current baseline:** v0.8 Scaffold Complete — all five tier surfaces implemented, 128 tests passing, 13-stage foundation gate green.
+- **Current baseline:** v0.8 Scaffold Complete — all five tier surfaces implemented, 130 tests passing, 13-stage foundation gate green.
 - **Next real milestone:** v0.9 — full test suite (screenshot parity, accessibility, performance), hosted Supabase staging, EAS dev builds, physical-device airplane-mode sale.
 - **Then:** v0.1alpha — first pilot store.
 - **Target:** v1.0 Public Launch — mobile + web dashboard + marketing site simultaneously.
@@ -109,8 +109,8 @@ TDPOS/
 ├── packages/typescript-config/
 ├── packages/eslint-config/
 ├── scripts/                 # 9 check scripts (foundation gate, secrets, patterns, migrations)
-├── supabase/                # PG17 migrations (17), Edge Functions (4), seed
-├── docs/                    # Spec, architecture (17 ADRs), schema reference
+├── supabase/                # PG17 migrations (16+), Edge Functions (4), seed
+├── docs/                    # Spec, architecture (18 ADRs), schema reference
 │   └── skills/              # 22 anti-hallucination skill docs (DocGate-3 enforced)
 └── UI/                      # Suki POS design canvas (reference only)
 ```
@@ -172,7 +172,7 @@ bun run check:expo-doctor      # Expo native dependency health check
 bun run check:mobile-bundle    # Android Metro bundle/export check
 bun run lint                   # ESLint 10 (flat config)
 bun run typecheck              # TypeScript strict
-bun run test                   # All tests (128 across 23 files)
+bun run test                   # All tests (130 across 23 files)
 ```
 
 Always run before committing:

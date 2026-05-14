@@ -80,7 +80,7 @@ All 13 stages should pass:
 10. Android bundle export
 11. TypeScript strict check
 12. ESLint
-13. Tests (128 across 23 files)
+13. Tests (130 across 23 files)
 
 ## Project Structure
 
@@ -117,7 +117,7 @@ TDPOS/
 │   ├── shared/              # @tdpos/shared — types, validators, constants
 │   └── db/                  # @tdpos/db — database schema types
 ├── supabase/
-│   ├── migrations/          # 17 PostgreSQL migrations
+│   ├── migrations/          # 16 PostgreSQL migrations
 │   ├── functions/           # 4 Edge Functions
 │   └── seed.sql             # Demo data
 ├── scripts/                 # 9 check scripts
