@@ -51,18 +51,20 @@ function formatReceiptAmount(value: number) {
   return formatMoney(value)
 }
 
-function describeVoidFailure(reason: string): string {
+type Translate = ReturnType<typeof useT>
+
+function describeVoidFailure(reason: string, t: Translate): string {
   switch (reason) {
     case 'missing_device_identity':
-      return 'Device not paired. Ask the manager to re-pair this register.'
+      return t('receipt.voidReasonDeviceUnpaired')
     case 'sale_not_found':
-      return 'The original sale is no longer available on this device.'
+      return t('receipt.voidReasonSaleNotFound')
     case 'already_voided':
-      return 'This sale is already voided.'
+      return t('receipt.voidReasonAlreadyVoided')
     case 'void_window_closed':
-      return 'This sale can only be voided on the same local business day.'
+      return t('receipt.voidReasonWindowClosed')
     case 'no_sale_items':
-      return 'This sale has no item lines to return to inventory.'
+      return t('receipt.voidReasonNoItems')
     default:
       return `Void could not complete (${reason}). Try again or call support.`
   }
@@ -101,16 +103,16 @@ export default function ReceiptScreen() {
           <Appbar.BackAction
             color={theme.colors.onPrimary}
             onPress={() => router.replace('/(app)/(tabs)')}
-            accessibilityLabel="Back to sale"
+            accessibilityLabel={t('receipt.backToSaleA11y')}
           />
           <Appbar.Content title={t('receipt.recorded')} color={theme.colors.onPrimary} />
         </Appbar.Header>
         <View style={{ padding: 16 }}>
           <Card mode="contained">
             <Card.Content style={{ gap: 12 }}>
-              <Text variant="titleLarge">No recent sale</Text>
+              <Text variant="titleLarge">{t('receipt.noRecentTitle')}</Text>
               <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
-                Complete a checkout from the Sale tab to see a receipt here.
+                {t('receipt.noRecentBody')}
               </Text>
               <Button
                 mode="contained"
@@ -119,7 +121,7 @@ export default function ReceiptScreen() {
                   void haptics.tapLight()
                   router.replace('/(app)/(tabs)')
                 }}
-                accessibilityLabel="Back to Sale tab"
+                accessibilityLabel={t('receipt.backToSaleA11y')}
               >
                 {t('receipt.newSale')}
               </Button>
@@ -157,15 +159,15 @@ export default function ReceiptScreen() {
         ),
         `Total: ${formatReceiptAmount(lastSaleResult.total)}`,
         isVoid
-          ? 'Void compensating entry'
+          ? t('receipt.voidCompensating')
           : isUtang
-            ? 'Charged to utang'
+            ? t('receipt.chargedToUtang')
             : `Paid: ${lastSaleResult.paymentMethod.toUpperCase()}`,
         APP_BRANDING_FOOTER,
       ]
       await Share.share({ message: lines.join('\n') })
     } catch {
-      setSnackbar({ message: 'Could not open share sheet.' })
+      setSnackbar({ message: t('receipt.shareFailed') })
     }
   }
 
@@ -173,9 +175,9 @@ export default function ReceiptScreen() {
     if (printSubmitting) return
     if (!selectedPrinter) {
       setSnackbar({
-        message: 'No printer selected. Pair a Bluetooth printer to enable Print.',
+        message: t('receipt.printNoPrinter'),
         action: {
-          label: 'Open settings',
+          label: t('receipt.printNoPrinterAction'),
           onPress: () => router.push('/(app)/printer-settings'),
         },
       })
@@ -206,13 +208,13 @@ export default function ReceiptScreen() {
     setPrintSubmitting(false)
 
     if (result.ok) {
-      setSnackbar({ message: 'Receipt sent to printer.' })
+      setSnackbar({ message: t('receipt.printSent') })
       void haptics.success()
     } else {
       setSnackbar({
         message: `${result.message} Receipt remains visible on-screen.`,
         action: {
-          label: 'Printer settings',
+          label: t('receipt.printFailedAction'),
           onPress: () => router.push('/(app)/printer-settings'),
         },
       })
@@ -224,9 +226,9 @@ export default function ReceiptScreen() {
     if (!lastSaleResult || voidSubmitting) return
     if (!branchId || !branchCode || !cashierCode) {
       setSnackbar({
-        message: 'Device not configured. Pair this register before voiding.',
+        message: t('receipt.voidMissingDevice'),
         action: {
-          label: 'Pair device',
+          label: t('receipt.voidMissingDeviceAction'),
           onPress: () => router.push('/(app)/device-pairing'),
         },
       })
@@ -248,7 +250,7 @@ export default function ReceiptScreen() {
       })
 
       if (!result.ok) {
-        setSnackbar({ message: describeVoidFailure(result.reason) })
+        setSnackbar({ message: describeVoidFailure(result.reason, t) })
         void haptics.error()
         return
       }
@@ -308,7 +310,11 @@ export default function ReceiptScreen() {
             </Chip>
           ) : null}
           <Text variant="headlineMedium" style={{ color: theme.colors.onPrimary }}>
-            {isVoid ? t('receipt.voided') : isUtang ? 'Utang recorded' : t('receipt.recorded')}
+            {isVoid
+              ? t('receipt.voided')
+              : isUtang
+                ? t('receipt.utangRecorded')
+                : t('receipt.recorded')}
           </Text>
           <Text
             variant="displaySmall"
@@ -509,7 +515,7 @@ export default function ReceiptScreen() {
             loading={printSubmitting}
             disabled={printSubmitting}
             style={{ flex: 1 }}
-            accessibilityLabel="Print receipt"
+            accessibilityLabel={t('receipt.printA11y')}
             accessibilityHint="Send to selected Bluetooth receipt printer"
           >
             Print
@@ -519,7 +525,7 @@ export default function ReceiptScreen() {
             icon="share-variant-outline"
             onPress={handleShare}
             style={{ flex: 1 }}
-            accessibilityLabel="Share receipt"
+            accessibilityLabel={t('receipt.shareA11y')}
             accessibilityHint="Share via SMS, email, or messaging app"
           >
             Share
@@ -535,7 +541,7 @@ export default function ReceiptScreen() {
             }}
             loading={voidSubmitting}
             disabled={voidSubmitting}
-            accessibilityLabel="Void this sale"
+            accessibilityLabel={t('receipt.voidA11y')}
           >
             {t('receipt.voidSale')}
           </Button>
@@ -551,7 +557,7 @@ export default function ReceiptScreen() {
           textColor={theme.tdpos.ink[900]}
           contentStyle={{ paddingVertical: 6 }}
           labelStyle={{ fontWeight: '700' }}
-          accessibilityLabel="Start a new sale"
+          accessibilityLabel={t('receipt.newSaleA11y')}
         >
           {t('receipt.newSale')}
         </Button>
@@ -565,7 +571,7 @@ export default function ReceiptScreen() {
           </Dialog.Content>
           <Dialog.Actions>
             <Button disabled={voidSubmitting} onPress={() => setVoidDialogVisible(false)}>
-              Cancel
+              {t('inventory.cancel')}
             </Button>
             <Button loading={voidSubmitting} disabled={voidSubmitting} onPress={handleVoidSale}>
               {t('receipt.voidSale')}
