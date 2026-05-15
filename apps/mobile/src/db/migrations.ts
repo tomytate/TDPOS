@@ -1,5 +1,5 @@
 // Local SQLite migration runner — applies versioned schema changes.
-// Migrations are registered in LOCAL_MIGRATIONS array (v2-v9).
+// Migrations are registered in LOCAL_MIGRATIONS array (v2-v10).
 // Each migration runs exactly once via schema_version tracking.
 
 import type { AsyncSqliteLike } from './async-sqlite'
@@ -151,6 +151,10 @@ CREATE INDEX IF NOT EXISTS idx_sale_voids_original
   ON sale_voids(original_sale_id);
 `
 
+export const LOCAL_PRODUCT_IMAGE_URI_SQL = `
+ALTER TABLE products ADD COLUMN image_uri TEXT;
+`
+
 export const LOCAL_MIGRATIONS: LocalMigration[] = [
   {
     version: 1,
@@ -188,6 +192,10 @@ export const LOCAL_MIGRATIONS: LocalMigration[] = [
   {
     version: 9,
     sql: LOCAL_SALE_VOIDS_SQL,
+  },
+  {
+    version: 10,
+    sql: LOCAL_PRODUCT_IMAGE_URI_SQL,
   },
 ]
 

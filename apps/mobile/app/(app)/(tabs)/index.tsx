@@ -10,6 +10,7 @@ import { Pressable, ScrollView, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Appbar, Button, Card, Chip, Snackbar, Surface, Text } from 'react-native-paper'
 
+import { ProductGlyph } from '@/components/ui/product-glyph'
 import { useAppTheme } from '@/constants/theme'
 import { useCatalogReadiness } from '@/features/products/hooks/use-catalog-readiness'
 import { useCategories } from '@/features/products/hooks/use-categories'
@@ -85,14 +86,23 @@ function ProductCard({ product, onAdd }: { product: DbProduct; onAdd: () => void
         opacity: pressed ? 0.65 : 1,
       })}
     >
-      <Card mode="contained" style={{ minHeight: 110 }}>
-        <Card.Content style={{ gap: 6 }}>
-          <Text variant="titleSmall" numberOfLines={2}>
-            {product.name}
-          </Text>
-          <Text variant="titleMedium" style={{ color: theme.colors.primary }}>
-            {formatMoney(product.price_per_piece)}
-          </Text>
+      <Card mode="contained" style={{ minHeight: 132 }}>
+        <Card.Content style={{ gap: 8 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
+            <ProductGlyph
+              name={product.name}
+              categoryId={product.category_id}
+              imageUri={product.image_uri}
+            />
+            <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+              <Text variant="titleSmall" numberOfLines={2}>
+                {product.name}
+              </Text>
+              <Text variant="titleMedium" style={{ color: theme.colors.primary }}>
+                {formatMoney(product.price_per_piece)}
+              </Text>
+            </View>
+          </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
             <Text
               variant="bodySmall"
@@ -171,6 +181,7 @@ export default function SaleScreen() {
         price_per_pack: product.price_per_pack,
         pieces_per_pack: product.pieces_per_pack,
         category_id: product.category_id,
+        image_uri: product.image_uri,
       },
       'piece',
       1,

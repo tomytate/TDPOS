@@ -74,6 +74,7 @@ export interface DbProduct {
   pieces_per_pack: number // INTEGER — default 1
   reorder_point_pieces: number | null
   unit_label: string | null
+  image_uri: string | null
   is_tingi: DbBoolean
   is_active: DbBoolean
   created_at: DbTimestamp

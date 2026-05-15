@@ -37,6 +37,12 @@ const optionalTextSchema = z
   .trim()
   .transform((value) => (value.length === 0 ? undefined : value))
   .optional()
+const optionalUriTextSchema = z
+  .string()
+  .trim()
+  .max(2048, 'Image URI is too long')
+  .transform((value) => (value.length === 0 ? undefined : value))
+  .optional()
 
 export const businessEntitlementsSchema = z.object({
   subscription_tier: subscriptionTierSchema,
@@ -61,6 +67,7 @@ export const productSchema = z.object({
   pieces_per_pack: z.int().positive({ error: 'Pieces per pack must be at least 1' }),
   reorder_point_pieces: z.int().nonnegative().optional(),
   unit_label: z.string().optional(),
+  image_uri: optionalUriTextSchema,
   is_tingi: z.boolean().default(false),
 })
 
@@ -75,6 +82,7 @@ export const productManagementDraftSchema = z.object({
     .int()
     .positive({ error: 'Pieces per pack must be at least 1' }),
   unit_label: z.string().trim().min(1, 'Unit label is required').default('pc'),
+  image_uri: optionalUriTextSchema,
   is_tingi: z.boolean().default(false),
 })
 

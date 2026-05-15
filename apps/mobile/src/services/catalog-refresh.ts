@@ -43,6 +43,7 @@ interface RemoteProductRow {
   pieces_per_pack: number | null
   reorder_point_pieces: number | null
   unit_label: string | null
+  image_uri: string | null
   is_tingi: boolean | null
   is_active: boolean | null
   created_at: string | null
@@ -80,7 +81,7 @@ export type CatalogRefreshOutcome =
 
 const CATEGORY_COLUMNS = 'id, business_id, name, color, created_at'
 const PRODUCT_COLUMNS =
-  'id, business_id, sku, name, category_id, price_per_piece, price_per_pack, cost_per_piece, stock_pieces, pieces_per_pack, reorder_point_pieces, unit_label, is_tingi, is_active, created_at, updated_at'
+  'id, business_id, sku, name, category_id, price_per_piece, price_per_pack, cost_per_piece, stock_pieces, pieces_per_pack, reorder_point_pieces, unit_label, image_uri, is_tingi, is_active, created_at, updated_at'
 const CUSTOMER_COLUMNS =
   'id, business_id, name, phone, barangay, points_balance, total_utang, pii_erased, erased_at, erased_by, erasure_reason, created_at'
 const CUSTOMER_MODULES: ModuleName[] = ['utang', 'customer_sms', 'loyalty']
@@ -155,10 +156,10 @@ export async function refreshCatalogFromSupabase(params: {
 
       await params.db.runAsync(
         `INSERT INTO products (
-           id, business_id, sku, name, category_id, price_per_piece, price_per_pack,
-           cost_per_piece, stock_pieces, pieces_per_pack, reorder_point_pieces,
-           unit_label, is_tingi, is_active, created_at, updated_at
-         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	           id, business_id, sku, name, category_id, price_per_piece, price_per_pack,
+	           cost_per_piece, stock_pieces, pieces_per_pack, reorder_point_pieces,
+	           unit_label, image_uri, is_tingi, is_active, created_at, updated_at
+	         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(id) DO UPDATE SET
            business_id = excluded.business_id,
            sku = excluded.sku,
@@ -171,10 +172,11 @@ export async function refreshCatalogFromSupabase(params: {
              WHEN ? THEN products.stock_pieces
              ELSE excluded.stock_pieces
            END,
-           pieces_per_pack = excluded.pieces_per_pack,
-           reorder_point_pieces = excluded.reorder_point_pieces,
-           unit_label = excluded.unit_label,
-           is_tingi = excluded.is_tingi,
+	           pieces_per_pack = excluded.pieces_per_pack,
+	           reorder_point_pieces = excluded.reorder_point_pieces,
+	           unit_label = excluded.unit_label,
+	           image_uri = excluded.image_uri,
+	           is_tingi = excluded.is_tingi,
            is_active = excluded.is_active,
            created_at = excluded.created_at,
            updated_at = excluded.updated_at`,
@@ -191,6 +193,7 @@ export async function refreshCatalogFromSupabase(params: {
           product.pieces_per_pack ?? 1,
           product.reorder_point_pieces,
           product.unit_label,
+          product.image_uri,
           product.is_tingi ? 1 : 0,
           product.is_active === false ? 0 : 1,
           toEpochSeconds(product.created_at),

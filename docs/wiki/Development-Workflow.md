@@ -61,7 +61,7 @@ bun run check:foundation
 | 12    | `check:mobile-bundle`         | Android Metro bundle exports           |
 | 13    | `typecheck`                   | TypeScript strict across workspaces    |
 | 14    | `lint`                        | ESLint 10 (flat config)                |
-| 15    | `test`                        | All tests (144 across 28 files)        |
+| 15    | `test`                        | All tests (147 across 28 files)        |
 
 ## Code Organization
 

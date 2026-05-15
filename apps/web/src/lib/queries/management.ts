@@ -135,6 +135,7 @@ export interface ProductManagementRow {
   sku: string | null
   name: string
   categoryName: string | null
+  imageUri: string | null
   stockPieces: number
   piecesPerPack: number
   stockDisplay: string
@@ -166,6 +167,7 @@ interface ProductRow {
   price_per_pack: number | string | null
   reorder_point_pieces: number | null
   unit_label: string | null
+  image_uri: string | null
   is_tingi: boolean
   is_active: boolean
   categories: Array<{ name: string }> | null
@@ -181,7 +183,7 @@ export async function getProductManagementRows(limit = 200): Promise<ProductMana
     const { data, error } = await supabase
       .from('products')
       .select(
-        'id, sku, name, stock_pieces, pieces_per_pack, price_per_piece, price_per_pack, reorder_point_pieces, unit_label, is_tingi, is_active, categories ( name )',
+        'id, sku, name, image_uri, stock_pieces, pieces_per_pack, price_per_piece, price_per_pack, reorder_point_pieces, unit_label, is_tingi, is_active, categories ( name )',
       )
       .order('name', { ascending: true })
       .limit(limit)
@@ -199,6 +201,7 @@ export async function getProductManagementRows(limit = 200): Promise<ProductMana
         sku: row.sku,
         name: row.name,
         categoryName: row.categories?.[0]?.name ?? null,
+        imageUri: row.image_uri,
         stockPieces: row.stock_pieces,
         piecesPerPack: row.pieces_per_pack,
         stockDisplay: displayStock(row.stock_pieces, row.pieces_per_pack, row.unit_label ?? 'pc'),

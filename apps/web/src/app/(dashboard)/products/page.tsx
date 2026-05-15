@@ -157,6 +157,7 @@ export default async function ProductsPage() {
             { kind: 'number', name: 'stock_pieces', label: 'Stock pieces', defaultValue: '0' },
             { kind: 'number', name: 'pieces_per_pack', label: 'Pieces / pack', defaultValue: '1' },
             { kind: 'text', name: 'unit_label', label: 'Unit label', defaultValue: 'pc' },
+            { kind: 'text', name: 'image_uri', label: 'Image URI', placeholder: 'https://...' },
             { kind: 'checkbox', name: 'is_tingi', label: 'Tingi enabled' },
           ]}
         />
@@ -231,7 +232,7 @@ export default async function ProductsPage() {
           <h2 className="m-0 text-base font-semibold text-ink-900">Bulk catalog import</h2>
           <p className="mt-1 text-sm text-ink-600">
             Paste a CSV with headers: <code>name,sku,price_per_piece,stock_pieces</code>. Optional
-            headers: <code>pieces_per_pack,unit_label,price_per_pack,is_tingi</code>.
+            headers: <code>pieces_per_pack,unit_label,price_per_pack,is_tingi,image_uri</code>.
           </p>
         </div>
         <ScaffoldActionButton
@@ -245,7 +246,7 @@ export default async function ProductsPage() {
               required: true,
               rows: 7,
               placeholder:
-                'name,sku,price_per_piece,stock_pieces,pieces_per_pack,unit_label,is_tingi\nTest Sachet,SACHET-001,7,120,12,sachet,true',
+                'name,sku,price_per_piece,stock_pieces,pieces_per_pack,unit_label,is_tingi,image_uri\nTest Sachet,SACHET-001,7,120,12,sachet,true,https://example.com/test-sachet.webp',
             },
           ]}
         />

@@ -343,6 +343,7 @@ export async function createProductScaffoldAction(
     stock_pieces: textField(formData, 'stock_pieces'),
     pieces_per_pack: textField(formData, 'pieces_per_pack') || '1',
     unit_label: textField(formData, 'unit_label') || 'pc',
+    image_uri: optionalTextField(formData, 'image_uri'),
     is_tingi: formData.get('is_tingi') === 'on',
   })
 
@@ -377,6 +378,7 @@ export async function createProductScaffoldAction(
       stock_pieces: draft.data.stock_pieces,
       pieces_per_pack: draft.data.pieces_per_pack,
       unit_label: draft.data.unit_label,
+      image_uri: draft.data.image_uri ?? null,
       is_tingi: draft.data.is_tingi,
     })
     .select('id')
@@ -396,7 +398,11 @@ export async function createProductScaffoldAction(
     action: 'product.create',
     resourceType: 'product',
     resourceId: inserted.id as string,
-    after: { name: draft.data.name, price_per_piece: draft.data.price_per_piece },
+    after: {
+      name: draft.data.name,
+      price_per_piece: draft.data.price_per_piece,
+      has_image: Boolean(draft.data.image_uri),
+    },
   })
 
   revalidatePath('/products')
@@ -434,6 +440,7 @@ export async function importProductsCsvScaffoldAction(
       stock_pieces: csvValue(record.values, 'stock_pieces', 'stock', 'qty', 'quantity'),
       pieces_per_pack: csvValue(record.values, 'pieces_per_pack', 'pack_size') || '1',
       unit_label: csvValue(record.values, 'unit_label', 'unit') || 'pc',
+      image_uri: csvOptionalValue(record.values, 'image_uri', 'image_url', 'photo_url'),
       is_tingi: csvBoolean(csvValue(record.values, 'is_tingi', 'tingi')),
     })
 
@@ -500,6 +507,7 @@ export async function importProductsCsvScaffoldAction(
         stock_pieces: product.stock_pieces,
         pieces_per_pack: product.pieces_per_pack,
         unit_label: product.unit_label,
+        image_uri: product.image_uri ?? null,
         is_tingi: product.is_tingi,
       })),
     )

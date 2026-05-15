@@ -103,6 +103,7 @@ describe('refreshCatalogFromSupabase', () => {
             pieces_per_pack: 1,
             reorder_point_pieces: 4,
             unit_label: 'pc',
+            image_uri: 'https://example.com/test-chips.webp',
             is_tingi: true,
             is_active: true,
             created_at: '2026-05-12T00:00:00.000Z',
@@ -127,17 +128,21 @@ describe('refreshCatalogFromSupabase', () => {
     expect(category).toEqual({ id: 'cat-1', name: 'Snacks' })
 
     const product = sqlite
-      .prepare(`SELECT name, stock_pieces, price_per_piece, is_active FROM products WHERE id = ?`)
+      .prepare(
+        `SELECT name, stock_pieces, price_per_piece, image_uri, is_active FROM products WHERE id = ?`,
+      )
       .get('prod-1') as {
       name: string
       stock_pieces: number
       price_per_piece: number
+      image_uri: string
       is_active: number
     }
     expect(product).toEqual({
       name: 'Test Chips',
       stock_pieces: 25,
       price_per_piece: 8.5,
+      image_uri: 'https://example.com/test-chips.webp',
       is_active: 1,
     })
   })
@@ -175,6 +180,7 @@ describe('refreshCatalogFromSupabase', () => {
             pieces_per_pack: 1,
             reorder_point_pieces: null,
             unit_label: null,
+            image_uri: null,
             is_tingi: true,
             is_active: true,
             created_at: '2026-05-12T00:00:00.000Z',
