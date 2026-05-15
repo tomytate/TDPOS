@@ -50,6 +50,9 @@ function entitlementSnapshot(params: {
   entitlementsValidUntil: string | null
   lastServerHandshakeAt: string | null
   cashierCode: string | null
+  devicePairingStatus: string
+  devicePairingId: string | null
+  devicePairedAt: string | null
 }) {
   return {
     subscription_tier: params.subscriptionTier,
@@ -57,6 +60,9 @@ function entitlementSnapshot(params: {
     entitlements_valid_until: params.entitlementsValidUntil,
     last_server_handshake_at: params.lastServerHandshakeAt,
     cashier_code: params.cashierCode,
+    device_pairing_status: params.devicePairingStatus,
+    device_pairing_id: params.devicePairingId,
+    device_paired_at: params.devicePairedAt,
   }
 }
 
@@ -84,12 +90,18 @@ export async function upsertDeviceHeartbeat(params: {
       surface,
       status: 'active',
       last_seen_at: new Date().toISOString(),
+      device_pairing_status: state.devicePairingStatus,
+      device_pairing_id: state.devicePairingId,
+      device_paired_at: state.devicePairedAt,
       entitlement_snapshot: entitlementSnapshot({
         subscriptionTier: state.subscriptionTier,
         modules: state.modules,
         entitlementsValidUntil: state.entitlementsValidUntil,
         lastServerHandshakeAt: state.lastServerHandshakeAt,
         cashierCode: state.cashierCode,
+        devicePairingStatus: state.devicePairingStatus,
+        devicePairingId: state.devicePairingId,
+        devicePairedAt: state.devicePairedAt,
       }),
       sync_snapshot: syncSnapshot,
     },

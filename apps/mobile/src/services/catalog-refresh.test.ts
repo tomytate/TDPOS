@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import { Database } from 'bun:sqlite'
 
 import { runLocalMigrations, type LocalMigrationDb } from '@/db/migrations'
+import { DEFAULT_MODULE_STATE } from '@tdpos/shared'
 
 import { refreshCatalogFromSupabase, type SupabaseCatalogClient } from './catalog-refresh'
 
@@ -42,6 +43,7 @@ async function freshDb(): Promise<Database> {
 function makeSupabaseMock(params: {
   categories?: unknown[]
   products?: unknown[]
+  customers?: unknown[]
   error?: string | null
 }): SupabaseCatalogClient {
   return {
@@ -53,6 +55,9 @@ function makeSupabaseMock(params: {
               return {
                 async order() {
                   if (params.error) return { data: null, error: { message: params.error } }
+                  if (table === 'customers') {
+                    return { data: params.customers ?? [], error: null }
+                  }
                   return {
                     data:
                       table === 'categories' ? (params.categories ?? []) : (params.products ?? []),
@@ -107,7 +112,13 @@ describe('refreshCatalogFromSupabase', () => {
       }),
     })
 
-    expect(outcome).toEqual({ ok: true, categories: 1, products: 1, preservedPendingStock: 0 })
+    expect(outcome).toEqual({
+      ok: true,
+      categories: 1,
+      products: 1,
+      customers: 0,
+      preservedPendingStock: 0,
+    })
 
     const category = sqlite.prepare(`SELECT id, name FROM categories`).get() as {
       id: string
@@ -173,12 +184,73 @@ describe('refreshCatalogFromSupabase', () => {
       }),
     })
 
-    expect(outcome).toEqual({ ok: true, categories: 0, products: 1, preservedPendingStock: 1 })
+    expect(outcome).toEqual({
+      ok: true,
+      categories: 0,
+      products: 1,
+      customers: 0,
+      preservedPendingStock: 1,
+    })
 
     const product = sqlite
       .prepare(`SELECT name, stock_pieces, price_per_piece FROM products WHERE id = ?`)
       .get('prod-1') as { name: string; stock_pieces: number; price_per_piece: number }
     expect(product).toEqual({ name: 'Remote Chips', stock_pieces: 8, price_per_piece: 9 })
+  })
+
+  test('downloads customer rows only when a customer-facing module is enabled', async () => {
+    const sqlite = await freshDb()
+    const db = makeAdapter(sqlite)
+    const customers = [
+      {
+        id: 'cust-1',
+        business_id: 'biz-1',
+        name: 'Aling Nena',
+        phone: '+639171234567',
+        barangay: 'Holy Spirit',
+        points_balance: 12,
+        total_utang: '35.5',
+        pii_erased: false,
+        erased_at: null,
+        erased_by: null,
+        erasure_reason: null,
+        created_at: '2026-05-12T00:00:00.000Z',
+      },
+    ]
+
+    const skipped = await refreshCatalogFromSupabase({
+      db,
+      businessId: 'biz-1',
+      supabase: makeSupabaseMock({ customers }),
+      modules: DEFAULT_MODULE_STATE,
+    })
+    expect(skipped).toMatchObject({ ok: true, customers: 0 })
+    expect(sqlite.prepare(`SELECT id FROM customers`).all()).toHaveLength(0)
+
+    const imported = await refreshCatalogFromSupabase({
+      db,
+      businessId: 'biz-1',
+      supabase: makeSupabaseMock({ customers }),
+      modules: { ...DEFAULT_MODULE_STATE, utang: true },
+    })
+    expect(imported).toMatchObject({ ok: true, customers: 1 })
+
+    const customer = sqlite
+      .prepare(`SELECT name, phone, barangay, points_balance, total_utang FROM customers`)
+      .get() as {
+      name: string
+      phone: string
+      barangay: string
+      points_balance: number
+      total_utang: number
+    }
+    expect(customer).toEqual({
+      name: 'Aling Nena',
+      phone: '+639171234567',
+      barangay: 'Holy Spirit',
+      points_balance: 12,
+      total_utang: 35.5,
+    })
   })
 
   test('does not write without a business id or when remote queries fail', async () => {

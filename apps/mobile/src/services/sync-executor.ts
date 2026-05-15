@@ -7,6 +7,8 @@ import {
 import { refreshCatalogFromSupabase, type SupabaseCatalogClient } from './catalog-refresh'
 import { warnSafe } from './safe-logger'
 import { upsertDeviceHeartbeat, type SupabaseDeviceHeartbeatClient } from './device-heartbeat'
+import { startPerformanceTimer } from './performance-metrics'
+import { storage } from './storage'
 import { createSyncCallables, type SupabaseRpcLike } from './sync-callables'
 import { createSyncRunner, type SyncRunnerOutcome } from './sync-runner'
 import { supabase } from './supabase'
@@ -21,8 +23,14 @@ export async function runSyncQueueOnce(db: AsyncSqliteLike): Promise<SyncExecuto
 
   // Cast: the real `SupabaseClient` is runtime-compatible with our narrow
   // adapter shape, while supabase-js exposes thenable builders in its types.
+  const stopSyncTimer = startPerformanceTimer('sync_cycle_ms', storage)
   const callables = createSyncCallables(supabase as unknown as SupabaseRpcLike)
-  const outcome = await createSyncRunner({ db, callables }).run()
+  let outcome: SyncRunnerOutcome
+  try {
+    outcome = await createSyncRunner({ db, callables }).run()
+  } finally {
+    stopSyncTimer()
+  }
 
   await refreshEntitlementsFromSupabase({
     supabase: supabase as unknown as SupabaseEntitlementsClient,
@@ -35,6 +43,7 @@ export async function runSyncQueueOnce(db: AsyncSqliteLike): Promise<SyncExecuto
     supabase: supabase as unknown as SupabaseCatalogClient,
     db,
     businessId: useAuthStore.getState().businessId,
+    modules: useAuthStore.getState().modules,
   }).catch((err) => {
     warnSafe('[SyncExecutor] catalog refresh failed', err)
   })

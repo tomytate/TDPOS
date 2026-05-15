@@ -5,7 +5,7 @@
  * Runs once on mount (covers the case where the app starts in foreground)
  * and again every time `AppState` transitions to `'active'`.
  *
- * If `supabase` is `null` (env vars unconfigured — demo mode), the hook is
+ * If `supabase` is `null` (env vars unconfigured), the hook is
  * a no-op. The processor still has access to the local `sync_queue` for
  * inspection in the future Diagnostics screen (P10.3); we just don't
  * attempt to push to a backend that isn't configured.

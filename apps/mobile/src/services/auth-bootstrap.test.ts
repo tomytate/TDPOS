@@ -201,6 +201,34 @@ describe('bootstrapAuthFromSession', () => {
     expect(calls.auth).toHaveLength(0)
   })
 
+  test('returns account_inactive when staff access is disabled', async () => {
+    const { store, calls } = makeStore()
+    const client = makeClient({
+      users: {
+        data: {
+          id: USER_ID,
+          business_id: BUSINESS_ID,
+          role: 'cashier',
+          phone: PHONE,
+          is_active: false,
+        },
+        error: null,
+      },
+    })
+
+    const result = await bootstrapAuthFromSession({
+      supabase: client,
+      session: makeSession(),
+      store,
+    })
+
+    expect(result.ok).toBe(false)
+    if (result.ok) return
+    expect(result.reason).toBe('account_inactive')
+    expect(calls.auth).toHaveLength(0)
+    expect(calls.device).toHaveLength(0)
+  })
+
   test('returns no_branches_configured when no branches exist', async () => {
     const { store, calls } = makeStore()
     const client = makeClient({

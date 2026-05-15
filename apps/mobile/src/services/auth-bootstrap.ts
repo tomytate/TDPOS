@@ -11,6 +11,7 @@ import {
   getTierModuleState,
   normalizeSubscriptionTier,
   resolveTierModuleState,
+  type DevicePairingStatus,
   type ModuleName,
   type SubscriptionTier,
   type UserRole,
@@ -33,6 +34,9 @@ export interface BootstrapDeviceInput {
   branchCode: string
   branchName: string
   cashierCode: string
+  pairingStatus: DevicePairingStatus
+  devicePairingId: string | null
+  devicePairedAt: string | null
   storeName?: string | null
   storeAddress?: string | null
   tin?: string | null
@@ -57,11 +61,13 @@ interface SupabaseUserRow {
   business_id: string | null
   role: string | null
   phone: string | null
+  is_active?: boolean | null
 }
 
 interface SupabaseBranchRow {
   id: string
   name: string
+  branch_code?: string | null
   // Optional fields that may be missing on bare-bones schemas.
   region?: string | null
   is_active?: boolean | null
@@ -110,6 +116,7 @@ export type BootstrapOutcome =
       ok: false
       reason:
         | 'account_not_provisioned'
+        | 'account_inactive'
         | 'business_not_assigned'
         | 'no_branches_configured'
         | 'query_failed'
@@ -125,6 +132,8 @@ export function describeBootstrapFailure(outcome: BootstrapOutcome): string | nu
   switch (outcome.reason) {
     case 'account_not_provisioned':
       return 'Your account is not set up yet. Ask your manager to add you to a business.'
+    case 'account_inactive':
+      return 'Your account is inactive. Ask your manager to reactivate access.'
     case 'business_not_assigned':
       return 'No business is assigned to your account. Contact your manager.'
     case 'no_branches_configured':
@@ -146,12 +155,15 @@ function isValidRole(role: string | null): role is UserRole {
 function deriveCashierCode(userId: string): string {
   // Last 2 hex chars of the UUID, uppercased and prefixed with C. Stable,
   // device-stable, and unlikely to collide for the small staff sizes typical
-  // of v0.1alpha pilots. Replace with proper device-pairing flow before v1.0.
+  // of v0.1alpha pilots. The explicit device-pairing route can replace this
+  // value after sign-in; mandatory first-run pairing remains a later gate.
   const tail = userId.replace(/-/g, '').slice(-2).toUpperCase()
   return `C${tail || '01'}`
 }
 
 function deriveBranchCode(branch: SupabaseBranchRow): string {
+  if (branch.branch_code) return branch.branch_code
+
   // Generate a 4-char branch code from the branch name's first letters; if
   // we can't derive anything sensible, fall back to the row id's last 4.
   const initials = branch.name
@@ -180,7 +192,7 @@ export async function bootstrapAuthFromSession(params: {
   // 1. Fetch users row.
   let userRes = await supabase
     .from('users')
-    .select('id, business_id, role, phone')
+    .select('id, business_id, role, phone, is_active')
     .eq('id', userId)
     .maybeSingle()
 
@@ -202,7 +214,7 @@ export async function bootstrapAuthFromSession(params: {
       if (!consumeRes.error && consumeRes.data) {
         userRes = await supabase
           .from('users')
-          .select('id, business_id, role, phone')
+          .select('id, business_id, role, phone, is_active')
           .eq('id', userId)
           .maybeSingle()
         if (userRes.error) {
@@ -218,6 +230,9 @@ export async function bootstrapAuthFromSession(params: {
   if (!userRow) {
     return { ok: false, reason: 'account_not_provisioned' }
   }
+  if (userRow.is_active === false) {
+    return { ok: false, reason: 'account_inactive' }
+  }
   if (!userRow.business_id) {
     return { ok: false, reason: 'business_not_assigned' }
   }
@@ -231,7 +246,7 @@ export async function bootstrapAuthFromSession(params: {
   const [branchRes, businessRes] = await Promise.all([
     supabase
       .from('branches')
-      .select('id, name')
+      .select('id, name, branch_code')
       .eq('business_id', userRow.business_id)
       .order('name', { ascending: true })
       .limit(1)
@@ -282,6 +297,9 @@ export async function bootstrapAuthFromSession(params: {
     branchCode: deriveBranchCode(branchRow),
     branchName: branchRow.name,
     cashierCode: deriveCashierCode(userId),
+    pairingStatus: 'fallback',
+    devicePairingId: null,
+    devicePairedAt: null,
     storeName,
     storeAddress,
     tin,

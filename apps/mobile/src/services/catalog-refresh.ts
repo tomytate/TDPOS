@@ -1,4 +1,5 @@
 import type { AsyncSqliteLike } from '@/db/async-sqlite'
+import type { ModuleName } from '@tdpos/shared'
 
 interface SupabaseQueryResult {
   data: unknown
@@ -18,7 +19,7 @@ interface SupabaseSelectQuery {
 }
 
 export interface SupabaseCatalogClient {
-  from(table: 'categories' | 'products'): SupabaseSelectQuery
+  from(table: 'categories' | 'products' | 'customers'): SupabaseSelectQuery
 }
 
 interface RemoteCategoryRow {
@@ -48,11 +49,27 @@ interface RemoteProductRow {
   updated_at: string | null
 }
 
+interface RemoteCustomerRow {
+  id: string
+  business_id: string
+  name: string
+  phone: string | null
+  barangay: string | null
+  points_balance: number | null
+  total_utang: number | string | null
+  pii_erased: boolean | null
+  erased_at: string | null
+  erased_by: string | null
+  erasure_reason: string | null
+  created_at: string | null
+}
+
 export type CatalogRefreshOutcome =
   | {
       ok: true
       categories: number
       products: number
+      customers: number
       preservedPendingStock: number
     }
   | {
@@ -64,16 +81,21 @@ export type CatalogRefreshOutcome =
 const CATEGORY_COLUMNS = 'id, business_id, name, color, created_at'
 const PRODUCT_COLUMNS =
   'id, business_id, sku, name, category_id, price_per_piece, price_per_pack, cost_per_piece, stock_pieces, pieces_per_pack, reorder_point_pieces, unit_label, is_tingi, is_active, created_at, updated_at'
+const CUSTOMER_COLUMNS =
+  'id, business_id, name, phone, barangay, points_balance, total_utang, pii_erased, erased_at, erased_by, erasure_reason, created_at'
+const CUSTOMER_MODULES: ModuleName[] = ['utang', 'customer_sms', 'loyalty']
 
 export async function refreshCatalogFromSupabase(params: {
   supabase: SupabaseCatalogClient
   db: AsyncSqliteLike
   businessId: string | null
+  modules?: Record<ModuleName, boolean>
 }): Promise<CatalogRefreshOutcome> {
   const businessId = params.businessId
   if (!businessId) return { ok: false, reason: 'signed_out' }
+  const shouldSyncCustomers = shouldDownloadCustomers(params.modules)
 
-  const [categoriesResult, productsResult] = await Promise.all([
+  const [categoriesResult, productsResult, customersResult] = await Promise.all([
     params.supabase
       .from('categories')
       .select(CATEGORY_COLUMNS)
@@ -84,9 +106,16 @@ export async function refreshCatalogFromSupabase(params: {
       .select(PRODUCT_COLUMNS)
       .eq('business_id', businessId)
       .order('name', { ascending: true }),
+    shouldSyncCustomers
+      ? params.supabase
+          .from('customers')
+          .select(CUSTOMER_COLUMNS)
+          .eq('business_id', businessId)
+          .order('name', { ascending: true })
+      : Promise.resolve({ data: [], error: null }),
   ])
 
-  const firstError = categoriesResult.error ?? productsResult.error
+  const firstError = categoriesResult.error ?? productsResult.error ?? customersResult.error
   if (firstError) return { ok: false, reason: 'query_failed', message: firstError.message }
 
   const categories = Array.isArray(categoriesResult.data)
@@ -94,6 +123,9 @@ export async function refreshCatalogFromSupabase(params: {
     : []
   const products = Array.isArray(productsResult.data)
     ? (productsResult.data as RemoteProductRow[])
+    : []
+  const customers = Array.isArray(customersResult.data)
+    ? (customersResult.data as RemoteCustomerRow[])
     : []
   let preservedPendingStock = 0
 
@@ -167,14 +199,55 @@ export async function refreshCatalogFromSupabase(params: {
         ],
       )
     }
+
+    for (const customer of customers) {
+      await params.db.runAsync(
+        `INSERT INTO customers (
+           id, business_id, name, phone, barangay, points_balance, total_utang,
+           pii_erased, erased_at, erased_by, erasure_reason, created_at
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(id) DO UPDATE SET
+           business_id = excluded.business_id,
+           name = excluded.name,
+           phone = excluded.phone,
+           barangay = excluded.barangay,
+           points_balance = excluded.points_balance,
+           total_utang = excluded.total_utang,
+           pii_erased = excluded.pii_erased,
+           erased_at = excluded.erased_at,
+           erased_by = excluded.erased_by,
+           erasure_reason = excluded.erasure_reason,
+           created_at = excluded.created_at`,
+        [
+          customer.id,
+          customer.business_id,
+          customer.name,
+          customer.phone,
+          customer.barangay,
+          customer.points_balance ?? 0,
+          toNumber(customer.total_utang),
+          customer.pii_erased ? 1 : 0,
+          nullableEpochSeconds(customer.erased_at),
+          customer.erased_by,
+          customer.erasure_reason,
+          toEpochSeconds(customer.created_at),
+        ],
+      )
+    }
   })
 
   return {
     ok: true,
     categories: categories.length,
     products: products.length,
+    customers: customers.length,
     preservedPendingStock,
   }
+}
+
+function shouldDownloadCustomers(modules: Record<ModuleName, boolean> | undefined): boolean {
+  if (!modules) return false
+  return CUSTOMER_MODULES.some((module) => modules[module] === true)
 }
 
 async function hasPendingProductDelta(db: AsyncSqliteLike, productId: string): Promise<boolean> {
@@ -197,6 +270,12 @@ function toEpochSeconds(value: string | null): number {
   const parsed = Date.parse(value)
   if (!Number.isFinite(parsed)) return Math.floor(Date.now() / 1000)
   return Math.floor(parsed / 1000)
+}
+
+function nullableEpochSeconds(value: string | null): number | null {
+  if (!value) return null
+  const parsed = Date.parse(value)
+  return Number.isFinite(parsed) ? Math.floor(parsed / 1000) : null
 }
 
 function toNumber(value: number | string | null): number {

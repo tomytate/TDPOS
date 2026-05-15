@@ -1,6 +1,7 @@
 export type PerformanceMetricName =
   | 'app_root_mount_ms'
   | 'sale_screen_first_render_ms'
+  | 'receipt_screen_render_ms'
   | 'add_to_cart_handler_ms'
   | 'checkout_commit_ms'
   | 'sync_cycle_ms'
@@ -28,6 +29,7 @@ const MAX_METRICS_PER_NAME = 20
 export const PERFORMANCE_BUDGETS_MS: Record<PerformanceMetricName, number> = {
   app_root_mount_ms: 2_500,
   sale_screen_first_render_ms: 1_500,
+  receipt_screen_render_ms: 1_000,
   add_to_cart_handler_ms: 100,
   checkout_commit_ms: 250,
   sync_cycle_ms: 30_000,
@@ -36,6 +38,7 @@ export const PERFORMANCE_BUDGETS_MS: Record<PerformanceMetricName, number> = {
 const appStartedAt = Date.now()
 let rootMountRecorded = false
 let saleScreenFirstRenderRecorded = false
+let receiptScreenFirstRenderRecorded = false
 
 function nowMs() {
   return Date.now()
@@ -156,4 +159,10 @@ export function recordSaleScreenFirstRender(metricStorage: PerformanceStorage): 
   if (saleScreenFirstRenderRecorded) return
   saleScreenFirstRenderRecorded = true
   recordPerformanceDuration('sale_screen_first_render_ms', nowMs() - appStartedAt, metricStorage)
+}
+
+export function recordReceiptScreenFirstRender(metricStorage: PerformanceStorage): void {
+  if (receiptScreenFirstRenderRecorded) return
+  receiptScreenFirstRenderRecorded = true
+  recordPerformanceDuration('receipt_screen_render_ms', nowMs() - appStartedAt, metricStorage)
 }
