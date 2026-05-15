@@ -2,7 +2,8 @@
   "extends": "../../packages/typescript-config/react-native.json",
   "compilerOptions": {
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@haroldtran/react-native-thermal-printer": ["./src/types/thermal-printer"]
     },
     "noEmit": true
   },

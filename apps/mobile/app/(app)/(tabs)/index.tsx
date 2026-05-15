@@ -5,7 +5,7 @@
 
 import { router } from 'expo-router'
 import { useSQLiteContext } from 'expo-sqlite'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Pressable, ScrollView, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Appbar, Button, Card, Chip, Snackbar, Surface, Text } from 'react-native-paper'
@@ -16,6 +16,8 @@ import { useCategories } from '@/features/products/hooks/use-categories'
 import { useProducts } from '@/features/products/hooks/use-products'
 import { useHaptics } from '@/hooks/use-haptics'
 import { useT } from '@/i18n/translations'
+import { recordSaleScreenFirstRender, startPerformanceTimer } from '@/services/performance-metrics'
+import { storage } from '@/services/storage'
 import { runSyncQueueOnce } from '@/services/sync-executor'
 import { useAuthStore } from '@/stores/auth-store'
 import { useCartStore } from '@/stores/cart-store'
@@ -142,6 +144,10 @@ export default function SaleScreen() {
     isFetching,
   } = useProducts(activeCategory === ALL_CATEGORY ? undefined : activeCategory)
 
+  useEffect(() => {
+    recordSaleScreenFirstRender(storage)
+  }, [])
+
   const total = items.reduce((sum, item) => sum + item.lineTotal, 0)
   const itemCount = items.length
   const devicePaired = devicePairingStatus === 'paired'
@@ -156,6 +162,7 @@ export default function SaleScreen() {
       void haptics.error()
       return
     }
+    const stopTimer = startPerformanceTimer('add_to_cart_handler_ms', storage)
     addItem(
       {
         id: product.id,
@@ -168,6 +175,7 @@ export default function SaleScreen() {
       'piece',
       1,
     )
+    stopTimer()
     void haptics.tapLight()
   }
 

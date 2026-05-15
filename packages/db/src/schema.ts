@@ -2,7 +2,7 @@
 // Source of truth: docs/database-schema.md, supabase/migrations/, and
 // apps/mobile/src/db/migrations/ for local-only SQLite tables.
 
-import type { ModuleName, SubscriptionTier, TierSurface } from '@tdpos/shared'
+import type { DevicePairingStatus, ModuleName, SubscriptionTier, TierSurface } from '@tdpos/shared'
 
 export type DbBoolean = boolean | 0 | 1
 export type DbTimestamp = string | number
@@ -13,6 +13,10 @@ export interface DbUser {
   email: string | null
   role: string
   business_id: string
+  is_active: DbBoolean
+  deactivated_at: DbTimestamp | null
+  deactivated_by: string | null
+  deactivation_reason: string | null
   created_at: DbTimestamp
 }
 
@@ -51,6 +55,7 @@ export interface DbBranch {
   id: string
   business_id: string
   name: string
+  branch_code: string
   address: string | null
   region: string | null
   is_active: DbBoolean
@@ -122,6 +127,40 @@ export interface DbSaleVoid {
   reason_note: string | null
   voided_by: string | null
   created_at: DbTimestamp
+}
+
+export interface DbEoptInvoiceDocument {
+  id: string
+  business_id: string
+  branch_id: string
+  sale_id: string
+  receipt_id: string | null
+  device_id: string | null
+  invoice_number: string
+  invoice_kind: 'provisional' | 'invoice_format_ready' | 'accredited'
+  eopt_status:
+    | 'draft'
+    | 'issued'
+    | 'ready_for_accreditation'
+    | 'submitted'
+    | 'accepted'
+    | 'rejected'
+    | 'voided'
+  taxpayer_tin: string | null
+  registered_business_name: string | null
+  registered_address: string | null
+  branch_name: string | null
+  terminal_identifier: string | null
+  accreditation_reference: string | null
+  rejection_reason: string | null
+  document_payload: Record<string, unknown>
+  issued_at: DbTimestamp
+  submitted_at: DbTimestamp | null
+  accepted_at: DbTimestamp | null
+  rejected_at: DbTimestamp | null
+  voided_at: DbTimestamp | null
+  created_at: DbTimestamp
+  updated_at: DbTimestamp
 }
 
 export interface DbInventoryLog {
@@ -208,12 +247,34 @@ export interface DbBusinessDevice {
   surface: TierSurface
   status: 'active' | 'inactive' | 'lost'
   last_seen_at: DbTimestamp | null
+  device_pairing_status: DevicePairingStatus
+  device_pairing_id: string | null
+  device_paired_at: DbTimestamp | null
   entitlement_snapshot: Record<string, unknown>
   sync_snapshot: Record<string, unknown>
   lost_reported_at: DbTimestamp | null
   lost_reported_by: string | null
   replacement_requested_at: DbTimestamp | null
   recovery_note: string | null
+  created_at: DbTimestamp
+}
+
+export interface DbDevicePairingCode {
+  id: string
+  business_id: string
+  branch_id: string
+  created_by: string | null
+  pairing_code_hash: string
+  pairing_code_last4: string
+  branch_code: string
+  cashier_code: string
+  device_name: string | null
+  surface: TierSurface
+  status: 'active' | 'consumed' | 'expired' | 'revoked'
+  expires_at: DbTimestamp
+  consumed_by: string | null
+  consumed_install_id: string | null
+  consumed_at: DbTimestamp | null
   created_at: DbTimestamp
 }
 

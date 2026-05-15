@@ -17,6 +17,8 @@ import type { CartItem } from '@/stores/cart-store'
 import { executeCheckout } from '@/features/sales/lib/execute-checkout'
 import { useHaptics } from '@/hooks/use-haptics'
 import { useT } from '@/i18n/translations'
+import { startPerformanceTimer } from '@/services/performance-metrics'
+import { storage } from '@/services/storage'
 import { useAuthStore } from '@/stores/auth-store'
 import { useCartStore } from '@/stores/cart-store'
 import type { PaymentMethod } from '@tdpos/shared'
@@ -166,6 +168,7 @@ export default function CheckoutScreen() {
     setSubmitting(true)
 
     try {
+      const stopCheckoutTimer = startPerformanceTimer('checkout_commit_ms', storage)
       const result = await executeCheckout({
         db,
         clientOperationId: createClientOperationId(),
@@ -185,6 +188,7 @@ export default function CheckoutScreen() {
         },
         lastServerHandshakeAt,
       })
+      stopCheckoutTimer()
 
       if (!result.ok) {
         setError(describeCheckoutFailure(result.reason, t))
@@ -380,7 +384,7 @@ export default function CheckoutScreen() {
                     void haptics.selection()
                   }}
                   style={{ flexBasis: '22%', flexGrow: 1, minWidth: 72 }}
-                  compact
+                  contentStyle={{ minHeight: 48 }}
                   accessibilityLabel={`Tender ${formatMoney(denom)}`}
                 >
                   {formatMoney(denom)}

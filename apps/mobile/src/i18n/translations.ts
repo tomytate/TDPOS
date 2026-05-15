@@ -108,6 +108,11 @@ export const translations = {
     'diagnostics.latestError': 'Latest error',
     'diagnostics.noError': 'No sync errors',
     'diagnostics.never': 'Never',
+    'diagnostics.performance': 'Performance markers',
+    'diagnostics.performanceEmpty': 'No local performance markers recorded yet.',
+    'diagnostics.performancePass': 'within budget',
+    'diagnostics.performanceWarn': 'near limit',
+    'diagnostics.performanceFail': 'over limit',
     'diagnostics.restricted': 'Manager access only',
     'diagnostics.privacy': 'Privacy notice',
     'diagnostics.privacySummary':
@@ -446,6 +451,11 @@ export const translations = {
     'diagnostics.latestError': 'Huling error',
     'diagnostics.noError': 'Walang sync error',
     'diagnostics.never': 'Wala pa',
+    'diagnostics.performance': 'Performance markers',
+    'diagnostics.performanceEmpty': 'Wala pang naitalang local performance markers.',
+    'diagnostics.performancePass': 'pasok sa budget',
+    'diagnostics.performanceWarn': 'malapit sa limit',
+    'diagnostics.performanceFail': 'lagpas sa limit',
     'diagnostics.restricted': 'Para sa manager lang',
     'diagnostics.privacy': 'Privacy notice',
     'diagnostics.privacySummary':

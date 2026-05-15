@@ -4,11 +4,17 @@
 
 import { z } from 'zod'
 
-import { DEFAULT_MODULE_STATE, LEGACY_TIER_MAP, SUBSCRIPTION_TIERS } from '../constants/index'
+import {
+  DEFAULT_MODULE_STATE,
+  LEGACY_TIER_MAP,
+  SUBSCRIPTION_TIERS,
+  SURFACE_LABELS,
+} from '../constants/index'
 import type {
   LegacySubscriptionTier,
   ModuleName,
   StockAdjustmentReason,
+  TierSurface,
   VoidReason,
 } from '../types/index'
 
@@ -17,10 +23,12 @@ const LEGACY_SUBSCRIPTION_TIERS = Object.keys(LEGACY_TIER_MAP) as [
   ...LegacySubscriptionTier[],
 ]
 const MODULE_NAMES = Object.keys(DEFAULT_MODULE_STATE) as [ModuleName, ...ModuleName[]]
+const TIER_SURFACES = Object.keys(SURFACE_LABELS) as [TierSurface, ...TierSurface[]]
 
 export const subscriptionTierSchema = z.enum(SUBSCRIPTION_TIERS)
 export const legacySubscriptionTierSchema = z.enum(LEGACY_SUBSCRIPTION_TIERS)
 export const moduleNameSchema = z.enum(MODULE_NAMES)
+export const tierSurfaceSchema = z.enum(TIER_SURFACES)
 export const moduleStateSchema = z.partialRecord(moduleNameSchema, z.boolean())
 // PH phone number validator (E.164 format: +639XXXXXXXXX)
 export const phPhoneSchema = z.e164({ error: 'Phone must be E.164 format (+639XX...)' })
@@ -70,8 +78,22 @@ export const productManagementDraftSchema = z.object({
   is_tingi: z.boolean().default(false),
 })
 
+export const productBulkImportDraftSchema = z.object({
+  catalog_csv: z
+    .string()
+    .trim()
+    .min(1, 'Paste a CSV catalog first')
+    .max(50_000, 'Import up to 50 KB at a time'),
+})
+
 export const branchManagementDraftSchema = z.object({
   name: z.string().trim().min(1, 'Branch name is required'),
+  branch_code: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .regex(/^[A-Z0-9]{3,5}$/, { error: 'Branch code must be 3-5 letters or numbers' })
+    .optional(),
   address: optionalTextSchema,
   region: optionalTextSchema,
 })
@@ -90,6 +112,16 @@ export const userInviteDraftSchema = z.object({
   role: z.enum(['owner', 'manager', 'cashier', 'tindera']),
 })
 
+export const userDeactivateDraftSchema = z.object({
+  user_id: z.uuid({ error: 'Choose a user to deactivate' }),
+  reason: optionalTextSchema,
+})
+
+export const pendingInviteRevokeDraftSchema = z.object({
+  invite_id: z.uuid({ error: 'Choose an invite to revoke' }),
+  reason: optionalTextSchema,
+})
+
 export const moduleManagementDraftSchema = z.object({
   modules: moduleStateSchema,
 })
@@ -104,6 +136,18 @@ export const deviceLostReplacementDraftSchema = z.object({
   recovery_note: optionalTextSchema,
   acknowledge_unsynced: z.boolean().default(false),
   acknowledge_receipts: z.boolean().default(false),
+})
+
+export const devicePairingCodeDraftSchema = z.object({
+  branch_id: z.uuid({ error: 'Choose an active branch' }),
+  cashier_code: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .regex(/^[A-Z0-9]{2,5}$/, { error: 'Cashier code must be 2-5 letters or numbers' }),
+  device_name: optionalTextSchema,
+  surface: tierSurfaceSchema.default('mobile.tier_a_cashier'),
+  expires_minutes: z.coerce.number().int().min(5).max(1440).default(30),
 })
 
 export const customerErasureDraftSchema = z.object({
@@ -240,12 +284,16 @@ export const syncQueueEnvelopeSchema = z.discriminatedUnion('operation', [
 
 export type Product = z.infer<typeof productSchema>
 export type ProductManagementDraft = z.infer<typeof productManagementDraftSchema>
+export type ProductBulkImportDraft = z.infer<typeof productBulkImportDraftSchema>
 export type BranchManagementDraft = z.infer<typeof branchManagementDraftSchema>
 export type CategoryManagementDraft = z.infer<typeof categoryManagementDraftSchema>
 export type UserInviteDraft = z.infer<typeof userInviteDraftSchema>
+export type UserDeactivateDraft = z.infer<typeof userDeactivateDraftSchema>
+export type PendingInviteRevokeDraft = z.infer<typeof pendingInviteRevokeDraftSchema>
 export type ModuleManagementDraft = z.infer<typeof moduleManagementDraftSchema>
 export type DeviceManagementDraft = z.infer<typeof deviceManagementDraftSchema>
 export type DeviceLostReplacementDraft = z.infer<typeof deviceLostReplacementDraftSchema>
+export type DevicePairingCodeDraft = z.infer<typeof devicePairingCodeDraftSchema>
 export type CustomerErasureDraft = z.infer<typeof customerErasureDraftSchema>
 export type TenantDataExportRequest = z.infer<typeof tenantDataExportRequestSchema>
 export type SaleItem = z.infer<typeof saleItemSchema>

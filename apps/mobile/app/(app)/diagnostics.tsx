@@ -282,6 +282,29 @@ export default function DiagnosticsScreen() {
             </Card.Content>
           </Card>
 
+          {metadata ? (
+            <Card mode="contained">
+              <Card.Content style={{ gap: 12 }}>
+                <Text variant="labelLarge" style={{ color: theme.colors.onSurfaceVariant }}>
+                  {t('diagnostics.performance')}
+                </Text>
+                {metadata.performanceMetrics.length === 0 ? (
+                  <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
+                    {t('diagnostics.performanceEmpty')}
+                  </Text>
+                ) : (
+                  metadata.performanceMetrics.map((metric) => (
+                    <InfoRow
+                      key={metric.name}
+                      label={formatPerformanceMetricName(metric.name)}
+                      value={`${metric.durationMs} ms / ${metric.budgetMs} ms · ${formatPerformanceStatus(metric.status, t)}`}
+                    />
+                  ))
+                )}
+              </Card.Content>
+            </Card>
+          ) : null}
+
           {/* Latest error — live region so VoiceOver announces changes */}
           <Card mode="contained">
             <Card.Content style={{ gap: 8 }} accessibilityLiveRegion="polite">
@@ -603,6 +626,31 @@ function formatPairingStatus(value: string | null): string {
   if (value === 'fallback') return 'Fallback identity'
   if (value === 'unpaired') return 'Not paired'
   return 'Unknown'
+}
+
+function formatPerformanceMetricName(value: string): string {
+  switch (value) {
+    case 'app_root_mount_ms':
+      return 'App root mount'
+    case 'sale_screen_first_render_ms':
+      return 'Sale screen first render'
+    case 'receipt_screen_render_ms':
+      return 'Receipt screen render'
+    case 'add_to_cart_handler_ms':
+      return 'Add-to-cart handler'
+    case 'checkout_commit_ms':
+      return 'Checkout commit'
+    case 'sync_cycle_ms':
+      return 'Sync cycle'
+    default:
+      return value
+  }
+}
+
+function formatPerformanceStatus(value: string, t: ReturnType<typeof useT>): string {
+  if (value === 'pass') return t('diagnostics.performancePass')
+  if (value === 'warn') return t('diagnostics.performanceWarn')
+  return t('diagnostics.performanceFail')
 }
 
 function tailRef(value: string): string {

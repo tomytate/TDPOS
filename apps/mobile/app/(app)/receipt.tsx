@@ -5,6 +5,7 @@
 
 import { router } from 'expo-router'
 import { useSQLiteContext } from 'expo-sqlite'
+import { useEffect, useState } from 'react'
 import { Share, ScrollView, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import {
@@ -19,13 +20,14 @@ import {
   Surface,
   Text,
 } from 'react-native-paper'
-import { useState } from 'react'
 
 import { useAppTheme } from '@/constants/theme'
 import { formatThermalReceipt } from '@/features/receipts/lib/thermal-receipt'
 import { executeVoidSale } from '@/features/sales/lib/execute-void-sale'
 import { useHaptics } from '@/hooks/use-haptics'
 import { useT } from '@/i18n/translations'
+import { recordReceiptScreenFirstRender } from '@/services/performance-metrics'
+import { storage } from '@/services/storage'
 import { printBleReceipt } from '@/services/thermal-printer'
 import { useAuthStore } from '@/stores/auth-store'
 import { useCartStore } from '@/stores/cart-store'
@@ -95,6 +97,10 @@ export default function ReceiptScreen() {
   const [voidDialogVisible, setVoidDialogVisible] = useState(false)
   const [voidSubmitting, setVoidSubmitting] = useState(false)
   const [printSubmitting, setPrintSubmitting] = useState(false)
+
+  useEffect(() => {
+    recordReceiptScreenFirstRender(storage)
+  }, [])
 
   if (!lastSaleResult) {
     return (

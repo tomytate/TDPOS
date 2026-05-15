@@ -10,6 +10,7 @@ import { mmkvStorage } from '@/services/storage'
 import {
   TIER_A_FREE,
   getTierModuleState,
+  type DevicePairingStatus,
   type ModuleName,
   type SubscriptionTier,
   type UserRole,
@@ -40,6 +41,9 @@ interface DeviceInput {
   branchCode: string
   branchName: string
   cashierCode: string
+  pairingStatus?: DevicePairingStatus
+  devicePairingId?: string | null
+  devicePairedAt?: string | null
   storeName?: string | null
   storeAddress?: string | null
   tin?: string | null
@@ -54,6 +58,9 @@ interface AuthState {
   branchCode: string | null
   branchName: string | null
   cashierCode: string | null
+  devicePairingStatus: DevicePairingStatus
+  devicePairingId: string | null
+  devicePairedAt: string | null
   storeName: string | null
   storeAddress: string | null
   tin: string | null
@@ -90,6 +97,9 @@ export const useAuthStore = create<AuthState>()(
       branchCode: null,
       branchName: null,
       cashierCode: null,
+      devicePairingStatus: 'unpaired',
+      devicePairingId: null,
+      devicePairedAt: null,
       storeName: null,
       storeAddress: null,
       tin: null,
@@ -138,6 +148,9 @@ export const useAuthStore = create<AuthState>()(
         branchCode,
         branchName,
         cashierCode,
+        pairingStatus = 'fallback',
+        devicePairingId = null,
+        devicePairedAt = null,
         storeName = null,
         storeAddress = null,
         tin = null,
@@ -147,6 +160,9 @@ export const useAuthStore = create<AuthState>()(
           branchCode,
           branchName,
           cashierCode,
+          devicePairingStatus: pairingStatus,
+          devicePairingId,
+          devicePairedAt,
           storeName,
           storeAddress,
           tin,
@@ -162,6 +178,9 @@ export const useAuthStore = create<AuthState>()(
           branchCode: null,
           branchName: null,
           cashierCode: null,
+          devicePairingStatus: 'unpaired',
+          devicePairingId: null,
+          devicePairedAt: null,
           storeName: null,
           storeAddress: null,
           tin: null,
@@ -187,6 +206,9 @@ export const useAuthStore = create<AuthState>()(
         branchCode: state.branchCode,
         branchName: state.branchName,
         cashierCode: state.cashierCode,
+        devicePairingStatus: state.devicePairingStatus,
+        devicePairingId: state.devicePairingId,
+        devicePairedAt: state.devicePairedAt,
         storeName: state.storeName,
         storeAddress: state.storeAddress,
         tin: state.tin,

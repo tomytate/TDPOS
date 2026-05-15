@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
+import type { SelectedThermalPrinter } from '@/services/thermal-printer'
 import { mmkvStorage } from '@/services/storage'
 import { DEFAULT_MODULE_STATE, type ModuleName } from '@tdpos/shared'
 
@@ -13,10 +14,13 @@ interface SettingsState {
   language: Language
   themeMode: ThemeMode
   privacyNoticeAcceptedAt: string | null
+  selectedThermalPrinter: SelectedThermalPrinter | null
   toggleModule: (name: ModuleName) => void
   setLanguage: (language: Language) => void
   setThemeMode: (themeMode: ThemeMode) => void
   recordPrivacyNoticeAccepted: (acceptedAt: string) => void
+  setSelectedThermalPrinter: (printer: SelectedThermalPrinter) => void
+  clearSelectedThermalPrinter: () => void
 }
 
 const defaultModules = { ...DEFAULT_MODULE_STATE } as ModuleState
@@ -28,6 +32,7 @@ export const useSettingsStore = create<SettingsState>()(
       language: 'en',
       themeMode: 'system',
       privacyNoticeAcceptedAt: null,
+      selectedThermalPrinter: null,
       toggleModule: (name) =>
         set((state) => ({
           modules: {
@@ -38,6 +43,8 @@ export const useSettingsStore = create<SettingsState>()(
       setLanguage: (language) => set({ language }),
       setThemeMode: (themeMode) => set({ themeMode }),
       recordPrivacyNoticeAccepted: (acceptedAt) => set({ privacyNoticeAcceptedAt: acceptedAt }),
+      setSelectedThermalPrinter: (selectedThermalPrinter) => set({ selectedThermalPrinter }),
+      clearSelectedThermalPrinter: () => set({ selectedThermalPrinter: null }),
     }),
     {
       name: 'settings-storage',
@@ -47,6 +54,7 @@ export const useSettingsStore = create<SettingsState>()(
         language: state.language,
         themeMode: state.themeMode,
         privacyNoticeAcceptedAt: state.privacyNoticeAcceptedAt,
+        selectedThermalPrinter: state.selectedThermalPrinter,
       }),
     },
   ),

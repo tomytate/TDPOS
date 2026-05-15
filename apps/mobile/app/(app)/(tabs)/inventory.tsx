@@ -489,10 +489,10 @@ export default function InventoryScreen() {
                         ) : null}
                         {canStockTake ? (
                           <Button
-                            compact
                             mode="text"
                             icon="clipboard-edit-outline"
                             onPress={() => openStockTake(product)}
+                            contentStyle={{ minHeight: 48 }}
                             accessibilityLabel={`Stock take for ${product.name}`}
                           >
                             {t('inventory.stockTake')}

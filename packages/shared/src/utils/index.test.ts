@@ -7,8 +7,10 @@ import {
   formatReceiptDate,
   generateReceiptNumber,
   getDeviceHeartbeatFreshness,
+  isValidDevicePairingCode,
   isValidPhPhone,
   isValidReceiptNumber,
+  normalizeDevicePairingCode,
   normalizePhPhone,
   piecesForSaleUnit,
   splitStock,
@@ -53,6 +55,18 @@ describe('device heartbeat freshness', () => {
       'inactive',
     )
     expect(getDeviceHeartbeatFreshness({ status: 'active', lastSeenAt: null, now })).toBe('never')
+  })
+})
+
+describe('device pairing code helpers', () => {
+  test('normalizes codes to uppercase alphanumeric', () => {
+    expect(normalizeDevicePairingCode('ab12-cd34')).toBe('AB12CD34')
+  })
+
+  test('validates short-lived code length after normalization', () => {
+    expect(isValidDevicePairingCode('AB12-CD34')).toBe(true)
+    expect(isValidDevicePairingCode('AB12')).toBe(false)
+    expect(isValidDevicePairingCode('A'.repeat(17))).toBe(false)
   })
 })
 

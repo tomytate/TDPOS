@@ -75,4 +75,6 @@ export type TierSurface =
   | 'web.hq'
   | 'marketing.pricing'
 
+export type DevicePairingStatus = 'unpaired' | 'fallback' | 'paired'
+
 export type AppliedOperationStatus = 'in_progress' | 'completed' | 'failed'

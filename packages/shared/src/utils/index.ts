@@ -115,6 +115,14 @@ export const normalizePhPhone = (input: string) => {
 
 export const isValidPhPhone = (input: string) => /^\+63[89]\d{9}$/.test(normalizePhPhone(input))
 
+export const normalizeDevicePairingCode = (input: string): string =>
+  input.toUpperCase().replace(/[^A-Z0-9]/g, '')
+
+export const isValidDevicePairingCode = (input: string): boolean => {
+  const normalized = normalizeDevicePairingCode(input)
+  return normalized.length >= 8 && normalized.length <= 16
+}
+
 export type DeviceHeartbeatFreshness = 'fresh' | 'stale' | 'offline' | 'inactive' | 'lost' | 'never'
 
 export function getDeviceHeartbeatFreshness(params: {
