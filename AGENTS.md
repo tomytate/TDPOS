@@ -172,7 +172,7 @@ The canonical wording rules live in [`docs/skills/bir-compliance.md`](docs/skill
 
 ## Testing Requirements
 
-Always run `bun run check:foundation` before committing. Current: 136 tests across 25 files (23 mobile + 2 shared).
+Always run `bun run check:foundation` before committing. Current: 140 tests across 26 files (24 mobile + 2 shared).
 
 Six required Phase 1 tests (§14 of spec):
 

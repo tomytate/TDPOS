@@ -20,7 +20,7 @@
     "@haroldtran/react-native-thermal-printer": "^1.2.0",
     "@shopify/flash-list": "2.0.2",
     "@supabase/supabase-js": "^2.105.3",
-    "@tanstack/react-query": "^5.100.9",
+    "@tanstack/react-query": "^5.100.10",
     "@tdpos/db": "workspace:*",
     "@tdpos/shared": "workspace:*",
     "expo": "~55.0.24",

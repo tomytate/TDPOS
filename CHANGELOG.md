@@ -28,7 +28,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Forbidden pattern scanner** — blocks `console.log()` in production code
 - **Local migration ordering gate** — `check:sqlite-migrations` verifies contiguous versioning
 - **Visual QA polish** — all mobile, web, and marketing surfaces polished for v0.9 review
-- **136 automated tests** across 25 files (100 mobile + 36 shared)
+- **140 automated tests** across 26 files (104 mobile + 36 shared)
 - **15-stage foundation gate** — format → secrets → SQLite schema → migration ordering → Supabase RLS → forbidden patterns → mobile service-key containment → tier UI sources → doc links → skill docs → Expo Doctor → Android bundle → typecheck → lint → tests
 - **27 anti-hallucination skill docs** (5 new: Zod 4, tier gating, testing, monorepo, i18n)
 

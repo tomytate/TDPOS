@@ -17,6 +17,9 @@ export function useDiagnosticsMetadata(options: UseDiagnosticsMetadataOptions = 
   const branchCode = useAuthStore((state) => state.branchCode)
   const branchName = useAuthStore((state) => state.branchName)
   const cashierCode = useAuthStore((state) => state.cashierCode)
+  const devicePairingStatus = useAuthStore((state) => state.devicePairingStatus)
+  const devicePairingId = useAuthStore((state) => state.devicePairingId)
+  const devicePairedAt = useAuthStore((state) => state.devicePairedAt)
   const subscriptionTier = useAuthStore((state) => state.subscriptionTier)
   const modules = useAuthStore((state) => state.modules)
   const entitlementsValidUntil = useAuthStore((state) => state.entitlementsValidUntil)
@@ -29,6 +32,9 @@ export function useDiagnosticsMetadata(options: UseDiagnosticsMetadataOptions = 
       branchCode,
       branchName,
       cashierCode,
+      devicePairingStatus,
+      devicePairingId,
+      devicePairedAt,
       subscriptionTier,
       modules,
       entitlementsValidUntil,
@@ -42,6 +48,9 @@ export function useDiagnosticsMetadata(options: UseDiagnosticsMetadataOptions = 
           branchCode,
           branchName,
           cashierCode,
+          devicePairingStatus,
+          devicePairingId,
+          devicePairedAt,
           subscriptionTier,
           modules,
           entitlementsValidUntil,
@@ -59,6 +68,7 @@ function getDeviceStorageSnapshot() {
   return {
     availableDiskBytes: normalizeDiskBytes(Paths.availableDiskSpace),
     totalDiskBytes: normalizeDiskBytes(Paths.totalDiskSpace),
+    performanceMetrics: [],
   }
 }
 
