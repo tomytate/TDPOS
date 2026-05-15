@@ -65,6 +65,7 @@ type ExportTable =
   | 'sale_items'
   | 'receipts'
   | 'payments'
+  | 'eopt_invoice_documents'
   | 'utang_payments'
   | 'inventory_logs'
   | 'audit_logs'
@@ -191,13 +192,15 @@ export default {
       const customerIds = pluckIds(customers)
       const branchIds = pluckIds(branches)
 
-      const [saleItems, receipts, payments, utangPayments, inventoryLogs] = await Promise.all([
-        selectByIds(admin, 'sale_items', 'sale_id', saleIds),
-        selectByIds(admin, 'receipts', 'sale_id', saleIds),
-        selectByIds(admin, 'payments', 'sale_id', saleIds),
-        selectByIds(admin, 'utang_payments', 'customer_id', customerIds),
-        selectByIds(admin, 'inventory_logs', 'branch_id', branchIds),
-      ])
+      const [saleItems, receipts, payments, eoptInvoiceDocuments, utangPayments, inventoryLogs] =
+        await Promise.all([
+          selectByIds(admin, 'sale_items', 'sale_id', saleIds),
+          selectByIds(admin, 'receipts', 'sale_id', saleIds),
+          selectByIds(admin, 'payments', 'sale_id', saleIds),
+          selectByIds(admin, 'eopt_invoice_documents', 'sale_id', saleIds),
+          selectByIds(admin, 'utang_payments', 'customer_id', customerIds),
+          selectByIds(admin, 'inventory_logs', 'branch_id', branchIds),
+        ])
 
       return Response.json({
         ok: true,
@@ -217,6 +220,7 @@ export default {
           sale_items: saleItems,
           receipts,
           payments,
+          eopt_invoice_documents: eoptInvoiceDocuments,
           utang_payments: utangPayments,
           inventory_logs: inventoryLogs,
           audit_logs: auditLogs,
