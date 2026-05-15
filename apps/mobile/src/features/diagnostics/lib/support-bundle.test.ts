@@ -98,6 +98,9 @@ describe('support bundle diagnostics', () => {
         branchCode: 'QC01',
         branchName: 'Demo branch',
         cashierCode: 'C01',
+        devicePairingStatus: 'paired',
+        devicePairingId: 'a2eb9222-86d8-4102-a048-cb23166b83b8',
+        devicePairedAt: '2026-05-09T09:55:00.000Z',
         subscriptionTier: 'tier_a_free',
         enabledModuleCount: 0,
         entitlementsValidUntil: null,
@@ -106,6 +109,15 @@ describe('support bundle diagnostics', () => {
         mmkvKeyCount: 2,
         availableDiskBytes: 2_048,
         totalDiskBytes: 4_096,
+        performanceMetrics: [
+          {
+            name: 'checkout_commit_ms',
+            durationMs: 210,
+            budgetMs: 250,
+            recordedAt: '2026-05-09T10:01:00.000Z',
+            status: 'pass',
+          },
+        ],
       },
       health: {
         totalRows: 3,
@@ -138,6 +150,8 @@ describe('support bundle diagnostics', () => {
     expect(bundle).toContain('Last server handshake: 2026-05-09T10:00:00.000Z')
     expect(bundle).toContain('Disk: 2048 bytes available / 4096 bytes total')
     expect(bundle).toContain('Latest error: [email] failed')
+    expect(bundle).toContain('[Performance]')
+    expect(bundle).toContain('checkout_commit_ms | 210ms | budget=250ms | status=pass')
     expect(bundle).toContain('#7 | ...00abc123 | sales | INSERT')
     expect(bundle).not.toContain('payload')
   })

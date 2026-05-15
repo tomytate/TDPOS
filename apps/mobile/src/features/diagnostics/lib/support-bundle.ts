@@ -78,12 +78,18 @@ export function buildSupportBundle(input: SupportBundleInput): string {
     `Role: ${metadata.role ?? 'unknown'}`,
     `Branch: ${metadata.branchCode ?? 'unknown'}`,
     `Cashier: ${metadata.cashierCode ?? 'unknown'}`,
+    `Pairing status: ${metadata.devicePairingStatus ?? 'unknown'}`,
+    `Pairing ref: ${tailRef(metadata.devicePairingId ?? 'unknown')}`,
+    `Paired at: ${metadata.devicePairedAt ?? 'none'}`,
     `Tier: ${metadata.subscriptionTier ?? 'unknown'}`,
     `Enabled modules: ${metadata.enabledModuleCount}`,
     `Entitlements valid until: ${metadata.entitlementsValidUntil ?? 'none'}`,
     `Last server handshake: ${metadata.lastServerHandshakeAt ?? 'none'}`,
     `MMKV: ${metadata.mmkvSizeBytes} bytes / ${metadata.mmkvKeyCount} keys`,
     `Disk: ${formatBytes(metadata.availableDiskBytes)} available / ${formatBytes(metadata.totalDiskBytes)} total`,
+    '',
+    '[Performance]',
+    ...formatPerformanceLines(metadata.performanceMetrics),
     '',
     '[Sync]',
     `Total rows: ${health.totalRows}`,
@@ -126,6 +132,20 @@ export function sanitizeDiagnosticText(value: string): string {
     .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, '[email]')
     .replace(/\+?63\d{10}\b/g, '[phone]')
     .replace(/\b09\d{9}\b/g, '[phone]')
+}
+
+function formatPerformanceLines(metrics: DiagnosticsMetadata['performanceMetrics']): string[] {
+  if (metrics.length === 0) return ['none']
+
+  return metrics.map((metric) =>
+    [
+      metric.name,
+      `${metric.durationMs}ms`,
+      `budget=${metric.budgetMs}ms`,
+      `status=${metric.status}`,
+      metric.recordedAt,
+    ].join(' | '),
+  )
 }
 
 function formatEpochSeconds(value: number | null): string {

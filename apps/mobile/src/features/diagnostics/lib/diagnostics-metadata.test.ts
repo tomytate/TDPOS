@@ -59,6 +59,9 @@ describe('getDiagnosticsMetadata', () => {
         branchCode: 'QC01',
         branchName: 'Demo branch',
         cashierCode: 'C01',
+        devicePairingStatus: 'paired',
+        devicePairingId: 'a2eb9222-86d8-4102-a048-cb23166b83b8',
+        devicePairedAt: '2026-05-09T09:55:00.000Z',
         lastServerHandshakeAt: '2026-05-09T10:00:00.000Z',
       },
       storage,
@@ -71,16 +74,21 @@ describe('getDiagnosticsMetadata', () => {
       branchCode: 'QC01',
       branchName: 'Demo branch',
       cashierCode: 'C01',
+      devicePairingStatus: 'paired',
+      devicePairingId: 'a2eb9222-86d8-4102-a048-cb23166b83b8',
+      devicePairedAt: '2026-05-09T09:55:00.000Z',
       lastServerHandshakeAt: '2026-05-09T10:00:00.000Z',
       mmkvKeyCount: 2,
       availableDiskBytes: null,
       totalDiskBytes: null,
+      performanceMetrics: [],
     })
     expect(metadata.installId).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
     )
     expect(metadata.mmkvSizeBytes).toBeGreaterThan(0)
     expect(metadata.lastServerHandshakeAt).toBe('2026-05-09T10:00:00.000Z')
+    expect(metadata.devicePairingStatus).toBe('paired')
   })
 
   test('includes optional device storage totals when provided by the native layer', async () => {
@@ -105,5 +113,48 @@ describe('getDiagnosticsMetadata', () => {
 
     expect(metadata.availableDiskBytes).toBe(2_048)
     expect(metadata.totalDiskBytes).toBe(4_096)
+  })
+
+  test('includes latest local performance markers from MMKV', async () => {
+    const sqlite = new Database(':memory:')
+    sqlite.exec(LOCAL_SCHEMA_SQL)
+    const storage = memoryStorage()
+    storage.set(
+      'tdpos.performance.metrics.v1',
+      JSON.stringify([
+        {
+          name: 'checkout_commit_ms',
+          durationMs: 210,
+          budgetMs: 250,
+          recordedAt: '2026-05-15T01:00:00.000Z',
+        },
+        {
+          name: 'checkout_commit_ms',
+          durationMs: 310,
+          budgetMs: 250,
+          recordedAt: '2026-05-15T02:00:00.000Z',
+        },
+      ]),
+    )
+
+    const metadata = await getDiagnosticsMetadata(
+      makeAdapter(sqlite),
+      {
+        role: 'manager',
+        branchCode: 'QC01',
+        branchName: 'Demo branch',
+        cashierCode: 'M01',
+      },
+      storage,
+    )
+
+    expect(metadata.performanceMetrics).toEqual([
+      expect.objectContaining({
+        name: 'checkout_commit_ms',
+        durationMs: 310,
+        budgetMs: 250,
+        status: 'warn',
+      }),
+    ])
   })
 })

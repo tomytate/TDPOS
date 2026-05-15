@@ -48,6 +48,9 @@ const metadata = {
   branchCode: 'QC01',
   branchName: 'Main',
   cashierCode: 'C01',
+  devicePairingStatus: 'paired' as const,
+  devicePairingId: 'a2eb9222-86d8-4102-a048-cb23166b83b8',
+  devicePairedAt: '2026-05-09T09:55:00.000Z',
   subscriptionTier: 'tier_a_free' as const,
   enabledModuleCount: 0,
   entitlementsValidUntil: null,
@@ -56,6 +59,7 @@ const metadata = {
   mmkvKeyCount: 4,
   availableDiskBytes: 2_048,
   totalDiskBytes: 4_096,
+  performanceMetrics: [],
 }
 
 describe('buildLocalDataExport', () => {
