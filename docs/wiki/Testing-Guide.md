@@ -4,8 +4,8 @@
 
 TD POS uses **Bun's built-in test runner** for all tests. The test suite focuses on business-critical logic that runs against real SQLite databases.
 
-- **136 tests** across **25 files**
-- **100 mobile** tests (23 files) + **36 shared** tests (2 files)
+- **144 tests** across **28 files**
+- **108 mobile** tests (26 files) + **36 shared** tests (2 files)
 - **~1 second** total runtime
 
 ## Running Tests

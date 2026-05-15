@@ -16,6 +16,7 @@ erDiagram
     businesses ||--o{ audit_logs : "logs"
     businesses ||--o{ stock_take_counts : "counts"
     businesses ||--o{ sale_voids : "voids"
+    businesses ||--o{ eopt_invoice_documents : "prepares"
     businesses ||--o{ business_devices : "registers"
     businesses ||--o{ shift_sessions : "opens"
     businesses ||--o{ manager_approval_requests : "reviews"
@@ -37,6 +38,7 @@ erDiagram
     sales ||--o{ payments : "paid by"
     sales ||--o{ receipts : "generates"
     sales ||--o{ sale_voids : "references"
+    sales ||--o{ eopt_invoice_documents : "snapshots"
 
     customers ||--o{ sales : "buys"
     customers ||--o{ utang_payments : "pays"
@@ -61,6 +63,25 @@ erDiagram
 **Canonical tiers:** new rows use the five A-E values only. Legacy values from early scaffolds are normalized by `20260510000000_tier_normalization.sql`.
 
 **Offline gating:** mobile stores the last successful entitlement snapshot in `auth-store`; cashier sales remain available offline, while manager/owner surfaces check the cached tier/module state.
+
+### branches
+
+| Column | Type | Description |
+|---|---|---|
+| `branch_code` | TEXT NOT NULL | Tenant-unique 3-5 character code used in receipt namespaces and device pairing. |
+
+`20260514000003_branch_codes.sql` backfills existing branches, adds a `(business_id, branch_code)` unique index, and installs a trigger that derives a deterministic fallback code for new branches when the web form leaves it blank.
+
+### users
+
+| Column | Type | Description |
+|---|---|---|
+| `is_active` | BOOLEAN | Staff access flag checked by mobile auth bootstrap. |
+| `deactivated_at` | TIMESTAMPTZ | Timestamp when owner/manager removed access. |
+| `deactivated_by` | UUID | Staff user who removed access. |
+| `deactivation_reason` | TEXT | Optional short reason; avoid storing sensitive details. |
+
+`20260514000004_user_lifecycle_and_rls.sql` updates staff visibility so owner/manager dashboard screens can read tenant staff rows without bypassing RLS. Inactive users remain in the ledger for audit history, but bootstrap fails closed before device identity is populated.
 
 ### products (Canonical Pieces Model)
 
@@ -122,6 +143,23 @@ Sales rows are immutable after creation; corrections use compensating rows. `202
 | `voided_by` | UUID / TEXT | Manager/owner user id when available. |
 
 Voids never update the original sale. Mobile writes a separate receipt-numbered compensating sale, restores stock through a positive inventory delta, and stores the durable link in `sale_voids`. The server table from `20260512000006_sale_voids.sql` is RLS-scoped and immutable.
+
+### eopt_invoice_documents
+
+| Column | Type | Description |
+|---|---|---|
+| `business_id` | UUID | Tenant partition for RLS. |
+| `branch_id` | UUID | Branch snapshot source for the invoice document. |
+| `sale_id` | UUID | Immutable sale that produced the invoice document snapshot. |
+| `invoice_number` | TEXT | Tenant-unique number, currently derived from the receipt namespace. |
+| `invoice_kind` | TEXT | `provisional`, `invoice_format_ready`, or `accredited`. |
+| `eopt_status` | TEXT | `issued`, `ready_for_accreditation`, `submitted`, `accepted`, `rejected`, `voided`, or `draft`. |
+| `taxpayer_tin` | TEXT | Business TIN snapshot at issuance time. |
+| `registered_business_name` | TEXT | Business name snapshot at issuance time. |
+| `registered_address` | TEXT | Business address snapshot at issuance time. |
+| `document_payload` | JSONB | Narrow non-PII sale snapshot used for exports and future accreditation workflows. |
+
+`20260514000002_eopt_invoice_documents.sql` creates this server-side scaffold for EOPT readiness. An `AFTER INSERT` trigger on `sales` writes one invoice-document snapshot per remote sale, while a mutation guard prevents changes to tenant, sale, numbering, issuance, and payload identity fields. Future accreditation/submission metadata can update only the narrow status fields.
 
 ### applied_operations (Race-Safe Dedup)
 
@@ -196,3 +234,6 @@ The Supabase entitlement scaffold lives in `20260510000001_entitlement_guards.sq
 | `20260512000004_inventory_adjustment_reason.sql` | Refreshes `apply_inventory_delta` so stock takes log type `adjustment` while preserving manager-entered reason codes. |
 | `20260512000005_stock_take_counts.sql` | Tenant-scoped immutable cycle-count snapshots for Stock Accuracy Score. |
 | `20260512000006_sale_voids.sql` | Tenant-scoped immutable links between original sales and compensating void sale rows. |
+| `20260514000002_eopt_invoice_documents.sql` | Tenant-scoped EOPT invoice-document snapshots generated from server-side sales. |
+| `20260514000003_branch_codes.sql` | Tenant-unique branch codes for receipt namespaces and device pairing. |
+| `20260514000004_user_lifecycle_and_rls.sql` | Staff active/inactive lifecycle columns plus owner/manager tenant staff visibility. |

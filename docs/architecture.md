@@ -82,7 +82,7 @@
 **Consequences:**
 - We pay an SMS provider once auth volume is real. The marketing site must be honest that OTP requires SMS delivery to a live PH number.
 - Test accounts in CI/dev use Supabase's test OTP feature, not real SMS.
-- The `app/(auth)/sign-in.tsx` demo-mode shortcut is gated on `__DEV__` and removed before any production user touches the app (P11.1).
+- The mobile and web sign-in screens use real phone OTP only; local/pilot users do not get a demo shortcut.
 
 ---
 
@@ -276,3 +276,22 @@
 - `supabase/migrations/20260512000003_server_clock_handshake.sql` exposes a read-only authenticated server-time RPC for mobile cache refresh.
 - `executeCheckout()` rejects only new sale writes when the skew guard fails; an existing `client_operation_id` still returns the previous receipt.
 - Support diagnostics include the cached handshake so the runbook can explain why a device must reconnect after correcting date/time settings.
+
+---
+
+## ADR-019: Local SQLite Migrations Ship Forward-Only
+
+**Decision:** The mobile `runLocalMigrations()` runner is forward-only by contract. Each migration in `LOCAL_MIGRATIONS` is applied at most once, gated by `schema_version`. There is no `down()` step. A user who downgrades to an older build is supported only through `Diagnostics → Export local data` followed by a clean reinstall of the older version against an empty database.
+
+**Why:**
+
+- Several v2-v9 migrations are additive `ALTER TABLE ... ADD COLUMN` statements (e.g. `LOCAL_CUSTOMER_ERASURE_SQL`, `LOCAL_SALE_CLOCK_METADATA_SQL`). Reversing them on SQLite requires a full table rebuild and risks losing rows the older binary cannot interpret.
+- The cashier flow is the safety boundary. A downgrade that silently drops a column the old binary never knew about can corrupt sales, sync queue, or receipt sequence rows that were written by the newer binary.
+- Pilot operates from a known-good forward build chain. Layer 2 of the rollback plan in `docs/operations/pilot-readiness.md` already requires preserving local data and only swapping the binary when "the previous known-good Android build … can read the same local data safely." Forward-only migrations make that safety check unambiguous: an older build that does not know about `schema_version >= N` is not allowed to open the same DB.
+
+**Consequences:**
+
+- Every new migration must be additive (e.g. `ADD COLUMN`, `CREATE TABLE IF NOT EXISTS`) or otherwise safe for a future downgrade-via-export-and-reinstall path.
+- The release runbook records the highest `LOCAL_MIGRATIONS` version each build understands; support uses that number to decide whether a swap is safe.
+- Support runbook scenario "Restore On A New Phone" documents the canonical export → reinstall → restore path for downgrade recovery.
+- `apps/mobile/src/db/migrations.test.ts` already covers: an old v1-only DB upgrades cleanly through v9, and re-running the migrator on an already-current DB is a no-op.

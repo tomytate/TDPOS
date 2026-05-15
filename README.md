@@ -8,7 +8,7 @@ TD POS is a mobile-first, offline-capable SaaS POS and inventory management syst
 
 ## Release Posture
 
-- **Current baseline:** v0.8 Scaffold Complete — all five tier surfaces implemented, 136 tests passing, 14-stage foundation gate green.
+- **Current baseline:** v0.8 Scaffold Complete — all five tier surfaces implemented, 144 tests passing, 15-stage foundation gate green.
 - **Next real milestone:** v0.9 — full test suite (screenshot parity, accessibility, performance), hosted Supabase staging, EAS dev builds, physical-device airplane-mode sale.
 - **Then:** v0.1alpha — first pilot store.
 - **Target:** v1.0 Public Launch — mobile + web dashboard + marketing site simultaneously.
@@ -139,15 +139,15 @@ This project includes comprehensive anti-hallucination documentation for AI codi
 
 ### Skills (27 procedural docs in `docs/skills/`, DocGate-3 enforced)
 
-**Domain (5):** `inventory-tingi-model`, `sync-engine`, `receipt-numbering`, `bir-compliance`, `supabase-rls`
+**Domain (6):** `inventory-tingi-model`, `sync-engine`, `receipt-numbering`, `bir-compliance`, `supabase-rls`, `tier-entitlement-gating`
 
-**Mobile framework (9):** `react-19-patterns`, `expo-router-patterns`, `expo-sqlite-patterns`, `expo-file-system`, `zustand-mmkv-stores`, `supabase-auth-phone-otp`, `thermal-printer-integration`, `react-native-paper-theming`, `tanstack-query-offline`
+**Mobile framework (10):** `react-19-patterns`, `expo-router-patterns`, `expo-sqlite-patterns`, `expo-file-system`, `expo-clipboard`, `zustand-mmkv-stores`, `supabase-auth-phone-otp`, `thermal-printer-integration`, `react-native-paper-theming`, `tanstack-query-offline`
 
 **Web framework (2):** `nextjs-16-proxy-pattern`, `react-pdf-renderer`
 
-**Platform & Infrastructure (4):** `postgresql-17-patterns`, `eas-build-deploy`, `background-sync-task`, `supabase-server-edge-functions`
+**Platform & Infrastructure (5):** `postgresql-17-patterns`, `eas-build-deploy`, `background-sync-task`, `supabase-server-edge-functions`, `monorepo-workspace`
 
-**Cross-cutting (2):** `deprecations` (single-source deprecations table per DocGate-2), `expo-clipboard` (diagnostics support bundles per ADR-014)
+**Cross-cutting (4):** `deprecations` (single-source deprecations table per DocGate-2), `zod-4-validation`, `i18n-localization`, `testing-patterns`
 
 ## Documentation
 
@@ -163,17 +163,18 @@ This project includes comprehensive anti-hallucination documentation for AI codi
 ## Development
 
 ```bash
-bun run check:foundation       # Full 14-stage foundation gate
+bun run check:foundation       # Full 15-stage foundation gate
 bun run check:secrets          # Verify no committed secret patterns
 bun run check:sqlite-migrations # Local migration ordering gate
 bun run check:supabase-rls     # Verify every Supabase table enables RLS
 bun run check:patterns         # Forbidden pattern scanner (console.log, etc.)
+bun run check:mobile-no-service-key # Verify no service-role key reaches mobile
 bun run check:tier-ui-sources  # Verify every tier points at an existing UI reference
 bun run check:expo-doctor      # Expo native dependency health check
 bun run check:mobile-bundle    # Android Metro bundle/export check
 bun run lint                   # ESLint 10 (flat config)
 bun run typecheck              # TypeScript strict
-bun run test                   # All tests (136 across 25 files)
+bun run test                   # All tests (144 across 28 files)
 ```
 
 Always run before committing:

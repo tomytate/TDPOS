@@ -87,6 +87,89 @@ References:
 - EAS CLI update command reference: https://docs.expo.dev/eas/cli/
 - Branch and channel model: https://docs.expo.dev/eas-update/eas-cli/
 
+## Hosted Supabase Backup Posture
+
+Local SQLite is the source of truth while offline; hosted Supabase is the source of truth across devices. Backup posture is the line that decides how many hours of cross-device history we are allowed to lose without a restore plan.
+
+### v1.0 Required Plan: Supabase Pro
+
+v1.0 launches on **Supabase Pro** because Free does not include backups and pauses inactive projects.
+
+Pro includes daily automated backups with 7 days of retention and Point-in-Time Recovery (PITR) granular to ~2 minutes when enabled on the project (https://supabase.com/docs/guides/platform/backups).
+
+| Capability                          | Free        | Pro (v1.0 baseline)  |
+| ----------------------------------- | ----------- | -------------------- |
+| Daily automated backups             | No          | Yes, 7-day retention |
+| Point-in-Time Recovery              | No          | Yes, ~2-minute RPO   |
+| Project pauses after 1 week of idle | Yes         | No                   |
+| Compute scaling                     | Capped      | Configurable         |
+| Support response posture            | Best-effort | Paid tier            |
+
+### Required Posture Before A Pilot Store Goes Live
+
+- The Supabase project that the pilot phone connects to is on the Pro plan, not Free.
+- PITR is enabled on the project (Project Settings → Backups → Point-in-Time Recovery).
+- Engineering has performed one test restore from a daily backup into a staging project and recorded the restore time.
+- The owner of the Supabase organization is documented and reachable.
+- The DB password used by application code is rotated from the install default.
+
+### Acceptable Data Loss Window
+
+The hosted system targets a Recovery Point Objective (RPO) of **at most 2 minutes** through PITR, and a Recovery Time Objective (RTO) of **at most 24 hours** for engineering to bring the tenant back online from a daily backup.
+
+Offline cashier sales are not lost during a hosted outage as long as the device has not been wiped. After hosted recovery, the local sync queue replays through the same idempotent `client_operation_id` path. Pilot phones must be left alone until the operator confirms the tenant is back up.
+
+### Pilot Cutover Checklist
+
+- [ ] Project plan upgraded to Pro before pairing the pilot device.
+- [ ] PITR enabled on the project.
+- [ ] One test restore from automated backup completed and timed.
+- [ ] DB password rotated.
+- [ ] Tenant owner/contact recorded in the incident channel.
+- [ ] Date, plan, trigger, and expected monthly cost recorded against the Supabase upgrade decision record in `docs/road-to-1.0-enterprise-checklist.md`.
+
+## Capacity And Concurrency Expectations
+
+These numbers describe the _operational_ posture at pilot scale. They are not Supabase guarantees; they are the project's working envelope. Re-derive when pilot scale changes.
+
+### Pilot Sizing (1-3 stores, up to 5 devices)
+
+| Resource                                  | Pilot Envelope                         | Source / Guard                                          |
+| ----------------------------------------- | -------------------------------------- | ------------------------------------------------------- |
+| Concurrent devices per tenant             | ≤ 5 paired cashier installs            | Tier B Pro `maxDevices` cap; web `/devices` enforces.   |
+| Foreground sync cycle interval (per dev.) | ≥ 30 s                                 | Mobile foreground trigger debounce in `sync-trigger`.   |
+| Background sync interval (per device)     | 15 minutes                             | `expo-background-task` registration in `register-sync`. |
+| Max rows drained per sync cycle           | 50                                     | `MAX_SYNC_BATCH_SIZE` in `sync-processor`.              |
+| Expected `apply_inventory_delta` rate     | ≤ 1 RPS per device, ≤ 5 RPS per tenant | Derived from the two intervals above.                   |
+| Expected `create_sale_atomic` rate        | ≤ 1 RPS per device                     | One sale at a time at the till.                         |
+| Edge Function p95 budget                  | ≤ 750 ms                               | Pilot target — alarm if support reports >2 s.           |
+
+### Why These Numbers Matter
+
+- A device that retries faster than the 30-second debounce can still drain its queue, but it starts contending for the connection pool with the other paired devices in the same tenant. The race-safe `INSERT ... ON CONFLICT DO NOTHING RETURNING` path means duplicates are harmless, but extra traffic still costs Edge Function invocations.
+- The 50-row batch ceiling is the only cap currently enforced _server-side_ through the size of the JSON payload mobile sends. It is the backstop that keeps a runaway loop from issuing a single 10,000-row `apply_inventory_delta`.
+- A per-business concurrency cap on `apply_inventory_delta` is still unbuilt (see P11.5.10). Until that cap exists, support must watch the Sync Health dashboard for stuck-count spikes during pilot. A sustained `stuck > 0` is the early signal that a device is racing the server.
+
+### Supabase Pro Plan Headroom
+
+Supabase Pro starts with a small compute add-on plus the included connection pooler. At pilot scale (≤ 5 devices), one tenant generates well below the included Edge Function and database call budgets. The risk profile only changes once multi-tenant production rolls past ~50 active stores; that is explicitly a v1.0 + N-stores conversation, not a v1.0 launch concern.
+
+Reference reading:
+
+- Supabase pricing and quotas: https://supabase.com/pricing
+- Supabase compute add-ons: https://supabase.com/docs/guides/platform/compute-add-ons
+- PostgREST connection model: https://supabase.com/docs/guides/database/connecting-to-postgres
+
+### Pre-Pilot Capacity Smoke Test
+
+Before turning the pilot tenant on:
+
+- [ ] Run the foundation gate so the sync queue contract is green.
+- [ ] On a single development build, queue ≥ 100 deltas offline, then bring the device online. Confirm the queue drains in ≤ 4 cycles (4 × 50-row batches) and `applied_operations` shows the expected count.
+- [ ] Confirm no row in `applied_operations` lands in the `stuck` bucket during the drain.
+- [ ] Confirm web `/sync` shows the cashier as `fresh` after the drain.
+- [ ] Record the wall-clock time of the drain in `docs/road-to-1.0-enterprise-checklist.md` under P11.5.10.
+
 ## Manual Receipt Fallback
 
 Manual fallback is for continuity only. It is not a replacement for syncing TD POS later.

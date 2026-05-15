@@ -82,7 +82,7 @@ All 15 stages should pass:
 12. Android bundle export
 13. TypeScript strict check
 14. ESLint
-15. Tests (140 across 26 files)
+15. Tests (144 across 28 files)
 
 ## Project Structure
 

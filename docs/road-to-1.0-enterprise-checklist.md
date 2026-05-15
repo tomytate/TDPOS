@@ -1587,13 +1587,15 @@ Acceptance:
 
 ### P10.6 Performance
 
-- [ ] Cold launch measured.
-- [ ] First sale screen render measured.
-- [ ] Product grid scroll tested with 500 SKUs.
-- [ ] Checkout transaction duration measured.
-- [ ] Receipt render measured.
+- [/] Cold launch measured. Code-side marker now records `app_root_mount_ms` into local MMKV and exposes it through Diagnostics + the sanitized support bundle; real-device numbers still pending.
+- [/] First sale screen render measured. Code-side marker now records `sale_screen_first_render_ms` once per app session; real-device numbers still pending.
+- [x] Add-to-cart handler timing instrumented. `add_to_cart_handler_ms` records the synchronous cart mutation path and compares it to the 100 ms budget.
+- [/] Product grid scroll tested with 500 SKUs. Deterministic 500-SKU catalog fixture and SQLite seeder now exist for the performance pass; real-device FPS measurement is still pending.
+- [/] Checkout transaction duration measured. `checkout_commit_ms` now records the local SQLite checkout commit path and compares it to the 250 ms budget; real-device numbers still pending.
+- [/] Receipt render measured. `receipt_screen_render_ms` now records first receipt-screen render into Diagnostics + the support bundle; real-device numbers still pending.
 - [ ] Image cache behavior tested.
-- [ ] Background sync batch duration measured.
+- [/] Background sync batch duration measured. `sync_cycle_ms` now records each foreground/background sync executor run and compares it to the 30 s budget; real-device numbers still pending.
+- [x] Performance markers are supportable. The Diagnostics screen and copied support bundle now include latest local performance markers with pass/warn/fail status, without sending telemetry off-device.
 - [ ] Low-end Android phone tested.
 
 Acceptance:
@@ -1609,7 +1611,7 @@ Acceptance:
 - [x] Prepare rollback plan. (`docs/operations/pilot-readiness.md`.)
 - [x] Prepare manual receipt fallback. (`docs/operations/pilot-readiness.md`.)
 - [/] Prepare support contact path. Pilot path and response goals are documented in `docs/operations/{pilot-readiness,support-runbook}.md`; public support email/domain remains Phase M.
-- [ ] Run one full day simulation.
+- [/] Run one full day simulation. Code-side harness now runs 100 offline local sales, verifies receipt uniqueness, stock reconciliation, 200 queued sync rows, and a 4-cycle drain at the 50-row batch cap; real-device rehearsal remains pending.
 - [ ] Run one real pilot day.
 - [ ] Reconcile physical vs system stock.
 
@@ -2222,13 +2224,13 @@ Use this section as releases progress.
 - [x] Shared visual primitives: tone-aware `MetricTile` + `LimitUsageBar` on the web dashboard, `<ErrorStateCard>` replaces inline amber error divs on /products /branches /users /modules /devices, shared `freshnessPillClass` helper unifies device-status pills across /devices and /sync.
 - [x] Receipt screen: snackbars carry tappable `action` props that route to `/printer-settings` and `/device-pairing` instead of dead-end "open from Diagnostics" copy.
 - [x] Web responsive shell: dashboard nav now horizontally scrolls on phone widths (was wrapping into 3 cramped rows); page padding shrinks to `p-4` on phone; phone number + "Owner Dashboard" subtitle hide below md.
-- [x] Foundation gate: 100 mobile tests / 357 expect calls passing on every polish commit.
+- [x] Foundation gate: 108 mobile tests / 394 expect calls passing on every polish commit.
 - [x] Open gaps documented in `## v0.9 Open Gaps` below.
 
 ### v0.9 Open Gaps (not done by this pass)
 
 - [ ] Physical-device walkthrough of the cashier flow on a real Android phone + iPhone. The polish is static-code only — no eyes-on-glass proof yet.
-- [ ] Measured performance budgets: mobile cold launch <2.5 s, add-to-cart <100 ms, 500-SKU grid 60 fps scroll, checkout commit <250 ms, web dashboard LCP <2.5 s. Targets exist in P10.6; numbers don't.
+- [/] Measured performance budgets: mobile cold launch <2.5 s, add-to-cart <100 ms, 500-SKU grid 60 fps scroll, checkout commit <250 ms, web dashboard LCP <2.5 s. Code-side markers now exist for app root mount, sale-screen first render, add-to-cart, checkout commit, receipt render, and sync cycle; a deterministic 500-SKU catalog fixture now exists for the scroll pass; real-device numbers, image cache, and web LCP still need the 0.9 performance pass.
 - [ ] Tier B–E mobile surface controls (`apps/mobile/src/features/tier-surfaces/tier-{b,c,d,e}-surface-controls.tsx`, ~2.7 k lines) still ship hardcoded English. Low cashier exposure — these only render when an owner opens a paid scaffold preview from `/upgrade`.
 - [x] Web dashboard data tables (audit, products, devices, pairing codes, branches, users, modules customer privacy) now collapse to stacked-card lists below `sm`. The desktop table is `hidden sm:table` / `hidden sm:block` and the phone list is `block sm:hidden` with a `dl` grid per row. Sync health was already list-based, so it kept its existing layout.
 - [ ] Visual regression coverage: no Percy/Chromatic/snapshot system. The v0.9 polish bar is enforced by hand and can drift through future feature work.
@@ -2253,6 +2255,35 @@ Surfaces touched (no source code was rewritten — only the responsive collapse 
 - New `docs/operations/eas-credentials.md` (seven sections + references) commits the three-profile / two-channel credential model, walks initial setup, documents preview + production build flows, adds rotation table and pre-pilot credential audit.
 - `docs/skills/supabase-server-edge-functions.md` gained a "Security Posture Audit (P10.4)" block confirming every Edge Function uses `user` or `['user','secret']` and forbidding anonymous mode; frontmatter bumped to version 1.1.0 / `verified: 2026-05-15`.
 - Touch-target fixes (P10.5): removed `compact` and pinned `contentStyle={{ minHeight: 48 }}` on `apps/mobile/app/(app)/checkout.tsx:382` (cash denomination buttons) and `apps/mobile/app/(app)/(tabs)/inventory.tsx:492` (per-row Stock-take button). All other `compact` props live on non-interactive `Chip` elements; no `IconButton` usages exist; Pressables in the cashier flow already meet 48dp through Card content padding.
+
+**2026-05-15 — P10.6 performance instrumentation pass.** Added the local performance marker harness for the mobile 0.9 performance pass. This does not close the real-device performance budget rows, but it removes the blind spot: managers and support can now see the latest app-root mount, sale-screen first render, add-to-cart handler, checkout commit, and sync-cycle durations directly in Diagnostics and in the copied support bundle.
+
+Surfaces touched:
+
+- New `apps/mobile/src/services/performance-metrics.ts` stores bounded local metrics in MMKV, assigns budget thresholds, and derives pass/warn/fail status without telemetry.
+- `apps/mobile/app/_layout.tsx`, `apps/mobile/app/(app)/(tabs)/index.tsx`, `apps/mobile/app/(app)/checkout.tsx`, `apps/mobile/app/(app)/receipt.tsx`, and `apps/mobile/src/services/sync-executor.ts` now record the first app-root mount, first sale-screen render, add-to-cart handler duration, checkout commit duration, first receipt-screen render, and sync-cycle duration.
+- `apps/mobile/src/features/diagnostics/lib/diagnostics-metadata.ts`, `apps/mobile/src/features/diagnostics/lib/support-bundle.ts`, and `apps/mobile/app/(app)/diagnostics.tsx` surface those metrics locally.
+- Added/updated mobile tests for marker storage, deterministic latest-metric selection, diagnostics metadata, and support-bundle output. Mobile test count is now 104 across 24 files.
+
+**2026-05-15 — P10.7 full-day simulation harness.** Added a deterministic pilot-day simulation library that uses the real local checkout path (`executeCheckout`) and real sync processor (`processSyncQueue`) against local SQLite. The default scenario seeds three tingi products, runs 100 offline sales, produces 100 unique receipts, queues 100 sale inserts + 100 inventory deltas, drains those 200 rows in four 50-row cycles, and verifies final product stock against expected stock. A second case proves stock shortages are reported as failed sales instead of hidden.
+
+Surfaces touched:
+
+- New `apps/mobile/src/features/pilot/lib/full-day-simulation.ts` with `seedPilotDaySimulationCatalog`, `buildPilotDaySalesPlan`, and `runPilotDaySimulation`.
+- New `apps/mobile/src/features/pilot/lib/full-day-simulation.test.ts` pins the happy-path simulation and insufficient-stock failure behavior.
+- P10.7 "Run one full day simulation" is now `[/]`: the local deterministic harness is green, while a real development build still needs an eyes-on-device rehearsal before v0.1alpha.
+
+Mobile test count is now 106 across 25 files; full repo test count is 142 across 27 files.
+
+**2026-05-15 — P10.6 500-SKU catalog fixture.** Added a deterministic product-catalog performance fixture and SQLite seeder for the 0.9 product-grid pass. The fixture builds exactly 500 products across 10 categories with stable IDs, names, SKUs, prices, stock, and tingi/pack metadata, then seeds local SQLite without touching `sync_queue`. This gives the real-device FPS pass a repeatable catalog instead of hand-entered data.
+
+Surfaces touched:
+
+- New `apps/mobile/src/features/products/lib/performance-catalog.ts` with `buildPerformanceCatalogFixture` and `seedPerformanceCatalog`.
+- New `apps/mobile/src/features/products/lib/performance-catalog.test.ts` pins deterministic fixture shape, idempotent seeding, category counts, product counts, and clean sync-queue behavior.
+- P10.6 "Product grid scroll tested with 500 SKUs" is now `[/]`: the catalog fixture is green, while FPS measurement on the low-end Android target is still pending.
+
+Mobile test count is now 108 across 26 files; full repo test count is 144 across 28 files.
 
 Checklist rows flipped (full list, for audit):
 
@@ -2286,7 +2317,7 @@ What still blocks v0.1alpha (hardware-only or pilot-store-only):
 - P10.1 GitHub branch-protection settings (user-side admin action)
 - P10.3 crash reporting (gated on Sentry approval)
 
-Foundation gate at session end: 15 stages, 100 mobile tests, 357 expect calls, 4 workspaces, 0 failures.
+Foundation gate at session end: 15 stages, 108 mobile tests, 394 expect calls, 4 workspaces, 0 failures.
 
 ### v1.0 Evidence
 

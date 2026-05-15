@@ -115,7 +115,7 @@ bun test apps/mobile/src/features/sales/  # Specific directory
 
 ## Current Metrics
 
-- **140 tests** across 26 files (104 mobile + 36 shared)
+- **144 tests** across 28 files (108 mobile + 36 shared)
 - All tests complete in < 1 second
 - Zero external dependencies — tests run offline
 

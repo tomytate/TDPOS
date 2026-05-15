@@ -271,6 +271,7 @@ export async function getCategoryManagementRows(limit = 100): Promise<CategoryMa
 export interface BranchManagementRow {
   id: string
   name: string
+  branchCode: string
   address: string | null
   region: string | null
   isActive: boolean
@@ -285,6 +286,7 @@ export type BranchManagementResult = QueryResult<{
 interface BranchRow {
   id: string
   name: string
+  branch_code: string
   address: string | null
   region: string | null
   is_active: boolean
@@ -298,7 +300,7 @@ export async function getBranchManagementRows(limit = 100): Promise<BranchManage
   }>(async (supabase) => {
     const { data, error } = await supabase
       .from('branches')
-      .select('id, name, address, region, is_active')
+      .select('id, name, branch_code, address, region, is_active')
       .order('name', { ascending: true })
       .limit(limit)
 
@@ -307,6 +309,7 @@ export async function getBranchManagementRows(limit = 100): Promise<BranchManage
     const branches = ((data ?? []) as BranchRow[]).map((row) => ({
       id: row.id,
       name: row.name,
+      branchCode: row.branch_code,
       address: row.address,
       region: row.region,
       isActive: row.is_active,
@@ -328,11 +331,21 @@ export interface UserManagementRow {
   phoneSuffix: string
   emailPresent: boolean
   role: string
+  isActive: boolean
+  deactivatedAt: string | null
   createdAt: string
+}
+
+export interface PendingInviteManagementRow {
+  id: string
+  phoneSuffix: string
+  role: string
+  invitedAt: string
 }
 
 export type UserManagementResult = QueryResult<{
   users: UserManagementRow[]
+  pendingInvites: PendingInviteManagementRow[]
 }>
 
 interface UserRow {
@@ -340,7 +353,16 @@ interface UserRow {
   phone: string | null
   email: string | null
   role: string
+  is_active: boolean
+  deactivated_at: string | null
   created_at: string
+}
+
+interface PendingInviteRow {
+  id: string
+  phone: string
+  role: string
+  invited_at: string
 }
 
 function tailPhone(phone: string | null | undefined): string {
@@ -352,24 +374,47 @@ function tailPhone(phone: string | null | undefined): string {
 export async function getUserManagementRows(limit = 100): Promise<UserManagementResult> {
   return withSupabase<{
     users: UserManagementRow[]
+    pendingInvites: PendingInviteManagementRow[]
   }>(async (supabase) => {
-    const { data, error } = await supabase
-      .from('users')
-      .select('id, phone, email, role, created_at')
-      .order('created_at', { ascending: true })
-      .limit(limit)
+    const [usersResult, invitesResult] = await Promise.all([
+      supabase
+        .from('users')
+        .select('id, phone, email, role, is_active, deactivated_at, created_at')
+        .order('created_at', { ascending: true })
+        .limit(limit),
+      supabase
+        .from('pending_invites')
+        .select('id, phone, role, invited_at')
+        .is('consumed_at', null)
+        .is('revoked_at', null)
+        .order('invited_at', { ascending: false })
+        .limit(limit),
+    ])
 
-    if (error) return { ready: false, reason: 'query_failed', message: error.message }
+    if (usersResult.error) {
+      return { ready: false, reason: 'query_failed', message: usersResult.error.message }
+    }
+    if (invitesResult.error) {
+      return { ready: false, reason: 'query_failed', message: invitesResult.error.message }
+    }
 
-    const users = ((data ?? []) as UserRow[]).map((row) => ({
+    const users = ((usersResult.data ?? []) as UserRow[]).map((row) => ({
       id: row.id,
       phoneSuffix: tailPhone(row.phone),
       emailPresent: Boolean(row.email),
       role: row.role,
+      isActive: row.is_active,
+      deactivatedAt: row.deactivated_at,
       createdAt: row.created_at,
     }))
+    const pendingInvites = ((invitesResult.data ?? []) as PendingInviteRow[]).map((row) => ({
+      id: row.id,
+      phoneSuffix: tailPhone(row.phone),
+      role: row.role,
+      invitedAt: row.invited_at,
+    }))
 
-    return { ready: true, users }
+    return { ready: true, users, pendingInvites }
   })
 }
 
@@ -382,6 +427,9 @@ export interface DeviceManagementRow {
   branchName: string | null
   surface: string
   status: string
+  pairingStatus: string
+  pairingCodeTail: string | null
+  pairedAt: string | null
   freshness: DeviceHeartbeatFreshness
   lastSeenAt: string | null
   unsyncedRows: number | null
@@ -395,12 +443,34 @@ export interface DeviceManagementRow {
   recoveryNote: string | null
 }
 
+export interface DeviceBranchOption {
+  id: string
+  name: string
+  branchCode: string
+}
+
+export interface DevicePairingCodeRow {
+  id: string
+  branchName: string | null
+  cashierCode: string
+  deviceName: string | null
+  surface: string
+  status: string
+  pairingCodeLast4: string
+  expiresAt: string
+  consumedAt: string | null
+  createdAt: string
+}
+
 export type DeviceManagementResult = QueryResult<{
   devices: DeviceManagementRow[]
+  branches: DeviceBranchOption[]
+  pairingCodes: DevicePairingCodeRow[]
   activeCount: number
   staleCount: number
   offlineCount: number
   lostCount: number
+  activePairingCount: number
 }>
 
 export interface DeviceReceiptSequence {
@@ -416,6 +486,9 @@ interface DeviceRow {
   device_name: string | null
   surface: string
   status: string
+  device_pairing_status: string | null
+  device_pairing_id: string | null
+  device_paired_at: string | null
   last_seen_at: string | null
   lost_reported_at: string | null
   replacement_requested_at: string | null
@@ -428,6 +501,25 @@ interface DeviceRow {
     oldest_pending_created_at?: unknown
     receipt_sequences?: unknown
   } | null
+  branches: Array<{ name: string }> | null
+}
+
+interface DeviceBranchRow {
+  id: string
+  name: string
+  branch_code: string
+}
+
+interface DevicePairingCodeRawRow {
+  id: string
+  cashier_code: string
+  device_name: string | null
+  surface: string
+  status: string
+  pairing_code_last4: string
+  expires_at: string
+  consumed_at: string | null
+  created_at: string
   branches: Array<{ name: string }> | null
 }
 
@@ -468,30 +560,61 @@ function receiptSequencesFromSnapshot(value: unknown): DeviceReceiptSequence[] {
 export async function getDeviceManagementRows(limit = 100): Promise<DeviceManagementResult> {
   return withSupabase<{
     devices: DeviceManagementRow[]
+    branches: DeviceBranchOption[]
+    pairingCodes: DevicePairingCodeRow[]
     activeCount: number
     staleCount: number
     offlineCount: number
     lostCount: number
+    activePairingCount: number
   }>(async (supabase) => {
-    const { data, error } = await supabase
-      .from('business_devices')
-      .select(
-        `id, install_id, device_name, surface, status, last_seen_at,
-         lost_reported_at, replacement_requested_at, recovery_note,
-         sync_snapshot, branches ( name )`,
-      )
-      .order('last_seen_at', { ascending: false, nullsFirst: false })
-      .limit(limit)
+    const [devicesResult, branchesResult, pairingCodesResult] = await Promise.all([
+      supabase
+        .from('business_devices')
+        .select(
+          `id, install_id, device_name, surface, status,
+           device_pairing_status, device_pairing_id, device_paired_at, last_seen_at,
+           lost_reported_at, replacement_requested_at, recovery_note,
+           sync_snapshot, branches ( name )`,
+        )
+        .order('last_seen_at', { ascending: false, nullsFirst: false })
+        .limit(limit),
+      supabase
+        .from('branches')
+        .select('id, name, branch_code')
+        .eq('is_active', true)
+        .order('name', { ascending: true })
+        .limit(100),
+      supabase
+        .from('device_pairing_codes')
+        .select(
+          `id, cashier_code, device_name, surface, status, pairing_code_last4,
+           expires_at, consumed_at, created_at, branches ( name )`,
+        )
+        .order('created_at', { ascending: false })
+        .limit(20),
+    ])
 
-    if (error) return { ready: false, reason: 'query_failed', message: error.message }
+    if (devicesResult.error) {
+      return { ready: false, reason: 'query_failed', message: devicesResult.error.message }
+    }
+    if (branchesResult.error) {
+      return { ready: false, reason: 'query_failed', message: branchesResult.error.message }
+    }
+    if (pairingCodesResult.error) {
+      return { ready: false, reason: 'query_failed', message: pairingCodesResult.error.message }
+    }
 
-    const devices = ((data ?? []) as DeviceRow[]).map((row) => ({
+    const devices = ((devicesResult.data ?? []) as DeviceRow[]).map((row) => ({
       id: row.id,
       installTail: tailInstallId(row.install_id),
       deviceName: row.device_name,
       branchName: row.branches?.[0]?.name ?? null,
       surface: row.surface,
       status: row.status,
+      pairingStatus: row.device_pairing_status ?? 'fallback',
+      pairingCodeTail: row.device_pairing_id ? tailInstallId(row.device_pairing_id) : null,
+      pairedAt: row.device_paired_at,
       freshness: getDeviceHeartbeatFreshness({
         status: row.status,
         lastSeenAt: row.last_seen_at,
@@ -507,14 +630,40 @@ export async function getDeviceManagementRows(limit = 100): Promise<DeviceManage
       replacementRequestedAt: row.replacement_requested_at,
       recoveryNote: row.recovery_note,
     }))
+    const branches = ((branchesResult.data ?? []) as DeviceBranchRow[]).map((row) => ({
+      id: row.id,
+      name: row.name,
+      branchCode: row.branch_code,
+    }))
+    const nowMs = Date.now()
+    const pairingCodes = ((pairingCodesResult.data ?? []) as DevicePairingCodeRawRow[]).map(
+      (row) => {
+        const expired = row.status === 'active' && new Date(row.expires_at).getTime() <= nowMs
+        return {
+          id: row.id,
+          branchName: row.branches?.[0]?.name ?? null,
+          cashierCode: row.cashier_code,
+          deviceName: row.device_name,
+          surface: row.surface,
+          status: expired ? 'expired' : row.status,
+          pairingCodeLast4: row.pairing_code_last4,
+          expiresAt: row.expires_at,
+          consumedAt: row.consumed_at,
+          createdAt: row.created_at,
+        }
+      },
+    )
 
     return {
       ready: true,
       devices,
+      branches,
+      pairingCodes,
       activeCount: devices.filter((device) => device.status === 'active').length,
       staleCount: devices.filter((device) => device.freshness === 'stale').length,
       offlineCount: devices.filter((device) => device.freshness === 'offline').length,
       lostCount: devices.filter((device) => device.status === 'lost').length,
+      activePairingCount: pairingCodes.filter((code) => code.status === 'active').length,
     }
   })
 }

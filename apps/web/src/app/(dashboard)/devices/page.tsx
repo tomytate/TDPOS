@@ -272,7 +272,42 @@ export default async function DevicesPage() {
                   </p>
                 </div>
               </div>
-              <div className="overflow-x-auto">
+              {/* Phone layout: stacked cards. The desktop table below
+                  is hidden under `sm`. */}
+              <ul
+                className="block divide-y divide-ink-100 sm:hidden"
+                aria-label="Recent pairing codes"
+              >
+                {result.pairingCodes.map((code) => (
+                  <li key={code.id} className="flex flex-col gap-2 py-3 text-[13px]">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-mono text-[13px] text-ink-700">
+                        ****{code.pairingCodeLast4}
+                      </span>
+                      <span className={freshnessPillClass(code.status)}>{code.status}</span>
+                    </div>
+                    <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[12px]">
+                      <dt className="font-semibold text-ink-500">Branch</dt>
+                      <dd className="text-ink-700">{code.branchName ?? '--'}</dd>
+                      <dt className="font-semibold text-ink-500">Cashier</dt>
+                      <dd className="font-mono text-ink-700">{code.cashierCode}</dd>
+                      <dt className="font-semibold text-ink-500">Surface</dt>
+                      <dd className="font-mono text-ink-700">{code.surface}</dd>
+                      <dt className="font-semibold text-ink-500">Expires</dt>
+                      <dd className="text-ink-600">{formatTimestamp(code.expiresAt)}</dd>
+                      {code.consumedAt ? (
+                        <>
+                          <dt className="font-semibold text-ink-500">Used</dt>
+                          <dd className="text-[11px] text-ink-500">
+                            {formatTimestamp(code.consumedAt)}
+                          </dd>
+                        </>
+                      ) : null}
+                    </dl>
+                  </li>
+                ))}
+              </ul>
+              <div className="hidden overflow-x-auto sm:block">
                 <table className="min-w-full border-collapse text-left text-sm">
                   <thead className="bg-ink-50 text-[12px] uppercase text-ink-500">
                     <tr>
@@ -365,76 +400,76 @@ export default async function DevicesPage() {
           ) : null}
 
           {/* Live device table */}
-          <div className="overflow-x-auto rounded-lg border border-ink-200 bg-white">
-            <table className="min-w-full border-collapse text-left text-sm">
-              <thead className="bg-ink-50 text-[12px] uppercase text-ink-500">
-                <tr>
-                  <th className="px-4 py-3 font-semibold">Device</th>
-                  <th className="px-4 py-3 font-semibold">Branch</th>
-                  <th className="px-4 py-3 font-semibold">Surface</th>
-                  <th className="px-4 py-3 font-semibold">Pairing</th>
-                  <th className="px-4 py-3 font-semibold">Queue</th>
-                  <th className="px-4 py-3 font-semibold">Last seen</th>
-                  <th className="px-4 py-3 font-semibold">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-ink-100">
-                {result.devices.length === 0 ? (
-                  <tr>
-                    <td className="px-4 py-10 text-center" colSpan={7}>
-                      <p className="m-0 text-base font-semibold text-ink-800">
-                        No devices have heartbeated yet
-                      </p>
-                      <p className="mt-1 text-sm text-ink-500">
-                        Issue a pairing code above; the device shows up here on its first successful
-                        sign-in.
-                      </p>
-                    </td>
-                  </tr>
-                ) : (
-                  result.devices.map((device) => (
-                    <tr key={device.id}>
-                      <td className="px-4 py-3">
-                        <div className="font-semibold text-ink-900">
+          <div className="rounded-lg border border-ink-200 bg-white">
+            {/* Phone layout: stacked cards. Seven-column device rows
+                force h-scroll on Pixel/iPhone widths; the desktop table
+                below is hidden under `sm`. */}
+            {result.devices.length === 0 ? (
+              <div className="px-4 py-10 text-center sm:hidden">
+                <p className="m-0 text-base font-semibold text-ink-800">
+                  No devices have heartbeated yet
+                </p>
+                <p className="mt-1 text-sm text-ink-500">
+                  Issue a pairing code above; the device shows up here on its first successful
+                  sign-in.
+                </p>
+              </div>
+            ) : (
+              <ul
+                className="block divide-y divide-ink-100 sm:hidden"
+                aria-label="Registered devices"
+              >
+                {result.devices.map((device) => (
+                  <li key={device.id} className="flex flex-col gap-2 px-4 py-3 text-[13px]">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="m-0 truncate text-[14px] font-semibold text-ink-900">
                           {device.deviceName ?? `Device ${device.installTail}`}
-                        </div>
-                        <div className="mt-0.5 font-mono text-[12px] text-ink-500">
+                        </p>
+                        <p className="mt-0.5 font-mono text-[11px] text-ink-500">
                           {device.installTail}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-ink-600">{device.branchName ?? '--'}</td>
-                      <td className="px-4 py-3 font-mono text-[12px] text-ink-700">
-                        {device.surface}
-                      </td>
-                      <td className="px-4 py-3">
+                        </p>
+                      </div>
+                      <span className={freshnessPillClass(device.freshness)}>
+                        {device.status} · {device.freshness}
+                      </span>
+                    </div>
+                    <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[12px]">
+                      <dt className="font-semibold text-ink-500">Branch</dt>
+                      <dd className="text-ink-700">{device.branchName ?? '--'}</dd>
+                      <dt className="font-semibold text-ink-500">Surface</dt>
+                      <dd className="font-mono text-ink-700">{device.surface}</dd>
+                      <dt className="font-semibold text-ink-500">Pairing</dt>
+                      <dd>
                         <span className={pairingPillClass(device.pairingStatus)}>
                           {device.pairingStatus}
                         </span>
                         {device.pairingCodeTail ? (
-                          <div className="mt-1 font-mono text-[11px] text-ink-500">
+                          <span className="ml-2 font-mono text-[11px] text-ink-500">
                             {device.pairingCodeTail}
-                          </div>
+                          </span>
                         ) : null}
                         {device.pairedAt ? (
-                          <div className="mt-1 text-[11px] text-ink-500">
+                          <div className="mt-0.5 text-[11px] text-ink-500">
                             Paired {formatTimestamp(device.pairedAt)}
                           </div>
                         ) : null}
-                      </td>
-                      <td className="px-4 py-3 text-[12px] text-ink-700">
+                      </dd>
+                      <dt className="font-semibold text-ink-500">Queue</dt>
+                      <dd className="text-ink-700">
                         <div>{formatQueue(device.unsyncedRows)} unsynced</div>
-                        <div className="text-ink-500">
+                        <div className="text-[11px] text-ink-500">
                           {formatQueue(device.pendingRows)} pending ·{' '}
                           {formatQueue(device.failedRows)} failed ·{' '}
                           {formatQueue(device.reviewableRows)} review
                         </div>
                         {device.oldestPendingCreatedAt ? (
-                          <div className="text-ink-500">
+                          <div className="text-[11px] text-ink-500">
                             Oldest {formatTimestamp(device.oldestPendingCreatedAt)}
                           </div>
                         ) : null}
                         {device.receiptSequences.length > 0 ? (
-                          <div className="mt-1 text-ink-500">
+                          <div className="text-[11px] text-ink-500">
                             Receipt seq{' '}
                             {device.receiptSequences
                               .slice(0, 2)
@@ -447,28 +482,128 @@ export default async function DevicesPage() {
                               .join(' · ')}
                           </div>
                         ) : null}
-                      </td>
-                      <td className="px-4 py-3 text-ink-600">
-                        {formatTimestamp(device.lastSeenAt)}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={freshnessPillClass(device.freshness)}>
-                          {device.status} · {device.freshness}
-                        </span>
-                        {device.lostReportedAt ? (
-                          <div className="mt-1 text-[11px] text-ink-500">
+                      </dd>
+                      <dt className="font-semibold text-ink-500">Last seen</dt>
+                      <dd className="text-ink-600">{formatTimestamp(device.lastSeenAt)}</dd>
+                      {device.lostReportedAt ? (
+                        <>
+                          <dt className="font-semibold text-ink-500">Lost</dt>
+                          <dd className="text-[12px] text-ink-500">
                             Reported {formatTimestamp(device.lostReportedAt)}
-                          </div>
-                        ) : null}
-                        {device.replacementRequestedAt ? (
-                          <div className="text-[11px] text-ink-500">Replacement prepared</div>
-                        ) : null}
+                            {device.replacementRequestedAt ? ' · replacement prepared' : ''}
+                          </dd>
+                        </>
+                      ) : null}
+                    </dl>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <div className="hidden overflow-x-auto sm:block">
+              <table className="min-w-full border-collapse text-left text-sm">
+                <thead className="bg-ink-50 text-[12px] uppercase text-ink-500">
+                  <tr>
+                    <th className="px-4 py-3 font-semibold">Device</th>
+                    <th className="px-4 py-3 font-semibold">Branch</th>
+                    <th className="px-4 py-3 font-semibold">Surface</th>
+                    <th className="px-4 py-3 font-semibold">Pairing</th>
+                    <th className="px-4 py-3 font-semibold">Queue</th>
+                    <th className="px-4 py-3 font-semibold">Last seen</th>
+                    <th className="px-4 py-3 font-semibold">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-ink-100">
+                  {result.devices.length === 0 ? (
+                    <tr>
+                      <td className="px-4 py-10 text-center" colSpan={7}>
+                        <p className="m-0 text-base font-semibold text-ink-800">
+                          No devices have heartbeated yet
+                        </p>
+                        <p className="mt-1 text-sm text-ink-500">
+                          Issue a pairing code above; the device shows up here on its first
+                          successful sign-in.
+                        </p>
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : (
+                    result.devices.map((device) => (
+                      <tr key={device.id}>
+                        <td className="px-4 py-3">
+                          <div className="font-semibold text-ink-900">
+                            {device.deviceName ?? `Device ${device.installTail}`}
+                          </div>
+                          <div className="mt-0.5 font-mono text-[12px] text-ink-500">
+                            {device.installTail}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-ink-600">{device.branchName ?? '--'}</td>
+                        <td className="px-4 py-3 font-mono text-[12px] text-ink-700">
+                          {device.surface}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={pairingPillClass(device.pairingStatus)}>
+                            {device.pairingStatus}
+                          </span>
+                          {device.pairingCodeTail ? (
+                            <div className="mt-1 font-mono text-[11px] text-ink-500">
+                              {device.pairingCodeTail}
+                            </div>
+                          ) : null}
+                          {device.pairedAt ? (
+                            <div className="mt-1 text-[11px] text-ink-500">
+                              Paired {formatTimestamp(device.pairedAt)}
+                            </div>
+                          ) : null}
+                        </td>
+                        <td className="px-4 py-3 text-[12px] text-ink-700">
+                          <div>{formatQueue(device.unsyncedRows)} unsynced</div>
+                          <div className="text-ink-500">
+                            {formatQueue(device.pendingRows)} pending ·{' '}
+                            {formatQueue(device.failedRows)} failed ·{' '}
+                            {formatQueue(device.reviewableRows)} review
+                          </div>
+                          {device.oldestPendingCreatedAt ? (
+                            <div className="text-ink-500">
+                              Oldest {formatTimestamp(device.oldestPendingCreatedAt)}
+                            </div>
+                          ) : null}
+                          {device.receiptSequences.length > 0 ? (
+                            <div className="mt-1 text-ink-500">
+                              Receipt seq{' '}
+                              {device.receiptSequences
+                                .slice(0, 2)
+                                .map(
+                                  (sequence) =>
+                                    `${sequence.branchCode}/${sequence.cashierCode}/${formatReceiptDateKey(
+                                      sequence.date,
+                                    )}: ${sequence.lastSequence}`,
+                                )
+                                .join(' · ')}
+                            </div>
+                          ) : null}
+                        </td>
+                        <td className="px-4 py-3 text-ink-600">
+                          {formatTimestamp(device.lastSeenAt)}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={freshnessPillClass(device.freshness)}>
+                            {device.status} · {device.freshness}
+                          </span>
+                          {device.lostReportedAt ? (
+                            <div className="mt-1 text-[11px] text-ink-500">
+                              Reported {formatTimestamp(device.lostReportedAt)}
+                            </div>
+                          ) : null}
+                          {device.replacementRequestedAt ? (
+                            <div className="text-[11px] text-ink-500">Replacement prepared</div>
+                          ) : null}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
 
           <p className="text-[12px] text-ink-500">

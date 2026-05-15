@@ -56,7 +56,7 @@ The spec is composed of these documents. Read them in this order.
 
 ### 4. Procedural skill docs (one per package or domain)
 
-`docs/skills/` is the canonical place where each integration is documented. Every package in the tech stack must have a skill doc that links to its official documentation, carries a verified version, and stamps a `Last verified:` date. The structure is mechanically enforced by `scripts/check-skill-docs.mjs` (DocGate-3) at the foundation gate. The count currently sits at **22**:
+`docs/skills/` is the canonical place where each integration is documented. Every package in the tech stack must have a skill doc that links to its official documentation, carries a verified version, and stamps a `Last verified:` date. The structure is mechanically enforced by `scripts/check-skill-docs.mjs` (DocGate-3) at the foundation gate. The count currently sits at **27**:
 
 - **Domain (5):** `inventory-tingi-model.md`, `sync-engine.md`, `receipt-numbering.md`, `bir-compliance.md`, `supabase-rls.md`.
 - **Mobile framework (9):** `react-19-patterns.md`, `expo-router-patterns.md`, `expo-sqlite-patterns.md`, `expo-file-system.md`, `zustand-mmkv-stores.md`, `supabase-auth-phone-otp.md`, `thermal-printer-integration.md`, `react-native-paper-theming.md`, `tanstack-query-offline.md`.

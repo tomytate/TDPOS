@@ -1,17 +1,24 @@
 'use server'
 
+import { createHash, randomInt } from 'node:crypto'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import {
   DEFAULT_MODULE_STATE,
+  SURFACE_LABELS,
   branchManagementDraftSchema,
   categoryManagementDraftSchema,
   customerErasureDraftSchema,
   deviceLostReplacementDraftSchema,
   deviceManagementDraftSchema,
+  devicePairingCodeDraftSchema,
+  normalizeDevicePairingCode,
   moduleManagementDraftSchema,
+  productBulkImportDraftSchema,
+  pendingInviteRevokeDraftSchema,
   normalizePhPhone,
   productManagementDraftSchema,
+  userDeactivateDraftSchema,
   userInviteDraftSchema,
   type ModuleName,
   type TierSurface,
@@ -53,6 +60,35 @@ export async function signOutAction() {
   redirect('/login')
 }
 
+export async function acknowledgePrivacyNoticeAction() {
+  let supabase
+  try {
+    supabase = await getServerSupabase()
+  } catch {
+    return
+  }
+
+  const ctx = await resolveCallerContext(supabase)
+  if (!ctx.ok) return
+
+  const acknowledgedAt = new Date().toISOString()
+  await logAuditEvent(supabase, {
+    businessId: ctx.businessId,
+    userId: ctx.userId,
+    action: 'privacy.notice_acknowledged',
+    resourceType: 'privacy_notice',
+    resourceId: ctx.businessId,
+    after: {
+      surface: 'web_dashboard',
+      acknowledged_at: acknowledgedAt,
+      policy_version: 'v0.9-scaffold',
+    },
+  })
+
+  revalidatePath('/privacy')
+  revalidatePath('/audit')
+}
+
 async function guardedScaffoldAccess(
   surface: TierSurface,
 ): Promise<ScaffoldActionResult | { ok: true }> {
@@ -86,6 +122,13 @@ function invalidInput(message: string): ScaffoldActionResult {
   }
 }
 
+function requireExplicitConfirmation(
+  formData: FormData,
+  message = 'Confirm the action before submitting.',
+): ScaffoldActionResult | null {
+  return formData.get('confirm_action') === 'on' ? null : invalidInput(message)
+}
+
 function firstIssueMessage(result: { error: { issues: Array<{ message: string }> } }): string {
   return result.error.issues[0]?.message ?? 'Check the form fields and try again.'
 }
@@ -106,6 +149,123 @@ function customerErasureMessage(reason: string | null): string {
   if (reason === 'not_found') return 'Customer was not found for this business.'
 
   return 'Could not erase customer PII.'
+}
+
+interface CsvRecord {
+  lineNumber: number
+  values: Record<string, string>
+}
+
+function normalizeCsvHeader(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+}
+
+function parseCsvRows(input: string): string[][] {
+  const rows: string[][] = []
+  let row: string[] = []
+  let cell = ''
+  let inQuotes = false
+
+  for (let index = 0; index < input.length; index += 1) {
+    const char = input[index]
+    const next = input[index + 1]
+
+    if (char === '"' && inQuotes && next === '"') {
+      cell += '"'
+      index += 1
+      continue
+    }
+
+    if (char === '"') {
+      inQuotes = !inQuotes
+      continue
+    }
+
+    if (char === ',' && !inQuotes) {
+      row.push(cell.trim())
+      cell = ''
+      continue
+    }
+
+    if ((char === '\n' || char === '\r') && !inQuotes) {
+      if (char === '\r' && next === '\n') index += 1
+      row.push(cell.trim())
+      if (row.some((value) => value.length > 0)) rows.push(row)
+      row = []
+      cell = ''
+      continue
+    }
+
+    cell += char
+  }
+
+  row.push(cell.trim())
+  if (row.some((value) => value.length > 0)) rows.push(row)
+
+  return rows
+}
+
+function parseCatalogCsv(
+  input: string,
+): { ok: true; records: CsvRecord[] } | { ok: false; message: string } {
+  const rows = parseCsvRows(input)
+  if (rows.length < 2) {
+    return { ok: false, message: 'CSV needs a header row and at least one product row.' }
+  }
+
+  const headers = rows[0]?.map(normalizeCsvHeader) ?? []
+  if (!headers.includes('name') && !headers.includes('product_name')) {
+    return { ok: false, message: 'CSV header must include name or product_name.' }
+  }
+
+  const records = rows.slice(1).map((values, index) => {
+    const record = headers.reduce(
+      (acc, header, headerIndex) => {
+        if (header.length > 0) acc[header] = values[headerIndex]?.trim() ?? ''
+        return acc
+      },
+      {} as Record<string, string>,
+    )
+
+    return { lineNumber: index + 2, values: record }
+  })
+
+  return { ok: true, records }
+}
+
+function csvValue(values: Record<string, string>, ...keys: string[]): string {
+  for (const key of keys) {
+    const value = values[key]
+    if (value && value.trim().length > 0) return value.trim()
+  }
+  return ''
+}
+
+function csvOptionalValue(values: Record<string, string>, ...keys: string[]): string | undefined {
+  const value = csvValue(values, ...keys)
+  return value.length > 0 ? value : undefined
+}
+
+function csvBoolean(value: string): boolean {
+  return ['1', 'true', 'yes', 'y', 'on'].includes(value.trim().toLowerCase())
+}
+
+const PAIRING_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+
+function generatePairingCode(): string {
+  let value = ''
+  for (let index = 0; index < 8; index += 1) {
+    value += PAIRING_CODE_ALPHABET[randomInt(PAIRING_CODE_ALPHABET.length)]
+  }
+  return value
+}
+
+function pairingCodeHash(value: string): string {
+  return createHash('sha256').update(normalizeDevicePairingCode(value), 'utf8').digest('hex')
 }
 
 // Resolves the caller's auth.uid + business_id for management actions. The
@@ -249,12 +409,139 @@ export async function createProductScaffoldAction(
   }
 }
 
+export async function importProductsCsvScaffoldAction(
+  _previousState: ScaffoldActionState,
+  formData: FormData,
+): Promise<ScaffoldActionResult> {
+  const draft = productBulkImportDraftSchema.safeParse({
+    catalog_csv: textField(formData, 'catalog_csv'),
+  })
+  if (!draft.success) return invalidInput(firstIssueMessage(draft))
+
+  const parsedCsv = parseCatalogCsv(draft.data.catalog_csv)
+  if (!parsedCsv.ok) return invalidInput(parsedCsv.message)
+
+  if (parsedCsv.records.length > 100) {
+    return invalidInput('Import up to 100 products per batch.')
+  }
+
+  const parsedProducts = parsedCsv.records.map((record) => {
+    const parsed = productManagementDraftSchema.safeParse({
+      sku: csvOptionalValue(record.values, 'sku'),
+      name: csvValue(record.values, 'name', 'product_name', 'product'),
+      price_per_piece: csvValue(record.values, 'price_per_piece', 'piece_price', 'price'),
+      price_per_pack: csvOptionalValue(record.values, 'price_per_pack', 'pack_price'),
+      stock_pieces: csvValue(record.values, 'stock_pieces', 'stock', 'qty', 'quantity'),
+      pieces_per_pack: csvValue(record.values, 'pieces_per_pack', 'pack_size') || '1',
+      unit_label: csvValue(record.values, 'unit_label', 'unit') || 'pc',
+      is_tingi: csvBoolean(csvValue(record.values, 'is_tingi', 'tingi')),
+    })
+
+    return { lineNumber: record.lineNumber, parsed }
+  })
+
+  const invalidRow = parsedProducts.find((row) => !row.parsed.success)
+  if (invalidRow && !invalidRow.parsed.success) {
+    return invalidInput(`Line ${invalidRow.lineNumber}: ${firstIssueMessage(invalidRow.parsed)}`)
+  }
+
+  const products = parsedProducts.map((row) => {
+    if (!row.parsed.success) throw new Error('validated_above')
+    return row.parsed.data
+  })
+
+  if (products.length === 0) return invalidInput('CSV did not contain any product rows.')
+
+  const access = await guardedScaffoldAccess('web.products')
+  if (!access.ok) return access
+
+  let supabase
+  try {
+    supabase = await getServerSupabase()
+  } catch {
+    return { ok: false, reason: 'supabase_unconfigured', message: 'Supabase is not configured.' }
+  }
+
+  const ctx = await resolveCallerContext(supabase)
+  if (!ctx.ok) return ctx.result
+
+  const { count, error: countError } = await supabase
+    .from('products')
+    .select('id', { count: 'exact', head: true })
+    .eq('business_id', ctx.businessId)
+
+  if (countError) {
+    return { ok: false, reason: 'query_failed', message: countError.message }
+  }
+
+  const requestedCount = (count ?? 0) + products.length
+  const { error: limitError } = await supabase.rpc('assert_business_limit', {
+    p_business_id: ctx.businessId,
+    p_limit_name: 'products',
+    p_requested_count: requestedCount,
+  })
+  if (limitError) {
+    return {
+      ok: false,
+      reason: limitError.message.startsWith('limit_exceeded:') ? 'limit_exceeded' : 'query_failed',
+      message: limitError.message,
+    }
+  }
+
+  const { data: inserted, error: insertError } = await supabase
+    .from('products')
+    .insert(
+      products.map((product) => ({
+        business_id: ctx.businessId,
+        sku: product.sku ?? null,
+        name: product.name,
+        price_per_piece: product.price_per_piece,
+        price_per_pack: product.price_per_pack ?? null,
+        stock_pieces: product.stock_pieces,
+        pieces_per_pack: product.pieces_per_pack,
+        unit_label: product.unit_label,
+        is_tingi: product.is_tingi,
+      })),
+    )
+    .select('id, name')
+
+  if (insertError || !inserted) {
+    return {
+      ok: false,
+      reason: 'query_failed',
+      message: insertError?.message ?? 'Could not import products.',
+    }
+  }
+
+  await logAuditEvent(supabase, {
+    businessId: ctx.businessId,
+    userId: ctx.userId,
+    action: 'product.bulk_import',
+    resourceType: 'product_catalog',
+    resourceId: ctx.businessId,
+    after: {
+      imported_count: inserted.length,
+      names_sample: inserted.slice(0, 5).map((row) => row.name),
+    },
+  })
+
+  revalidatePath('/products')
+  revalidatePath('/audit')
+
+  return {
+    ok: true,
+    message: `Imported ${inserted.length.toLocaleString('en-PH')} products.`,
+    resourceId: ctx.businessId,
+  }
+}
+
 export async function createBranchScaffoldAction(
   _previousState: ScaffoldActionState,
   formData: FormData,
 ): Promise<ScaffoldActionResult> {
   const draft = branchManagementDraftSchema.safeParse({
     name: textField(formData, 'name'),
+    branch_code: optionalTextField(formData, 'branch_code'),
     address: optionalTextField(formData, 'address'),
     region: optionalTextField(formData, 'region'),
   })
@@ -284,11 +571,12 @@ export async function createBranchScaffoldAction(
     .insert({
       business_id: ctx.businessId,
       name: draft.data.name,
+      branch_code: draft.data.branch_code ?? null,
       address: draft.data.address ?? null,
       region: draft.data.region ?? null,
       is_active: true,
     })
-    .select('id')
+    .select('id, branch_code')
     .single()
 
   if (insertError || !inserted) {
@@ -305,7 +593,11 @@ export async function createBranchScaffoldAction(
     action: 'branch.create',
     resourceType: 'branch',
     resourceId: inserted.id as string,
-    after: { name: draft.data.name, region: draft.data.region ?? null },
+    after: {
+      name: draft.data.name,
+      branch_code: (inserted as { branch_code?: string }).branch_code ?? draft.data.branch_code,
+      region: draft.data.region ?? null,
+    },
   })
 
   revalidatePath('/branches')
@@ -473,6 +765,178 @@ export async function inviteUserScaffoldAction(
   }
 }
 
+export async function deactivateUserScaffoldAction(
+  _previousState: ScaffoldActionState,
+  formData: FormData,
+): Promise<ScaffoldActionResult> {
+  const draft = userDeactivateDraftSchema.safeParse({
+    user_id: textField(formData, 'user_id'),
+    reason: optionalTextField(formData, 'reason'),
+  })
+  if (!draft.success) return invalidInput(firstIssueMessage(draft))
+  const confirmationError = requireExplicitConfirmation(formData)
+  if (confirmationError) return confirmationError
+
+  const access = await guardedScaffoldAccess('web.users')
+  if (!access.ok) return access
+
+  let supabase
+  try {
+    supabase = await getServerSupabase()
+  } catch {
+    return { ok: false, reason: 'supabase_unconfigured', message: 'Supabase is not configured.' }
+  }
+
+  const ctx = await resolveCallerContext(supabase)
+  if (!ctx.ok) return ctx.result
+
+  if (draft.data.user_id === ctx.userId) {
+    return invalidInput('You cannot deactivate your own account.')
+  }
+
+  const [{ data: actor }, { data: target, error: targetError }] = await Promise.all([
+    supabase.from('users').select('role').eq('id', ctx.userId).maybeSingle(),
+    supabase
+      .from('users')
+      .select('id, role, phone, is_active')
+      .eq('id', draft.data.user_id)
+      .maybeSingle(),
+  ])
+
+  if (targetError) {
+    return { ok: false, reason: 'query_failed', message: targetError.message }
+  }
+  if (!target) {
+    return invalidInput('Choose an active staff account from this business.')
+  }
+
+  const actorRole = (actor as { role?: string } | null)?.role ?? 'cashier'
+  const targetRole = (target as { role?: string } | null)?.role ?? 'cashier'
+  if (targetRole === 'owner') {
+    return invalidInput('Owner accounts are not deactivated from this scaffold.')
+  }
+  if (actorRole === 'manager' && targetRole === 'manager') {
+    return invalidInput('Managers cannot deactivate other managers.')
+  }
+  if ((target as { is_active?: boolean }).is_active === false) {
+    return {
+      ok: true,
+      message: 'User is already inactive.',
+      resourceId: draft.data.user_id,
+    }
+  }
+
+  const deactivatedAt = new Date().toISOString()
+  const { error: updateError } = await supabase
+    .from('users')
+    .update({
+      is_active: false,
+      deactivated_at: deactivatedAt,
+      deactivated_by: ctx.userId,
+      deactivation_reason: draft.data.reason ?? null,
+    })
+    .eq('id', draft.data.user_id)
+
+  if (updateError) {
+    return { ok: false, reason: 'query_failed', message: updateError.message }
+  }
+
+  await logAuditEvent(supabase, {
+    businessId: ctx.businessId,
+    userId: ctx.userId,
+    action: 'user.deactivate',
+    resourceType: 'user',
+    resourceId: draft.data.user_id,
+    before: { role: targetRole, active: true },
+    after: {
+      role: targetRole,
+      active: false,
+      deactivated_at: deactivatedAt,
+      reason_present: Boolean(draft.data.reason),
+    },
+  })
+
+  revalidatePath('/users')
+  revalidatePath('/audit')
+
+  return {
+    ok: true,
+    message: 'User deactivated. Existing local devices will fail bootstrap on next sign-in.',
+    resourceId: draft.data.user_id,
+  }
+}
+
+export async function revokePendingInviteScaffoldAction(
+  _previousState: ScaffoldActionState,
+  formData: FormData,
+): Promise<ScaffoldActionResult> {
+  const draft = pendingInviteRevokeDraftSchema.safeParse({
+    invite_id: textField(formData, 'invite_id'),
+    reason: optionalTextField(formData, 'reason'),
+  })
+  if (!draft.success) return invalidInput(firstIssueMessage(draft))
+  const confirmationError = requireExplicitConfirmation(formData)
+  if (confirmationError) return confirmationError
+
+  const access = await guardedScaffoldAccess('web.users')
+  if (!access.ok) return access
+
+  let supabase
+  try {
+    supabase = await getServerSupabase()
+  } catch {
+    return { ok: false, reason: 'supabase_unconfigured', message: 'Supabase is not configured.' }
+  }
+
+  const ctx = await resolveCallerContext(supabase)
+  if (!ctx.ok) return ctx.result
+
+  const revokedAt = new Date().toISOString()
+  const { data: updated, error: updateError } = await supabase
+    .from('pending_invites')
+    .update({
+      revoked_at: revokedAt,
+      revoked_by: ctx.userId,
+      revocation_reason: draft.data.reason ?? null,
+    })
+    .eq('id', draft.data.invite_id)
+    .is('consumed_at', null)
+    .is('revoked_at', null)
+    .select('id, role, phone')
+    .maybeSingle()
+
+  if (updateError) {
+    return { ok: false, reason: 'query_failed', message: updateError.message }
+  }
+  if (!updated) {
+    return invalidInput('Invite is already consumed, revoked, or not in this business.')
+  }
+
+  await logAuditEvent(supabase, {
+    businessId: ctx.businessId,
+    userId: ctx.userId,
+    action: 'user.invite_revoke',
+    resourceType: 'pending_invite',
+    resourceId: draft.data.invite_id,
+    before: { role: (updated as { role?: string }).role ?? null, open: true },
+    after: {
+      role: (updated as { role?: string }).role ?? null,
+      open: false,
+      revoked_at: revokedAt,
+      reason_present: Boolean(draft.data.reason),
+    },
+  })
+
+  revalidatePath('/users')
+  revalidatePath('/audit')
+
+  return {
+    ok: true,
+    message: 'Invite revoked.',
+    resourceId: draft.data.invite_id,
+  }
+}
+
 export async function eraseCustomerPiiScaffoldAction(
   _previousState: ScaffoldActionState,
   formData: FormData,
@@ -483,6 +947,8 @@ export async function eraseCustomerPiiScaffoldAction(
   })
 
   if (!draft.success) return invalidInput(firstIssueMessage(draft))
+  const confirmationError = requireExplicitConfirmation(formData)
+  if (confirmationError) return confirmationError
 
   let supabase
   try {
@@ -600,6 +1066,182 @@ export async function updateModulesScaffoldAction(
   }
 }
 
+export async function createDevicePairingCodeAction(
+  _previousState: ScaffoldActionState,
+  formData: FormData,
+): Promise<ScaffoldActionResult> {
+  const draft = devicePairingCodeDraftSchema.safeParse({
+    branch_id: textField(formData, 'branch_id'),
+    cashier_code: textField(formData, 'cashier_code') || 'C01',
+    device_name: optionalTextField(formData, 'device_name'),
+    surface: textField(formData, 'surface') || 'mobile.tier_a_cashier',
+    expires_minutes: textField(formData, 'expires_minutes') || '30',
+  })
+
+  if (!draft.success) return invalidInput(firstIssueMessage(draft))
+
+  if (SURFACE_LABELS[draft.data.surface].group !== 'mobile') {
+    return invalidInput('Choose a mobile surface for this device.')
+  }
+
+  const access = await guardedScaffoldAccess('web.devices')
+  if (!access.ok) return access
+
+  const surfaceAccess = await guardedScaffoldAccess(draft.data.surface)
+  if (!surfaceAccess.ok) return surfaceAccess
+
+  let supabase
+  try {
+    supabase = await getServerSupabase()
+  } catch {
+    return { ok: false, reason: 'supabase_unconfigured', message: 'Supabase is not configured.' }
+  }
+
+  const ctx = await resolveCallerContext(supabase)
+  if (!ctx.ok) return ctx.result
+
+  const { data: branch, error: branchError } = await supabase
+    .from('branches')
+    .select('id, name, branch_code')
+    .eq('id', draft.data.branch_id)
+    .eq('is_active', true)
+    .maybeSingle()
+
+  if (branchError) {
+    return { ok: false, reason: 'query_failed', message: branchError.message }
+  }
+  if (!branch) {
+    return {
+      ok: false,
+      reason: 'invalid_input',
+      message: 'Choose an active branch before issuing a device code.',
+    }
+  }
+
+  const { data: businessRow, error: businessError } = await supabase
+    .from('businesses')
+    .select('max_devices')
+    .eq('id', ctx.businessId)
+    .maybeSingle()
+
+  if (businessError) {
+    return { ok: false, reason: 'query_failed', message: businessError.message }
+  }
+
+  const [{ count: deviceCount, error: deviceCountError }, { count: codeCount, error: codeError }] =
+    await Promise.all([
+      supabase
+        .from('business_devices')
+        .select('id', { count: 'exact', head: true })
+        .neq('status', 'lost'),
+      supabase
+        .from('device_pairing_codes')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'active')
+        .gt('expires_at', new Date().toISOString()),
+    ])
+
+  if (deviceCountError) {
+    return { ok: false, reason: 'query_failed', message: deviceCountError.message }
+  }
+  if (codeError) {
+    return { ok: false, reason: 'query_failed', message: codeError.message }
+  }
+
+  const maxDevices =
+    typeof (businessRow as { max_devices?: unknown } | null)?.max_devices === 'number'
+      ? (businessRow as { max_devices: number }).max_devices
+      : null
+  const requestedDevices = (deviceCount ?? 0) + (codeCount ?? 0) + 1
+  if (maxDevices !== null && requestedDevices > maxDevices) {
+    return {
+      ok: false,
+      reason: 'limit_exceeded',
+      message: `Device limit exceeded: ${requestedDevices}/${maxDevices}. Mark a lost device first or upgrade.`,
+    }
+  }
+
+  const expiresAt = new Date(Date.now() + draft.data.expires_minutes * 60_000).toISOString()
+  const branchName = (branch as { name: string }).name
+  const branchCode = (branch as { branch_code?: string }).branch_code
+  if (!branchCode) {
+    return {
+      ok: false,
+      reason: 'query_failed',
+      message: 'Selected branch is missing a branch code.',
+    }
+  }
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const code = generatePairingCode()
+    const normalizedCode = normalizeDevicePairingCode(code)
+    const { data: inserted, error: insertError } = await supabase
+      .from('device_pairing_codes')
+      .insert({
+        business_id: ctx.businessId,
+        branch_id: draft.data.branch_id,
+        created_by: ctx.userId,
+        pairing_code_hash: pairingCodeHash(normalizedCode),
+        pairing_code_last4: normalizedCode.slice(-4),
+        branch_code: branchCode,
+        cashier_code: draft.data.cashier_code,
+        device_name: draft.data.device_name ?? null,
+        surface: draft.data.surface,
+        expires_at: expiresAt,
+      })
+      .select('id')
+      .single()
+
+    if (insertError) {
+      if ((insertError as { code?: string }).code === '23505' && attempt < 2) continue
+      return {
+        ok: false,
+        reason: 'query_failed',
+        message: insertError.message,
+      }
+    }
+    if (!inserted) {
+      return {
+        ok: false,
+        reason: 'query_failed',
+        message: 'Could not issue device code.',
+      }
+    }
+
+    await logAuditEvent(supabase, {
+      businessId: ctx.businessId,
+      userId: ctx.userId,
+      action: 'device_pairing_code.create',
+      resourceType: 'device_pairing_code',
+      resourceId: inserted.id as string,
+      after: {
+        branch_id: draft.data.branch_id,
+        branch_code: branchCode,
+        cashier_code: draft.data.cashier_code,
+        device_name: draft.data.device_name ?? null,
+        surface: draft.data.surface,
+        expires_at: expiresAt,
+        pairing_code_last4: normalizedCode.slice(-4),
+      },
+    })
+
+    revalidatePath('/devices')
+    revalidatePath('/audit')
+
+    return {
+      ok: true,
+      message: `Device code ${code} issued for ${branchName} / ${draft.data.cashier_code}. It expires in ${draft.data.expires_minutes} minutes.`,
+      resourceId: inserted.id as string,
+    }
+  }
+
+  return {
+    ok: false,
+    reason: 'query_failed',
+    message: 'Could not issue a unique device code.',
+  }
+}
+
 export async function updateDeviceStatusScaffoldAction(
   _previousState: ScaffoldActionState,
   formData: FormData,
@@ -610,6 +1252,8 @@ export async function updateDeviceStatusScaffoldAction(
   })
 
   if (!draft.success) return invalidInput(firstIssueMessage(draft))
+  const confirmationError = requireExplicitConfirmation(formData)
+  if (confirmationError) return confirmationError
 
   const access = await guardedScaffoldAccess('web.devices')
   if (!access.ok) return access
@@ -702,6 +1346,8 @@ export async function markDeviceLostForReplacementAction(
   })
 
   if (!draft.success) return invalidInput(firstIssueMessage(draft))
+  const confirmationError = requireExplicitConfirmation(formData)
+  if (confirmationError) return confirmationError
 
   const access = await guardedScaffoldAccess('web.devices')
   if (!access.ok) return access

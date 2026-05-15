@@ -13,6 +13,8 @@ interface ScaffoldActionButtonProps {
   action: ScaffoldAction
   label: string
   fields?: ScaffoldField[]
+  confirmationLabel?: string
+  intent?: 'default' | 'danger'
 }
 
 function toneFor(state: ScaffoldActionResult): string {
@@ -31,6 +33,15 @@ type ScaffoldField =
       placeholder?: string
       defaultValue?: string
       required?: boolean
+    }
+  | {
+      kind: 'textarea'
+      name: string
+      label: string
+      placeholder?: string
+      defaultValue?: string
+      required?: boolean
+      rows?: number
     }
   | {
       kind: 'select'
@@ -80,6 +91,22 @@ function ScaffoldFieldInput({ field }: { field: ScaffoldField }) {
     )
   }
 
+  if (field.kind === 'textarea') {
+    return (
+      <label className="flex min-w-[10rem] flex-col gap-1 text-[12px] font-semibold text-ink-600 sm:col-span-2">
+        {field.label}
+        <textarea
+          name={field.name}
+          placeholder={field.placeholder}
+          defaultValue={field.defaultValue}
+          required={field.required}
+          rows={field.rows ?? 6}
+          className="rounded-md border border-ink-200 bg-white px-2 py-1.5 font-mono text-[12px] text-ink-900 outline-none placeholder:text-ink-400 focus:border-teal-700 focus:ring-2 focus:ring-teal-100"
+        />
+      </label>
+    )
+  }
+
   return (
     <label className="flex min-w-[10rem] flex-col gap-1 text-[12px] font-semibold text-ink-600">
       {field.label}
@@ -95,7 +122,21 @@ function ScaffoldFieldInput({ field }: { field: ScaffoldField }) {
   )
 }
 
-export function ScaffoldActionButton({ action, label, fields = [] }: ScaffoldActionButtonProps) {
+function buttonClassFor(intent: ScaffoldActionButtonProps['intent']): string {
+  if (intent === 'danger') {
+    return 'rounded-lg border border-danger-500 bg-danger-500 px-3 py-1.5 text-[13px] font-semibold text-white transition-colors hover:bg-danger-600 disabled:cursor-wait disabled:border-ink-300 disabled:bg-ink-200 disabled:text-ink-500'
+  }
+
+  return 'rounded-lg border border-teal-700 bg-teal-700 px-3 py-1.5 text-[13px] font-semibold text-white transition-colors hover:bg-teal-800 disabled:cursor-wait disabled:border-ink-300 disabled:bg-ink-200 disabled:text-ink-500'
+}
+
+export function ScaffoldActionButton({
+  action,
+  label,
+  fields = [],
+  confirmationLabel,
+  intent = 'default',
+}: ScaffoldActionButtonProps) {
   const [state, formAction, isPending] = useActionState(action, null)
 
   return (
@@ -107,11 +148,18 @@ export function ScaffoldActionButton({ action, label, fields = [] }: ScaffoldAct
           ))}
         </div>
       ) : null}
-      <button
-        type="submit"
-        disabled={isPending}
-        className="rounded-lg border border-teal-700 bg-teal-700 px-3 py-1.5 text-[13px] font-semibold text-white transition-colors hover:bg-teal-800 disabled:cursor-wait disabled:border-ink-300 disabled:bg-ink-200 disabled:text-ink-500"
-      >
+      {confirmationLabel ? (
+        <label className="flex max-w-[32rem] items-start gap-2 rounded-lg border border-danger-500/20 bg-danger-500/5 p-3 text-[13px] font-medium text-ink-700">
+          <input
+            name="confirm_action"
+            type="checkbox"
+            required
+            className="mt-0.5 size-4 rounded border-danger-500 text-danger-500"
+          />
+          <span>{confirmationLabel}</span>
+        </label>
+      ) : null}
+      <button type="submit" disabled={isPending} className={buttonClassFor(intent)}>
         {isPending ? 'Checking access…' : label}
       </button>
       {state ? (

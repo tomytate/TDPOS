@@ -113,7 +113,41 @@ export default async function AuditLogPage() {
         </article>
       ) : (
         <article className="overflow-hidden rounded-xl border border-ink-200 bg-white shadow-sm">
-          <div className="overflow-x-auto">
+          {/* Phone layout: stacked cards. Avoids horizontal scroll on
+              data-heavy six-column audit rows. The desktop table below
+              is hidden under `sm`. */}
+          <ul className="block divide-y divide-ink-100 sm:hidden" aria-label="Recent audit entries">
+            {result.entries.map((entry) => (
+              <li key={entry.id} className="flex flex-col gap-2 px-4 py-3 text-[13px]">
+                <div className="flex items-center justify-between gap-2">
+                  <span
+                    className={`rounded px-1.5 py-0.5 font-mono text-[12px] ${actionToneClass(
+                      entry.action,
+                    )}`}
+                  >
+                    {entry.action}
+                  </span>
+                  <span className="text-[11px] text-ink-500">
+                    {formatTimestamp(entry.createdAt)}
+                  </span>
+                </div>
+                <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[12px]">
+                  <dt className="font-semibold text-ink-500">Resource</dt>
+                  <dd className="text-ink-700">
+                    {entry.resourceType}{' '}
+                    <span className="font-mono text-ink-500">{tailRef(entry.resourceId)}</span>
+                  </dd>
+                  <dt className="font-semibold text-ink-500">User</dt>
+                  <dd className="font-mono text-ink-500">{tailRef(entry.userId)}</dd>
+                  <dt className="font-semibold text-ink-500">Changed</dt>
+                  <dd className="text-ink-600">
+                    {changeSummary(entry.beforeKeys, entry.afterKeys)}
+                  </dd>
+                </dl>
+              </li>
+            ))}
+          </ul>
+          <div className="hidden overflow-x-auto sm:block">
             <table className="min-w-full divide-y divide-ink-100 text-[13px]">
               <thead className="bg-ink-50">
                 <tr className="text-left text-[11px] uppercase tracking-[1px] text-ink-500">

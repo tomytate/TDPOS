@@ -280,7 +280,61 @@ export default async function ModulesPage() {
                 )}
 
                 <div className="mt-4 overflow-hidden rounded-lg border border-ink-100">
-                  <table className="min-w-full border-collapse text-left text-sm">
+                  {/* Phone layout: stacked cards. The desktop table
+                      below is hidden under `sm`. */}
+                  {customersResult.customers.length === 0 ? (
+                    <p className="px-3 py-5 text-center text-sm text-ink-500 sm:hidden">
+                      No customer profiles found.
+                    </p>
+                  ) : (
+                    <ul
+                      className="block divide-y divide-ink-100 sm:hidden"
+                      aria-label="Customer privacy rows"
+                    >
+                      {customersResult.customers.map((customer) => (
+                        <li key={customer.id} className="flex flex-col gap-2 px-3 py-3 text-[13px]">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="m-0 truncate text-[14px] font-semibold text-ink-900">
+                                {customer.name}
+                              </p>
+                              <p className="mt-0.5 font-mono text-[11px] text-ink-500">
+                                ...{customer.id.slice(-8)}
+                              </p>
+                            </div>
+                            {customer.piiErased ? (
+                              <span className="rounded-full bg-ink-100 px-2 py-0.5 text-[11px] font-semibold text-ink-600">
+                                Erased {formatDate(customer.erasedAt)}
+                              </span>
+                            ) : (
+                              <span className="rounded-full bg-success-500/10 px-2 py-0.5 text-[11px] font-semibold text-success-600">
+                                Active
+                              </span>
+                            )}
+                          </div>
+                          <dl className="grid grid-cols-3 gap-2 text-[12px]">
+                            <div>
+                              <dt className="m-0 font-semibold text-ink-500">Phone</dt>
+                              <dd className="m-0 text-ink-700">{customer.phoneSuffix}</dd>
+                            </div>
+                            <div>
+                              <dt className="m-0 font-semibold text-ink-500">Utang</dt>
+                              <dd className="m-0 tabular-nums text-ink-700">
+                                {customer.formattedUtang}
+                              </dd>
+                            </div>
+                            <div>
+                              <dt className="m-0 font-semibold text-ink-500">Points</dt>
+                              <dd className="m-0 tabular-nums text-ink-700">
+                                {customer.pointsBalance}
+                              </dd>
+                            </div>
+                          </dl>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <table className="hidden min-w-full border-collapse text-left text-sm sm:table">
                     <thead className="bg-ink-50 text-[12px] uppercase text-ink-500">
                       <tr>
                         <th className="px-3 py-2 font-semibold">Customer</th>

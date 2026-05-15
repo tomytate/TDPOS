@@ -256,7 +256,34 @@ export default async function UsersPage() {
               </div>
 
               <div className="overflow-hidden rounded-lg border border-ink-100">
-                <table className="min-w-full border-collapse text-left text-sm">
+                {/* Phone layout: stacked cards. */}
+                <ul
+                  className="block divide-y divide-ink-100 sm:hidden"
+                  aria-label="Pending invites"
+                >
+                  {pendingInvites.map((invite) => (
+                    <li key={invite.id} className="flex flex-col gap-2 px-4 py-3 text-[13px]">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="m-0 text-[14px] font-semibold text-ink-900">
+                            Phone {invite.phoneSuffix}
+                          </p>
+                          <p className="mt-0.5 text-[11px] text-ink-500">
+                            Hidden until the user signs in
+                          </p>
+                        </div>
+                        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[12px] font-semibold text-amber-700">
+                          Pending
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-[12px]">
+                        <RoleBadge role={invite.role} />
+                        <span className="text-ink-500">{formatDate(invite.invitedAt)}</span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+                <table className="hidden min-w-full border-collapse text-left text-sm sm:table">
                   <thead className="bg-ink-50 text-[12px] uppercase text-ink-500">
                     <tr>
                       <th className="px-4 py-3 font-semibold">Invite</th>
@@ -294,7 +321,55 @@ export default async function UsersPage() {
           ) : null}
 
           <div className="overflow-hidden rounded-lg border border-ink-200 bg-white">
-            <table className="min-w-full border-collapse text-left text-sm">
+            {/* Phone layout: stacked cards. The desktop table below is
+                hidden under `sm` so 5-column rows don't get clipped. */}
+            {result.users.length === 0 ? (
+              <div className="px-4 py-10 text-center sm:hidden">
+                <p className="m-0 text-base font-semibold text-ink-800">No users yet</p>
+                <p className="mt-1 text-sm text-ink-500">
+                  Use “Validate invite scaffold” above to add the first cashier or manager.
+                </p>
+              </div>
+            ) : (
+              <ul className="block divide-y divide-ink-100 sm:hidden" aria-label="Users">
+                {result.users.map((user) => (
+                  <li key={user.id} className="flex flex-col gap-2 px-4 py-3 text-[13px]">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="m-0 truncate text-[14px] font-semibold text-ink-900">
+                          Phone {user.phoneSuffix}
+                        </p>
+                        <p className="mt-0.5 text-[11px] text-ink-500">
+                          Only the last 4 digits are shown
+                        </p>
+                      </div>
+                      <span
+                        className={
+                          user.isActive
+                            ? 'rounded-full bg-success-500/10 px-2 py-0.5 text-[12px] font-semibold text-success-600'
+                            : 'rounded-full bg-ink-100 px-2 py-0.5 text-[12px] font-semibold text-ink-500'
+                        }
+                      >
+                        {user.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-[12px]">
+                      <RoleBadge role={user.role} />
+                      <span className="text-ink-500">{formatDate(user.createdAt)}</span>
+                    </div>
+                    {!user.isActive && user.deactivatedAt ? (
+                      <p className="m-0 text-[11px] text-ink-500">
+                        Deactivated {formatDate(user.deactivatedAt)}
+                      </p>
+                    ) : null}
+                    {user.emailPresent ? (
+                      <p className="m-0 text-[11px] text-ink-500">Email on file</p>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            )}
+            <table className="hidden min-w-full border-collapse text-left text-sm sm:table">
               <thead className="bg-ink-50 text-[12px] uppercase text-ink-500">
                 <tr>
                   <th className="px-4 py-3 font-semibold">User</th>

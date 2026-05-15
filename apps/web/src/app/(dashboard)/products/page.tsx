@@ -281,70 +281,129 @@ export default async function ProductsPage() {
             />
           </section>
 
-          <div className="overflow-x-auto rounded-lg border border-ink-200 bg-white">
-            <table className="min-w-full border-collapse text-left text-sm">
-              <thead className="bg-ink-50 text-[12px] uppercase text-ink-500">
-                <tr>
-                  <th className="px-4 py-3 font-semibold">Product</th>
-                  <th className="px-4 py-3 font-semibold">Category</th>
-                  <th className="px-4 py-3 font-semibold">Stock</th>
-                  <th className="px-4 py-3 font-semibold">Price</th>
-                  <th className="px-4 py-3 font-semibold">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-ink-100">
-                {result.products.length === 0 ? (
-                  <tr>
-                    <td className="px-4 py-10 text-center" colSpan={5}>
-                      <p className="m-0 text-base font-semibold text-ink-800">No products yet</p>
-                      <p className="mt-1 text-sm text-ink-500">
-                        Use “Validate product scaffold” above to add a row, or sync from your
-                        existing catalog.
-                      </p>
-                    </td>
-                  </tr>
-                ) : (
-                  result.products.map((product) => {
-                    const tone = stockTone(product)
-                    return (
-                      <tr key={product.id}>
-                        <td className="px-4 py-3">
-                          <div className="font-semibold text-ink-900">{product.name}</div>
-                          <div className="mt-0.5 text-[12px] text-ink-500">
+          <div className="rounded-lg border border-ink-200 bg-white">
+            {/* Phone layout: stacked cards. Five-column tables force
+                h-scroll on Pixel/iPhone widths; the desktop table below
+                is hidden under `sm`. */}
+            {result.products.length === 0 ? (
+              <div className="px-4 py-10 text-center sm:hidden">
+                <p className="m-0 text-base font-semibold text-ink-800">No products yet</p>
+                <p className="mt-1 text-sm text-ink-500">
+                  Use “Validate product scaffold” above to add a row, or sync from your existing
+                  catalog.
+                </p>
+              </div>
+            ) : (
+              <ul className="block divide-y divide-ink-100 sm:hidden" aria-label="Product catalog">
+                {result.products.map((product) => {
+                  const tone = stockTone(product)
+                  return (
+                    <li key={product.id} className="flex flex-col gap-2 px-4 py-3 text-[13px]">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="m-0 truncate text-[14px] font-semibold text-ink-900">
+                            {product.name}
+                          </p>
+                          <p className="mt-0.5 text-[12px] text-ink-500">
                             {product.sku ?? 'No SKU'} {product.isTingi ? '· Tingi' : ''}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-ink-600">
-                          {product.categoryName ?? 'Uncategorized'}
-                        </td>
-                        <td className="px-4 py-3 tabular-nums text-ink-700">
-                          <div className="flex items-center gap-2">
-                            <span>{product.stockDisplay}</span>
-                            <StockBadge tone={tone} />
-                          </div>
+                          </p>
+                        </div>
+                        <StatusBadge active={product.isActive} />
+                      </div>
+                      <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[12px]">
+                        <dt className="font-semibold text-ink-500">Category</dt>
+                        <dd className="text-ink-700">{product.categoryName ?? 'Uncategorized'}</dd>
+                        <dt className="font-semibold text-ink-500">Stock</dt>
+                        <dd className="flex items-center gap-2 tabular-nums text-ink-700">
+                          <span>{product.stockDisplay}</span>
+                          <StockBadge tone={tone} />
                           {product.reorderPointPieces !== null ? (
-                            <div className="mt-0.5 text-[11px] text-ink-500">
-                              Reorder at {product.reorderPointPieces.toLocaleString('en-PH')}
-                            </div>
+                            <span className="text-[11px] text-ink-500">
+                              · Reorder {product.reorderPointPieces.toLocaleString('en-PH')}
+                            </span>
                           ) : null}
-                        </td>
-                        <td className="px-4 py-3 tabular-nums text-ink-700">
-                          <div>{product.formattedPricePerPiece}</div>
+                        </dd>
+                        <dt className="font-semibold text-ink-500">Price</dt>
+                        <dd className="tabular-nums text-ink-700">
+                          {product.formattedPricePerPiece}
                           {product.formattedPricePerPack ? (
-                            <div className="text-[12px] text-ink-500">
-                              Pack {product.formattedPricePerPack}
-                            </div>
+                            <span className="text-[12px] text-ink-500">
+                              {' '}
+                              · Pack {product.formattedPricePerPack}
+                            </span>
                           ) : null}
-                        </td>
-                        <td className="px-4 py-3">
-                          <StatusBadge active={product.isActive} />
-                        </td>
-                      </tr>
-                    )
-                  })
-                )}
-              </tbody>
-            </table>
+                        </dd>
+                      </dl>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+            <div className="hidden overflow-x-auto sm:block">
+              <table className="min-w-full border-collapse text-left text-sm">
+                <thead className="bg-ink-50 text-[12px] uppercase text-ink-500">
+                  <tr>
+                    <th className="px-4 py-3 font-semibold">Product</th>
+                    <th className="px-4 py-3 font-semibold">Category</th>
+                    <th className="px-4 py-3 font-semibold">Stock</th>
+                    <th className="px-4 py-3 font-semibold">Price</th>
+                    <th className="px-4 py-3 font-semibold">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-ink-100">
+                  {result.products.length === 0 ? (
+                    <tr>
+                      <td className="px-4 py-10 text-center" colSpan={5}>
+                        <p className="m-0 text-base font-semibold text-ink-800">No products yet</p>
+                        <p className="mt-1 text-sm text-ink-500">
+                          Use “Validate product scaffold” above to add a row, or sync from your
+                          existing catalog.
+                        </p>
+                      </td>
+                    </tr>
+                  ) : (
+                    result.products.map((product) => {
+                      const tone = stockTone(product)
+                      return (
+                        <tr key={product.id}>
+                          <td className="px-4 py-3">
+                            <div className="font-semibold text-ink-900">{product.name}</div>
+                            <div className="mt-0.5 text-[12px] text-ink-500">
+                              {product.sku ?? 'No SKU'} {product.isTingi ? '· Tingi' : ''}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-ink-600">
+                            {product.categoryName ?? 'Uncategorized'}
+                          </td>
+                          <td className="px-4 py-3 tabular-nums text-ink-700">
+                            <div className="flex items-center gap-2">
+                              <span>{product.stockDisplay}</span>
+                              <StockBadge tone={tone} />
+                            </div>
+                            {product.reorderPointPieces !== null ? (
+                              <div className="mt-0.5 text-[11px] text-ink-500">
+                                Reorder at {product.reorderPointPieces.toLocaleString('en-PH')}
+                              </div>
+                            ) : null}
+                          </td>
+                          <td className="px-4 py-3 tabular-nums text-ink-700">
+                            <div>{product.formattedPricePerPiece}</div>
+                            {product.formattedPricePerPack ? (
+                              <div className="text-[12px] text-ink-500">
+                                Pack {product.formattedPricePerPack}
+                              </div>
+                            ) : null}
+                          </td>
+                          <td className="px-4 py-3">
+                            <StatusBadge active={product.isActive} />
+                          </td>
+                        </tr>
+                      )
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </>
       )}

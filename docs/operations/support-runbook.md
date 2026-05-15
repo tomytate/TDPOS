@@ -86,11 +86,12 @@ Steps:
 
 1. Continue sales using the receipt screen.
 2. Confirm printer power, paper, and device Bluetooth permission.
-3. Re-pair from device settings if the printer is visible but disconnected.
-4. Copy diagnostics only if the app reports a printer error.
-5. Escalate as `SEV-2` if sales require printed receipts for the store's workflow.
+3. Open **Diagnostics → Receipt printer**, scan for Bluetooth printers, select the printer, and send a test slip.
+4. Re-pair from device settings if the printer is visible to the operating system but not to TD POS.
+5. Copy diagnostics if the app reports a printer error or if no printers appear.
+6. Escalate as `SEV-2` if sales require printed receipts for the store's workflow.
 
-Never block checkout because the printer is unavailable. Receipt display is the fallback until printer integration is verified with hardware.
+Never block checkout because the printer is unavailable. Receipt display remains the fallback even after the printer service is wired; hardware proof is part of the 0.9 device pass.
 
 ### 4. Lost Or Stolen Device
 
@@ -119,8 +120,9 @@ Steps:
 1. Confirm the old phone has synced, if available.
 2. Install the latest development or pilot build on the new phone.
 3. Sign in with the provisioned phone number.
-4. Confirm branch and cashier identity.
-5. Run a small non-customer test sale only in a controlled pilot setup.
+4. In the web dashboard **Devices** page, issue a short-lived device code for the target branch and cashier.
+5. On the phone, open **Diagnostics → Device pairing**, enter the code, and confirm the branch/cashier identity changed.
+6. Run a small non-customer test sale only in a controlled pilot setup.
 
 Do not tell a store to delete the old app or wipe data until restore-from-server bootstrap has been verified for that store.
 
@@ -136,8 +138,9 @@ Steps:
 1. Stop using the device for new sales until identity is corrected.
 2. Copy diagnostics.
 3. Record current branch code, branch name, cashier code, and install ID.
-4. Update assignment through the owner/admin path when available.
-5. Escalate to engineering before changing receipt namespace after sales already exist.
+4. In the web dashboard **Devices** page, issue a short-lived device code for the correct branch and cashier.
+5. On the phone, open **Diagnostics → Device pairing**, enter the code, and copy diagnostics after the heartbeat succeeds.
+6. Escalate to engineering before changing receipt namespace after sales already exist.
 
 Receipt numbers are intentionally namespaced. Changing identity after sales exist must preserve auditability.
 

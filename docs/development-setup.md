@@ -2,7 +2,7 @@
 
 Last verified: May 12, 2026.
 
-This project is mobile-first and foundation-gated. A clean checkout should be able to install, check formatting, scan for committed secrets, verify local SQLite schema drift, scan for forbidden patterns, typecheck, lint, and test through one command.
+This project is mobile-first and foundation-gated. A clean checkout should be able to install, check formatting, scan for committed secrets, verify local SQLite schema drift, verify Supabase RLS coverage, scan for forbidden patterns, typecheck, lint, and test through one command.
 
 ## Required Tools
 
@@ -110,7 +110,10 @@ This runs:
 - `prettier --check .`
 - committed-secret pattern scan
 - local SQLite schema drift check
+- local SQLite migration ordering check
+- Supabase migration RLS coverage check
 - forbidden/deprecated pattern scan
+- mobile service-role containment scan
 - tier UI source reference check
 - markdown link integrity check
 - skill-doc source metadata check

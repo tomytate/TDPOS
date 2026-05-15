@@ -137,7 +137,49 @@ export default async function BranchesPage() {
           </section>
 
           <div className="overflow-hidden rounded-lg border border-ink-200 bg-white">
-            <table className="min-w-full border-collapse text-left text-sm">
+            {/* Phone layout: stacked cards. The desktop table below is
+                hidden under `sm` so 5-column rows don't get clipped. */}
+            {result.branches.length === 0 ? (
+              <div className="px-4 py-10 text-center sm:hidden">
+                <p className="m-0 text-base font-semibold text-ink-800">No branches yet</p>
+                <p className="mt-1 text-sm text-ink-500">
+                  Use “Validate branch scaffold” above to add your first selling point.
+                </p>
+              </div>
+            ) : (
+              <ul className="block divide-y divide-ink-100 sm:hidden" aria-label="Branches">
+                {result.branches.map((branch) => (
+                  <li key={branch.id} className="flex flex-col gap-2 px-4 py-3 text-[13px]">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="m-0 truncate text-[14px] font-semibold text-ink-900">
+                          {branch.name}
+                        </p>
+                        <p className="mt-0.5 font-mono text-[12px] font-semibold text-ink-700">
+                          {branch.branchCode}
+                        </p>
+                      </div>
+                      <span
+                        className={
+                          branch.isActive
+                            ? 'rounded-full bg-success-500/10 px-2 py-0.5 text-[12px] font-semibold text-success-600'
+                            : 'rounded-full bg-ink-100 px-2 py-0.5 text-[12px] font-semibold text-ink-500'
+                        }
+                      >
+                        {branch.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                    </div>
+                    <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[12px]">
+                      <dt className="font-semibold text-ink-500">Region</dt>
+                      <dd className="text-ink-700">{branch.region ?? '--'}</dd>
+                      <dt className="font-semibold text-ink-500">Address</dt>
+                      <dd className="text-ink-700">{branch.address ?? '--'}</dd>
+                    </dl>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <table className="hidden min-w-full border-collapse text-left text-sm sm:table">
               <thead className="bg-ink-50 text-[12px] uppercase text-ink-500">
                 <tr>
                   <th className="px-4 py-3 font-semibold">Branch</th>
