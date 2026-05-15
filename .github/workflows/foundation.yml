@@ -34,6 +34,22 @@ jobs:
       - name: Require committed Bun lockfile
         run: test -f bun.lock
 
+      # Cache the global Bun install cache and every workspace's
+      # node_modules so a foundation run hits the network only when
+      # bun.lock changes. The key is the lockfile hash; any dependency
+      # bump invalidates the cache automatically.
+      - name: Restore Bun cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.bun/install/cache
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
       - name: Install dependencies
         run: bun ci
 
@@ -49,8 +65,14 @@ jobs:
       - name: Check local SQLite migration ordering
         run: bun run check:sqlite-migrations
 
+      - name: Check Supabase RLS coverage
+        run: bun run check:supabase-rls
+
       - name: Check forbidden foundation patterns
         run: bun run check:patterns
+
+      - name: Check mobile holds no service-role credential
+        run: bun run check:mobile-no-service-key
 
       - name: Check tier UI sources
         run: bun run check:tier-ui-sources
